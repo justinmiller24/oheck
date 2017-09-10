@@ -1,0 +1,262 @@
+<!doctype html>
+<!--
+  Material Design Lite
+  Copyright 2015 Google Inc. All rights reserved.
+
+  Licensed under the Apache License, Version 2.0 (the "License");
+  you may not use this file except in compliance with the License.
+  You may obtain a copy of the License at
+
+      https://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License
+-->
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="description" content="Oh Heck!">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+    <title>Oh Heck!</title>
+    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium">
+    <link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="//code.getmdl.io/1.3.0/material.indigo-blue.min.css" />
+    <link rel="stylesheet" href="/css/jquery.modal.min.css">
+    <link rel="stylesheet" href="/css/oheck.css">
+    <link rel="stylesheet" href="/css/board.css">
+  </head>
+  <body>
+    <!-- LOADING SPINNER -->
+    <div id="mdl-spinner mdl-js-spinner is-active"></div>
+
+    <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
+
+      <!-- HEADER -->
+      <div id="header" class="mdl-layout__header mdl-layout__header--waterfall">
+        <div class="mdl-layout__header-row">
+          <span id="page-title" class="mdl-layout-title">
+            <h2>Oh Heck!</h2>
+          </span>
+
+          <!-- Add spacer, to align navigation to the right in desktop -->
+          <div class="mdl-layout-spacer"></div>
+
+          <!-- Navigation -->
+          <div id="navigation-container">
+            <nav id="navigation" class="mdl-navigation mdl-layout--large-screen-only">
+
+              <!-- Rules -->
+              <a id="show-game-rules" class="mdl-navigation__link" href="/html/rules.html" rel="modal:open">
+                <i class="material-icons">chat_bubble</i>
+                <div class="mdl-tooltip" data-mdl-for="show-game-rules">Rules</div>
+              </a>
+
+              <!-- Nascar >
+              <a class="mdl-navigation__link" href="#"><i class="material-icons">local_shipping</i></a-->
+
+              <!-- Picture Hand >
+              <a class="mdl-navigation__link" href="#"><i class="material-icons">add_a_photo</i></a-->
+
+              <!-- Scoreboard -->
+              <a id="show-scoreboard" class="mdl-navigation__link" href="/html/scoreboard.html" rel="modal:open">
+                <i class="material-icons">insert_chart</i>
+                <div class="mdl-tooltip" data-mdl-for="show-scoreboard">Scoreboard</div>
+              </a>
+
+              <!-- Settings -->
+              <a id="show-settings" class="mdl-navigation__link" href="/html/settings.html" rel="modal:open">
+                <i class="material-icons">settings</i>
+                <div class="mdl-tooltip" data-mdl-for="show-settings">Settings</div>
+              </a>
+
+              <!-- Logout -->
+              <a id="show-logout" class="mdl-navigation__link" href="/html/logout.html" rel="modal:open">
+                <i class="material-icons">power_settings_new</i>
+                <div class="mdl-tooltip" data-mdl-for="show-logout">Logout</div>
+              </a>
+
+            </nav>
+          </div>
+        </div>
+      </div>
+
+
+      <!-- LEFT MENU -->
+      <div class="mdl-layout__drawer mdl-layout--small-screen-only">
+        <span class="mdl-layout-title">Main Menu</span>
+        <nav class="mdl-navigation">
+          <i class="sidebar-icon md-inbox"></i>
+          <a class="mdl-navigation__link" href="">Rules</a>
+
+          <a class="mdl-navigation__link" href="/html/settings.html" rel="modal:open">Settings</a>
+          <a disabled class="mdl-navigation__link" href="/html/scoreboard.html" rel="modal:open">Scoreboard</a>
+          <a class="mdl-navigation__link" href="/html/logout.html" rel="modal:open">Logout</a>
+        </nav>
+      </div>
+
+
+      <!-- MAIN CONTENT -->
+      <div id="main" class="mdl-layout__content">
+        <!--a name="top"></a-->
+        <div id="welcome" class="mdl-typography--text-center">
+          <div class="welcome-slogan">Welcome to <h1>Oh Heck!</h1></div>
+          <div class="welcome-sub-slogan">You made it. Now it's time to take down the Sultan.</div>
+          <a id="get-started-button-action" href="#login">
+            <button id="get-started-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Get Started</button>
+            <!--button id="get-started-fab" class="mdl-button mdl-button--colored mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--accent">
+              <i class="material-icons">expand_more</i>
+            </button-->
+          </a>
+        </div>
+        <div class="content-section">
+
+          <!-- LOGIN -->
+          <div id="login" class="h mdl-tabs mdl-js-tabs mdl-js-ripple-effect">
+            <div class="mdl-tabs__tab-bar">
+              <a href="#select-name" class="mdl-tabs__tab is-active">Name</a>
+              <a href="#select-avatar" class="mdl-tabs__tab">Avatar</a>
+              <a href="#select-confirm" class="mdl-tabs__tab">Confirm</a>
+            </div>
+            <div class="mdl-tabs__panel is-active" id="select-name">
+              <form action="#select-avatar">
+                <h2>Enter Name</h2>
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" pattern="[A-Z,a-z]*" id="name" autocomplete="off" />
+                  <label class="mdl-textfield__label" for="name">Name</label>
+                  <span class="mdl-textfield__error">Only alphabet and no spaces, please!</span>
+                </div>
+                <div>
+                  <button id="login-next-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">Next</button>
+                </div>
+              </form>
+            </div>
+            <div class="mdl-tabs__panel" id="select-avatar">
+              <h2>Choose Avatar</h2>
+              <form action="#">
+                <div class="mdl-grid">
+                  <div class="mdl-card mdl-cell mdl-cell--4-col mdl-cell--3-col-tablet mdl-shadow--2dp">
+                    <figure class="mdl-card__media">
+                      <img src="http://tfirdaus.github.io/mdl/images/laptop.jpg" alt="" />
+                    </figure>
+                    <div class="mdl-card__title">
+                      <h1 class="mdl-card__title-text">Avatar #1</h1>
+                    </div>
+                    <div class="mdl-card__actions mdl-card--border">
+                      <p style="margin:auto 8px;">Name</p>
+                      <div class="mdl-layout-spacer"></div>
+                      <button id="avatar-1" class="mdl-button mdl-js-button mdl-button--colored mdl-js-ripple-effect">Select</button>
+                    </div>
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div class="mdl-tabs__panel" id="select-confirm">
+              <h2>Confirm</h2>
+              <div class="content-section-title mdl-typography--display-1-color-contrast">Are you ready to join?</div>
+              <ul id="show-confirm" class="mdl-list mdl-typography--text-left">
+                <li class="mdl-list__item mdl-list__item--two-line">
+                  <span class="mdl-list__item-primary-content">
+                    <i class="material-icons mdl-list__item-avatar">person</i>
+                    <span class="confirm-name"></span>
+                    <span class="confirm-avatar mdl-list__item-sub-title"></span>
+                  </span>
+              </ul>
+              <div class="mdl-typography--text-center">
+                <button id="sign-in-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Let's Go!</button>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- LOBBY -->
+          <div id="lobby" class="h mdl-layout__content">
+            <div class="content-section-title mdl-typography--display-1-color-contrast">Users Online</div>
+            <ul id="usersOnline" class="mdl-list mdl-typography--text-left"></ul>
+            <div class="mdl-typography--text-center">
+              <a class="mdl-navigation__link" href="/html/create-game.html" rel="modal:open">
+                <button id="create-game-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Create Game</button>
+              </a>
+            </div>
+          </div>
+
+
+          <!-- GAME -->
+          <div id="game-board" class="h mdl-tabs mdl-js-tabs mdl-js-ripple-effect">
+            <!--div class="mdl-tabs__tab-bar">
+              <a href="#select-name" class="mdl-tabs__tab is-active">Name</a>
+              <a href="#select-avatar" class="mdl-tabs__tab">Avatar</a>
+              <a href="#select-confirm" class="mdl-tabs__tab">Confirm</a>
+            </div>
+            <div class="mdl-tabs__panel is-active" id="select-name">
+              <form action="#select-avatar">
+                <h2>Oh Heck!</h2>
+                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+                  <input class="mdl-textfield__input" type="text" pattern="[A-Z,a-z]*" id="name" autocomplete="off" />
+                  <label class="mdl-textfield__label" for="name">Name</label>
+                  <span class="mdl-textfield__error">Only alphabet and no spaces, please!</span>
+                </div>
+                <div>
+                  <button id="login-next-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">Next</button>
+                </div>
+              </form>
+            </div-->
+            <div id="playersBlock"></div>
+    				<div id="playersBidBlock"></div>
+    				<div id="messageBox"><p>Loading...</p></div>
+    				<button id="deal" class="mdl-button mdl-js-button mdl-js-ripple-effect">Deal Next Hand</button>
+    				<div id="bid"><h4>What is your bid?</h4></div>
+            <div class="play block">
+      				<h2>Scoreboard</h2>
+      				<div id="scoreboard"><div class="loading">Loading...</div></div>
+      			</div>
+          </div>
+          
+    		</div>
+
+        <!-- FOOTER -->
+        <footer id="footer" class="mdl-mega-footer">
+          <div class="mdl-mega-footer--top-section">
+            <div class="mdl-mega-footer--left-section">
+              <p class="mdl-typography--font-light">© 2017 Millertime Enterprises</p>
+              <p class="mdl-typography--font-light">Some features may not be available on all devices</p>
+            </div>
+            <!--div class="mdl-mega-footer--right-section">
+              <a class="mdl-typography--font-light" href="#top">
+                Back to Top
+                <i class="material-icons">expand_less</i>
+              </a>
+            </div-->
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <a href="#" id="force-reload" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-color--accent mdl-color-text--accent-contrast">Force Reload</a>
+
+    <!-- SNACKBAR NOTIFICATION MESSAGE -->
+    <div id="snackbar-message" class="mdl-js-snackbar mdl-snackbar">
+      <div class="mdl-snackbar__text"></div>
+      <button class="mdl-snackbar__action" type="button"></button>
+    </div>
+
+    <!-- DIALOGS -->
+    <div id="rules-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
+    <div id="create-game-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
+    <div id="scoreboard-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
+    <div id="settings-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
+    <did id="logout-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
+
+    <!--Import jQuery before MDL-->
+    <script type="text/javascript" src="/socket.io/socket.io.js"></script>
+    <script type="text/javascript" src="//code.jquery.com/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="//code.getmdl.io/1.3.0/material.min.js"></script>
+    <script type="text/javascript" src="/js/jquery.cookie.min.js"></script>
+    <script type="text/javascript" src="/js/jquery.modal.min.js"></script>
+    <script type="text/javascript" src="/js/oheck.js"></script>
+    <script type="text/javascript" src="/js/game.js"></script>
+  </body>
+</html>

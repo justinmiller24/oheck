@@ -1,0 +1,177 @@
+
+#trump span {width:18px; height:30px; padding:0;}
+#trump span.hearts {background:url("/img/suits.jpg") no-repeat 0 0; display:inline-block; float:right;}
+#trump span.spades {background:url("/img/suits.jpg") no-repeat -18px 0; display:inline-block; float:right;}
+#trump span.diamonds {background:url("/img/suits.jpg") no-repeat -36px 0; display:inline-block; float:right;}
+#trump span.clubs {background:url("/img/suits.jpg") no-repeat -54px 0; display:inline-block; float:right;}
+
+/* Content */
+.dialog,
+.inner-page,
+.play {display:none;}
+
+#utility h2 {text-shadow:#000 2px 2px 1px; font-size:1.5em; margin:0 0 20px; text-decoration:underline;}
+#utility #left p {margin:25px 10px;}
+#utility #left ul,
+#utility #left ol {padding:10px 40px;}
+
+.card {width:71px; height:96px; background-image:url("/img/cards2.png"); position:absolute; cursor:pointer;}
+.verticalTrick {position:absolute; width:33px; height:45px; background:url("/img/vertical-trick.png");}
+.horizontalTrick {position:absolute; width:45px; height:33px; background:url("/img/horizontal-trick.png");}
+
+.avatar {position:absolute;}
+.avatar div {width:60px; height:68px; background-image:url("/img/mk.png");}
+.avatar small {display:block; text-align:center;}
+
+#scoreboard .row,
+#playersOnline .row {height:74px; border-bottom:1px solid #fff;}
+#scoreboard .row:last-child,
+#playersOnline .row:last-child {border:none;}
+#scoreboard .row.current {background:#EDF35A; color:#000;}
+#scoreboard .row div,
+#playersOnline .row div {width:60px; height:68px; float:left; background-image:url("/img/mk.png"); margin:2px;}
+#scoreboard .row span,
+#playersOnline .row span {float:left; margin:8px 8px 0;}
+
+.gamesRow span {width:60px; height:68px; float:left; background-image:url("/img/mk.png"); margin:0 2px;}
+#player-1, .player-1 {background-position:0 0;}
+#player-2, .player-2 {background-position:-64px 0;}
+#player-3, .player-3 {background-position:-1068px 0;}
+#player-4, .player-4 {background-position:-1196px 0;}
+#player-5, .player-5 {background-position:-1450px 0;}
+#player-6, .player-6 {background-position:-632px 0;}
+#player-7, .player-7 {background-position:-376px 0;}
+#player-8, .player-8 {background-position:-568px 0;}
+#player-9, .player-9 {background-position:-316px 0;}
+#player-10, .player-10 {background-position:-128px 0;}
+#player-11, .player-11 {background-position:-756px 0;}
+#player-12, .player-12 {background-position:-192px 0;}
+#player-13, .player-13 {background-position:-441px 0;}
+#player-14, .player-14 {background-position:-820px 0;}
+#player-15, .player-15 {background-position:-252px 0;}
+#player-16, .player-16 {background-position:-1510px 0;}
+#player-17, .player-17 {background-position:-568px 0;}
+#player-18, .player-18 {background-position:-502px 0;}
+#player-19, .player-19 {background-position:-1006px 0;}
+#player-20, .player-20 {background-position:-1072px 0;}
+#player-21, .player-21 {background-position:-756px 0;}
+#player-22, .player-22 {background-position:-756px 0;}
+#player-23, .player-23 {background-position:-756px 0;}
+#player-24, .player-24 {background-position:-756px 0;}
+#player-25, .player-25 {background-position:-756px 0;}
+
+#game-board.players-2 #player-position-1 {top:5px; left:50%; margin-left:-30px;}
+#game-board.players-2 #player-position-2 {bottom:5px; left:50%; margin-left:-30px;}
+
+#game-board.players-3 #player-position-1 {left:5px; top:50%; margin-top:-45px;}
+#game-board.players-3 #player-position-2 {right:5px; top:50%; margin-top:-45px;}
+#game-board.players-3 #player-position-3 {bottom:5px; left:50%; margin-left:-30px;}
+
+#game-board.players-4 #player-position-1 {left:5px; top:50%; margin-top:-45px;}
+#game-board.players-4 #player-position-2 {top:5px; left:50%; margin-left:-30px;}
+#game-board.players-4 #player-position-3 {right:5px; top:50%; margin-top:-45px;}
+#game-board.players-4 #player-position-4 {bottom:5px; left:50%; margin-left:-30px;}
+
+#game-board.players-5 #player-position-1 {left:5px; top:50%; margin-top:-45px;}
+#game-board.players-5 #player-position-2 {top:5px; left:30%; margin-left:-30px;}
+#game-board.players-5 #player-position-3 {top:5px; left:70%; margin-left:-30px;}
+#game-board.players-5 #player-position-4 {right:5px; top:50%; margin-top:-45px;}
+#game-board.players-5 #player-position-5 {bottom:5px; left:50%; margin-left:-30px;}
+
+#game-board.players-6 #player-position-1 {left:5px; top:50%; margin-top:-45px;}
+#game-board.players-6 #player-position-2 {top:5px; left:30%; margin-left:-30px;}
+#game-board.players-6 #player-position-3 {top:5px; left:70%; margin-left:-30px;}
+#game-board.players-6 #player-position-4 {right:5px; top:50%; margin-top:-45px;}
+#game-board.players-6 #player-position-5 {bottom:5px; left:70%; margin-top:-30px;}
+#game-board.players-6 #player-position-6 {bottom:5px; left:30%; margin-left:-30px;}
+
+#deal {display:none; position:absolute; width:120px; left:50%; margin-left:-60px; top:430px;}
+
+#messageBox {
+	position:absolute;
+	width:50%;
+	left:24.5%;
+	padding:5px;
+	height:35px;
+	top:375px;
+	border:solid 1px #000;
+	background:#EDF35A;
+	-webkit-border-radius:6px;
+	-moz-border-radius:6px;
+	-khtml-border-radius:6px;
+	-o-border-radius:6px;
+	border-radius:6px;
+}
+#messageBox p {font-size:12px; font-weight:bold; color:#333;}
+#utility #left #messageBox p {margin:0;}
+
+#bid {
+	display:none;
+	position:absolute;
+	width:50%;
+	left:24.5%;
+	padding:5px;
+	top:200px;
+	color:#000;
+	text-align:center;
+	background:#EDF35A;
+	border:solid 1px #000;
+	-webkit-border-radius:10px;
+	-moz-border-radius:10px;
+	-khtml-border-radius:10px;
+	-o-border-radius:10px;
+	border-radius:10px;
+}
+#bid div {
+	display:inline-block;
+	background:#fff;
+	border:solid 1px #000;
+	color:#000;
+	width:24px;
+	height:32px;
+	line-height:32px;
+	text-align:center;
+	-webkit-border-radius:5px;
+	-moz-border-radius:5px;
+	-khtml-border-radius:5px;
+	-o-border-radius:5px;
+	border-radius:5px;
+	margin:3px;
+	font-size:16px;
+}
+#bid div:hover {cursor:pointer; background:#ccc;}
+#bid .cannotBid,
+#bid .cannotBid:hover {cursor:default; background:#666;}
+
+.bubble {position:absolute; width:130px; height:97px; display:none; z-index:5000;}
+.bubble p {color:#000; text-align:center; font-size:16px; margin-top:14px;}
+
+/* 2-PLAYER = TOP, BOTTOM */
+#game-board.players-2 #player-position-1-bubble {background-image:url("/img/speechleft.png"); top:-0; left:380px;}
+/img.players-2 #player-position-2-bubble {background-image:url("/img/speechleft.png"); bottom:0; left:380px;}
+
+/* 3-PLAYER = LEFT, RIGHT, BOTTOM */
+#game-board.players-3 #player-position-1-bubble {background-image:url("/img/speechleft.png"); top:260px; left:60px;}
+#game-board.players-3 #player-position-2-bubble {background-image:url("/img/speechright.png"); top:260px; right:65px;}
+#game-board.players-3 #player-position-3-bubble {background-image:url("/img/speechleft.png"); bottom:0; left:380px;}
+
+/* 4-PLAYER = LEFT, TOP, RIGHT, BOTTOM */
+#game-board.players-4 #player-position-1-bubble {background-image:url("/img/speechleft.png"); top:260px; left:60px;}
+#game-board.players-4 #player-position-2-bubble {background-image:url("/img/speechleft.png"); top:0; left:380px;}
+#game-board.players-4 #player-position-3-bubble {background-image:url("/img/speechright.png"); top:260px; right:65px;}
+#game-board.players-4 #player-position-4-bubble {background-image:url("/img/speechleft.png"); bottom:0; left:380px;}
+
+/* 5-PLAYER = LEFT, TOP LEFT, TOP RIGHT, RIGHT, BOTTOM */
+#game-board.players-5 #player-position-1-bubble {background-image:url("/img/speechleft.png"); top:260px; left:60px;}
+#game-board.players-5 #player-position-2-bubble {background-image:url("/img/speechleft.png"); top:0; left:300px;}
+#game-board.players-5 #player-position-3-bubble {background-image:url("/img/speechleft.png"); top:0; left:660px;}
+#game-board.players-5 #player-position-4-bubble {background-image:url("/img/speechright.png"); top:260px; right:65px;}
+#game-board.players-5 #player-position-5-bubble {background-image:url("/img/speechleft.png"); bottom:0; left:480px;}
+
+/* 6-PLAYER = LEFT, TOP LEFT, TOP RIGHT, RIGHT, BOTTOM RIGHT, BOTTOM LEFT */
+#game-board.players-6 #player-position-1-bubble {background-image:url("/img/speechleft.png"); top:260px; left:60px;}
+#game-board.players-6 #player-position-2-bubble {background-image:url("/img/speechleft.png"); top:0; left:300px;}
+#game-board.players-6 #player-position-3-bubble {background-image:url("/img/speechleft.png"); top:0; left:660px;}
+#game-board.players-6 #player-position-4-bubble {background-image:url("/img/speechright.png"); top:260px; right:65px;}
+#game-board.players-6 #player-position-5-bubble {background-image:url("/img/speechleft.png"); bottom:0; left:660px;}
+#game-board.players-6 #player-position-6-bubble {background-image:url("/img/speechleft.png"); bottom:0; left:300px;}
