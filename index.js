@@ -36,6 +36,7 @@ var GAME_DEFAULTS = {
   currentRound: 0,
   numPlayers: 0,
   numRounds: 0,
+  oheck: {},
   options: {
     // Number of decks
     decks: 1,
@@ -56,20 +57,24 @@ var GAME_DEFAULTS = {
   // Each player will have a "currentBid", "numTricksTaken", "hand", "currentHand", and "score"
   players: [],
   round: {
-    currentTrick: 0,
+    currentTrick: 0,  // int between 1 - numHands
     currentBid: 0,
-    currentTrump: null,
     numBid: 0,
     numTricks: 0,
     bids: 0,
     dealerId: null,
     trump: null, // C, S, H, D, or N
     status: null, // Bid or Play
-    currentHand: 0, // 1 - numHands
     // Array of cards played
     currentTrickPlayed: []
   }
 };
+
+function getRandom(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min; //The maximum is inclusive and the minimum is inclusive
+}
 
 
 // Listen for socket connection
@@ -188,94 +193,88 @@ io.sockets.on('connection', function(socket) {
     io.in('game').emit('startGame', {game: game});
   });
 
-  socket.on('dealHand', function(){
-/*
-  		$gameID = $_REQUEST["gameID"];
+  socket.on('dealHand', function(data){
 
-  		$sql = "SELECT players, rounds, decks, trump, currentRoundID FROM `game`
-  					LEFT JOIN `user` ON user.currentGameID = game.id
-  				WHERE user.id = ?
-  				AND game.id = ?";
-  		$db->query($sql, "ii", $_SESSION["userID"], $gameID);
-  		if ($db->numRows() == 1) {
-  			$rows = $db->fetchAll();
-  			$db->freeResult();
+    game.currentRound++;
+    //game.currentDealer = game.currentRound % game.numPlayers;
 
-  			# Set active
-  			$db->query("UPDATE `game` SET active = NOW() WHERE id = ?", "i", $gameID);
+    if (game.currentRound >= game.numRounds){
+      console.log('ERROR - game is complete');
+    }
 
-  			$players = $rows[0]["players"];
-  			$rounds = $rows[0]["rounds"];
-  			$decks = $rows[0]["decks"];
-  			$trump = ($rows[0]["trump"] == 1);
-  			$currentRoundID = $rows[0]["currentRoundID"];
-  			$nextRoundID = $currentRoundID + 1;
-  			$nextDealerID = (($currentRoundID - 1) % $players) + 1;
-  			if ($nextDealerID == 0) {
-  				$nextDealerID = $players;
-  			}
+    // Can't deal less than 1 card or more than MAX_CARDS
+    var maxCards = Math.floor(52 * game.options.decks / game.numPlayers);
+    var CARDS_TO_DEAL_THIS_ROUND = 10;
+    var cardsToDeal = Math.max(1, Math.min(maxCards, CARDS_TO_DEAL_THIS_ROUND));
+    var trumpArray = ['D', 'C', 'H', 'S', 'N'];
+    var nextTrump = game.options.noTrump ? trumpArray[4] : trumpArray(getRandom(0,3));
 
-  			if ($nextRoundID <= $rounds) {
-  				$maxCards = floor(52 * $decks / $players);
-  #				$cardsToDeal = $rounds - $nextRoundID + 1;
-  				$cardsToDeal = 10;
+    // Create new round
+    game.round = {
+      currentTrick: 0,  // Reset current trick
+      currentBid: 0,  // Reset current bid
+      numBid: 0,  // Reset number of tricks bid
+      numTricks: cardsToDeal, // Initialize on each round
+      bids: 0,  // Reset how many players have bid
+      dealerId: game.currentRound % game.numPlayers,  // Advance dealer ID based on round
+      trump: nextTrump, // C, S, H, D, or N
+      status: 'Bid', // Bid or Play
+      currentTrickPlayed: []  // Clear array of cards played
+    };
 
-  				# Can't deal less than 1 card or more than MAX_CARDS
-  				$cardsToDeal = max(1, min($maxCards, $cardsToDeal));
-  				$trumpArray = array("D","C","H","S","N");
-  				$nextTrump = ($trump) ? $trumpArray[rand(0,3)] : $trumpArray[4];
+    // Set current player to person after dealer
+    game.currentPlayerId = (game.round.dealerId + 1) % game.numPlayers;
 
-  				# Create round
-  				$sql = "INSERT INTO `round` (gameID, roundID, hands, dealerID, trump) VALUES (?,?,?,?,?)";
-  				$db->query($sql, "iiiis", $gameID, $nextRoundID, $cardsToDeal, $nextDealerID, $nextTrump);
+    // Create list of all cards in each deck
+    var cardArray = [];
+    for (var i = 2; i <= 14; i++){
+      cardArray.push('H' + i);
+      cardArray.push('S' + i);
+      cardArray.push('D' + i);
+      cardArray.push('C' + i);
+    }
 
-  				# Update game
-  				$nextPlayerID = ($nextDealerID % $players) + 1;
-  				$sql = "UPDATE `game` SET currentRoundID = ?, currentPlayerID = ? WHERE id = ?";
-  				$db->query($sql, "iii", $nextRoundID, $nextPlayerID, $gameID);
+    // Create deck/cards to deal
+    var cards = [];
+    for (var i=0; i<game.options.decks; i++){
+      for (var j in cardArray){
+        cards.push(cardArray[j]);
+      }
+    }
 
-  				$cardArray = array();
-  				for ($i=2; $i<=14; $i++) {
-  					$cardArray[] = "H" . $i;
-  					$cardArray[] = "S" . $i;
-  					$cardArray[] = "D" . $i;
-  					$cardArray[] = "C" . $i;
-  				}
+    // Deal cards
+    for (var seat=0; seat<game.numPlayers; seat++){
+      var playerCards = [];
+      for (var i=0; i<cardsToDeal; i++){
+        // Pick a random card from remaining cards
+        var random = getRandom(0, cards.length-1);
+        playerCards.push(cards[random]);
+        cards.splice(random, 1);
+      }
 
-  				# Create deck/cards to deal
-  				$cards = array();
-  				for ($i=0; $i<$decks; $i++) {
-  					foreach ($cardArray as $c) {
-  						$cards[] = $c;
-  					}
-  				}
-
-  				# Deal cards
-  				for ($seat=1; $seat<=$players; $seat++) {
-  					$playerCards = array();
-  					for ($i=0; $i<$cardsToDeal; $i++) {
-  						# Pick a random card from remaining cards
-  						$random = rand(0, count($cards) - 1);
-  						$playerCards[] = $cards[$random];
-  						array_splice($cards, $random, 1);
-  					}
-
-  					$playerHand = implode(",", $playerCards);
-  					$sql = "UPDATE `player` SET currentBid = NULL, hand = ?, currentHand = ?
-  							WHERE gameID = ?
-  							AND seatID = ?";
-  					$db->query($sql, "ssii", $playerHand, $playerHand, $gameID, $seat);
-  				}
-
-  				$json = array("has_data" => true, "round" => $nextRoundID);
-  			}
-  			else {
-  				$json = array("has_data" => false, "error" => "Game is complete");
-  			}
-  		}*/
+      // Save player hand
+      var playerHand = playerCards.join();
+      var playerScore = game.players[seat].score;
+      game.players[seat] = {
+        currentBid: null,
+        numTricksTaken: 0,
+        hand: playerHand,
+        currentHand: playerHand,
+        score: playerScore
+      }
+    }
   });
 
   socket.on('playerBid', function(data){
+
+    var playerBidding = data.playerId;
+    var playerBid = data.bid;
+
+/*    // Check for player's turn to bid
+    if (game.currentPlayerId !== playerBidding){
+      console.log('ERROR - player bid out of turn');
+      io.in('game').emit('error', {msg:'Player bid out of turn'});
+    }*/
 /*
     $gameID = $_REQUEST["gameID"];
     $roundID = $_REQUEST["roundID"];

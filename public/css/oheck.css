@@ -176,6 +176,10 @@ h2,
   margin-left: 3px;
 }
 
+.mdl-data-table__cell--non-numeric select {
+  width: 100%;
+}
+
 
 /**
  * GAME BOARD
