@@ -108,9 +108,9 @@ $(document).ready(function(){
 //    console.log(data);
     g.game = data.game;
     //g.game.playerId = g.user.id + 1;
-    g.game.playerId = g.user.id;
-    g.oheck.newDeck();
-    g.oheck.deal();
+    //g.game.playerId = g.user.id;
+    dealCards();
+    checkForBidding();
   });
 
   g.socket.on('playerBid', function(data){
@@ -119,8 +119,13 @@ $(document).ready(function(){
     //g.oheck.bid(g.oheck.players[g.oheck.bidPlayerIndex], g.game.players[g.oheck.bidPlayerIndex+1].bid);
     g.oheck.bid(data.playerId, data.bid);
 
-    // Still bidding
-    checkForBidding();
+    // Need to bid
+    if (g.game.round.bids < g.game.players.length){
+      checkForBidding();
+    }
+    else{
+      checkForPlaying();
+    }
   });
 
 
@@ -270,12 +275,24 @@ $(document).ready(function(){
     }
   }
 
-  function checkForBidding(){
+  function checkForDealing(){
 
-    // Done bidding
-    if (g.game.round.bids === g.game.players.length){
-      return;
+    // My turn to deal
+    //if (g.oheck.dealerIndex == g.game.playerId){
+    if (g.game.currentDealerId == g.game.playerId){
+      g.oheck.message('Waiting for you to deal!');
+      $('#deal').fadeIn();
     }
+
+    // Waiting for another player to deal
+    else {
+      //g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.dealerIndex-1].name + ' to deal');
+      g.oheck.message('Waiting for ' + getPlayerName(g.game.currentDealerId) + ' to deal');
+      $('#deal').hide();
+    }
+  }
+
+  function checkForBidding(){
 
     // My turn to bid
     if (g.game.currentPlayerId == g.game.playerId){
@@ -287,69 +304,15 @@ $(document).ready(function(){
     // Waiting for another player to bid
     else{
       //g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.currentPlayerIndex-1].name + ' to bid!');
-      g.oheck.message('Waiting for ' + g.game.players[g.game.currentPlayerId].name + ' to bid!');
+      g.oheck.message('Waiting for ' + getCurrentPlayerName() + ' to bid');
     }
   }
 
-  function loadGameBoard(){
-  	g.oheck = new OHeck();
+  function checkForPlaying(){
+    console.log('Time to play!');
+  }
 
-    // Setup event renderers
-    for (var name in g.oheck.renderers){
-      g.oheck.setEventRenderer(name, function(e) {
-        e.callback();
-      });
-    }
-    g.oheck.setEventRenderer('dealcard', webRenderer.dealCard);
-    g.oheck.setEventRenderer('play', webRenderer.play);
-    g.oheck.setEventRenderer('sorthand', webRenderer.sortHand);
-
-    // Setup deal handler
-    $('#deal').click(function(e) {
-      $(this).hide();
-
-      // Deal hand
-      g.socket.emit('dealHand');
-//        g.waiting = false;
-//        getRound();
-
-        // TODO: update bidIndex, currentPlayerIndex, etc on next round
-//      });
-    });
-
-    // Setup start handler
-    g.oheck.setEventRenderer('start', function(e){
-      $('.card').click(function() {
-        g.human.useCard(this.card);
-      });
-      $('.bubble').fadeOut();
-      e.callback();
-    });
-
-    // Extra setup
-    g.oheck.setEventRenderer('taketrick', webRenderer.takeTrick);
-    g.oheck.setEventRenderer('bid', webRenderer.bid);
-
-    // Preload images
-    var imgs = ['horizontal-trick', 'vertical-trick'];
-    var img = new Image();
-    for (var i = 0; i < imgs.length; i++) {
-      img.src = 'img/' + imgs[i] + '.png';
-    }
-
-    // Calculate table position
-    //g.game.playerId = g.user.id + 1;
-    g.game.playerId = g.user.id;
-    showMessage('My position: ' + g.game.playerId + '/' + g.game.players.length);
-    console.log(g.game.players);
-
-    // Wide mode
-    if (g.game.players.length > 4){
-      $('#wrapper').addClass('wide');
-    }
-    // Add players class
-    $('#game-board').addClass('players-' + g.game.players.length);
-
+  function createPlayers(){
     var players = [],
       p = null,
       h = '',
@@ -357,7 +320,7 @@ $(document).ready(function(){
       thisPlayer = null;
 
     // Add players blocks
-    for (var i=1; i<=g.game.players.length; i++) {
+    for (var i = 1; i <= g.game.players.length; i++) {
       h += '<div id="player-position-' + i + '" class="avatar"><div class="userPic"></div><small></small></div>';
       h2 += '<div id="player-position-' + i + '-bubble" class="bubble"><p></p></div>';
     }
@@ -634,81 +597,119 @@ $(document).ready(function(){
     }
 
     // Add players
-    //for (var i=0; i<games[user.currentGameID].numPlayers; i++) {
     console.log('adding players...');
     for (var i = 0; i < g.game.players.length; i++){
-      var pos = (players.length + i - g.game.playerId) % players.length;
-      console.log('adding player in position: ' + pos);
-      g.oheck.addPlayer(players[pos]);
+      var position = (players.length + i - g.game.playerId) % players.length;
+      console.log('adding player in position: ' + position);
+      g.oheck.addPlayer(players[position]);
     }
 
+  }
 
-    // Set rounds
-    g.oheck.rounds = g.game.numRounds;
-    //	console.log('# rounds in game: ' + g.oheck.rounds);
+  function dealCards(){
+    g.oheck.newDeck();
+    g.oheck.deal();
+    g.oheck.cardCount = g.game.round.numTricks;
+    g.oheck.round = g.game.currentRoundId;
+  }
 
-    // Beginning of game
+  function getCurrentPlayerName(){
+    return getPlayerName(g.game.currentPlayerId);
+  }
+
+  function getPlayerName(id){
+    return g.game.players[id].name;
+  }
+
+  function loadGameBoard(){
+  	g.oheck = new OHeck();
+
+    // Setup event renderers
+    for (var name in g.oheck.renderers){
+      g.oheck.setEventRenderer(name, function(e) {
+        e.callback();
+      });
+    }
+    g.oheck.setEventRenderer('dealcard', webRenderer.dealCard);
+    g.oheck.setEventRenderer('play', webRenderer.play);
+    g.oheck.setEventRenderer('sorthand', webRenderer.sortHand);
+
+    // Setup deal handler
+    $('#deal').click(function(e) {
+      $(this).hide();
+
+      // Deal hand
+      g.socket.emit('dealHand');
+
+      //TODO: update bidIndex, currentPlayerIndex, etc on next round
+    });
+
+    // Setup start handler
+    g.oheck.setEventRenderer('start', function(e){
+      $('.card').click(function() {
+        g.human.useCard(this.card);
+      });
+      $('.bubble').fadeOut();
+      e.callback();
+    });
+
+    // Extra setup
+    g.oheck.setEventRenderer('taketrick', webRenderer.takeTrick);
+    g.oheck.setEventRenderer('bid', webRenderer.bid);
+
+    // Preload images
+    var imgs = ['horizontal-trick', 'vertical-trick'];
+    var img = new Image();
+    for (var i = 0; i < imgs.length; i++) {
+      img.src = 'img/' + imgs[i] + '.png';
+    }
+
+    // Seat assignment
+    g.game.playerId = g.user.id;
+    showMessage('My position: ' + g.game.playerId + '/' + g.game.players.length);
+    console.log('Players Array:');
+    for (var i = 0; i < g.game.players.length; i++){
+      console.log(g.game.players[i]);
+    }
+
+    // Setup game board
+    if (g.game.players.length > 4){
+      $('#wrapper').addClass('wide');
+    }
+    $('#game-board').addClass('players-' + g.game.players.length);
+
+    // Create players
+    createPlayers();
+
+    // Create game
     // First person who joined the game bids first
     // Last person who joined the game deals first
-    if (g.game.currentRound == 0){
-//      g.oheck.dealerIndex = g.oheck.players.length;
-      g.oheck.dealerIndex = g.game.currentDealerId;
-      g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
-      g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
-      g.oheck.bidPlayerIndex = g.oheck.currentPlayerIndex;
-      console.log('No rounds exist yet!');
-      console.log('Dealer: ' + g.oheck.dealerIndex);
-      console.log('Player: ' + g.oheck.currentPlayerIndex);
-      console.log('PlayerId: ' + g.game.playerId);
-    }
-
-    // Beginning of round
-    if (g.game.round.status == 'Deal') {
-
-      // Player is next dealer
-      if (g.oheck.dealerIndex == g.game.playerId){
-        g.oheck.message('Waiting for you to deal!');
-        $('#deal').fadeIn();
-//        g.waiting = true;
-      }
-      else {
-        g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.dealerIndex-1].name + ' to deal');
-        $('#deal').hide();
-//        g.waiting = false;
-      }
-
-      return;
-    }
-
-    // In middle of round
-    //g.oheck.cardCount = parseInt(g.status.round.hands, 10);
-    g.oheck.cardCount = g.game.round.numTricks;
-    g.oheck.round = g.game.currentRound;
-//	console.log('Set Round: ' + g.oheck.round);
-
-    // Set dealer index
-//    g.oheck.dealerIndex = (g.game.currentRound - 2 + g.oheck.players.length) % g.oheck.players.length;
+    g.oheck.rounds = g.game.numRounds;
     g.oheck.dealerIndex = g.game.currentDealerId;
     g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
     g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
     g.oheck.bidPlayerIndex = g.oheck.currentPlayerIndex;
-    console.log('In middle of round. Set dealer index.');
+    console.log('No rounds exist yet!');
     console.log('Dealer: ' + g.oheck.dealerIndex);
     console.log('Player: ' + g.oheck.currentPlayerIndex);
-//    console.log('Position: ' + g.game.playerId);
+    console.log('PlayerId: ' + g.game.playerId);
 
-    // If cards were already dealt (page reloaded), go ahead and deal
-    //if (g.status.player[1].hand != null && g.status.player[1].hand) {
-    if (g.game.players[1].hand.length){
-      console.log('Cards already dealt... deal!');
-      g.oheck.newDeck();
-      g.oheck.deal();
+    // Need to deal
+    if (!g.game.players[1].hand.length){
+      checkForDealing();
+      return;
     }
 
-    // Once cards are dealt, it's someone's turn to bid
-    checkForBidding();
+    // Deal
+    dealCards();
 
-    // Once bids are complete, it's someone's turn to play
+    // Need to bid
+    if (g.game.round.bids < g.game.players.length){
+      checkForBidding();
+      return;
+    }
+
+    // Need to play
     checkForPlaying();
   }
 
@@ -720,8 +721,6 @@ $(document).ready(function(){
   }
 
   function updateUsersInLobby(){
-//    console.log('Updating users in lobby.');
-//    console.log(g.users);
     var usersHtml = '';
     for (var i in g.users){
       // Skip null users
@@ -756,15 +755,6 @@ $(document).ready(function(){
 
 
 
-
-
-
-
-
-
-
-
-
 /***** COPIED FROM OLD GAME *****/
 /*
 var g = {
@@ -788,175 +778,6 @@ var g = {
 };
 
 $(document).ready(function() {
-
-function getGames() {
-	if (g.inLobby) {
-		getJSON({op:"getGames"}, function(data) {
-			if (data.has_data && data.numGames > 0) {
-				games = data.games;
-
-				var h = '';
-				h += '<table>';
-				h += '<thead>';
-				h += '<tr>';
-				h += '<th>Game</th>';
-				h += '<th>Seats</th>';
-				h += '<th>Players</th>';
-				h += '<th>Status</th>';
-				h += '</tr>';
-				h += '</thead>';
-				h += '<tbody>';
-				for (var i in games) {
-					var ga = games[i];
-
-					// User is in this game
-					if (user.currentGameID == ga.id) {
-
-						// Load game
-						if (ga.status == 'Play') {
-
-							// Lower timeouts
-							g.inLobby = false;
-							clearInterval(g.timeout.user);
-							clearInterval(g.timeout.users);
-							clearInterval(g.timeout.games);
-
-							// User is owner
-							if (ga.ownerID == userID) {
-								$('#delete').show();
-							}
-
-							// Fade out to game board
-							$('#lobby-page, .lobby').hide();
-							$('#nav').addClass('play');
-							$('#game-board, #nav ul, .play').fadeIn();
-
-							// Load initial data
-							getJSON({op:"getRound", gameID:user.currentGameID}, function(data) {
-								g.status = data;
-								loadGameBoard();
-								updateStats();
-
-								// At this point, we don't know if cards have already been dealt or not
-								// Delay updates until we *know* dealing is finished (if cards were already dealt)
-								g.timeout.game = setInterval("getRound();", 1500);
-
-								// Check if cards are being dealt
-								if (g.oheck.cardsDealt) {
-									g.waiting = true;
-									setTimeout("g.waiting = false;", 5000);
-								}
-								else {
-									getRound();
-								}
-							});
-						}
-					}
-
-					h += '<tr id="game-' + ga.id + '" class="game">';
-					h += '<td>GAME #' + ga.id + '</td>';
-					h += '<td>' + ga.players + '</td>';
-
-					// Get HTML for users
-					h += '<td class="gamesRow">';
-					var userOrder = ga.users.split(',');
-					for (var i=0; i<userOrder.length; i++) {
-						h += '<span class="player-' + userOrder[i] + '"></span>';
-					}
-					h += '</td>';
-
-					// Game loading
-					if (ga.status == 'Wait') {
-
-						// Owner
-						if (ga.ownerID == userID) {
-							// Update game
-							getJSON({op:"setActiveGame", "gameID":user.currentGameID}, function() {});
-
-							// All players are here
-							if (ga.numPlayers == ga.players) {
-								h += '<td><button id="start-game">Start game</button></td>';
-							}
-							else {
-								h += '<td><button id="delete-game">Delete game</button></td>';
-							}
-						}
-
-						// Not owner
-						else {
-							// Game not full
-							if (ga.numPlayers < ga.players) {
-								if (ga.id != user.currentGameID) {
-									h += '<td><button id="join-game">Join game</button></td>';
-								}
-								else {
-									h += '<td><button id="leave-game">Leave game</button></td>';
-								}
-							}
-							// Game full
-							else if (ga.id != user.currentGameID) {
-								h += '<td>Game Full</td>';
-							}
-							else {
-								h += '<td>Waiting</td>';
-							}
-						}
-					}
-					else if (ga.status == 'Play') {
-						h += '<td>In Progress</td>';
-					}
-					h += '</tr>';
-				}
-				h += '</tbody>';
-				h += '</table>';
-				$('#activeGames').html(h);
-
-				// Join game
-				$('#join-game')
-					.click(function () {
-						var gameID = $(this).parent().parent().attr('id').substr(5);
-						if (confirm('You are about to join game #' + gameID + '. Are you sure?'))
-							getJSON({"op":"joinGame", "gameID":gameID}, function(data) {
-								document.location.reload();
-							});
-					});
-
-				// Leave game
-				$('#leave-game')
-					.click(function () {
-						var gameID = $(this).parent().parent().attr('id').substr(5);
-						if (confirm('You are about to leave game #' + gameID + '. Are you sure?'))
-							getJSON({"op":"leaveGame", "gameID":gameID}, function(data) {
-								document.location.reload();
-							});
-					});
-
-				// Delete game
-				$('#delete-game')
-					.click(function () {
-						var gameID = $(this).parent().parent().attr('id').substr(5);
-						if (confirm('This will erase all game data. Are you sure?'))
-							getJSON({"op":"deleteGame", "gameID":gameID}, function(data) {
-								document.location.reload();
-							});
-					});
-
-				// Start game
-				$("#start-game")
-					.click(function() {
-						var gameID = $(this).parent().parent().attr('id').substr(5);
-						if (confirm('You are about to start game #' + gameID + '. Are you sure?'))
-							getJSON({"op":"startGame", "gameID":gameID}, function(data) {
-								getGames();
-							});
-					});
-			}
-			else {
-				$('#activeGames').html('<p>No active games.');
-			}
-		});
-	}
-}
 
 function updateStats() {
 

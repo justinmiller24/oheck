@@ -670,12 +670,10 @@ HumanPlayer.prototype = {
 					var bid = parseInt($(this).text());
 					if (g.human.isBidding) {
 						g.human.isBidding = false;
-						g.socket.emit('playerBid', {playerId: g.game.playerId, bid: bid});
+						g.socket.emit('bid', {playerId: g.game.playerId, bid: bid});
 
 						// TODO: move to callback so all users can update at once
 						g.oheck.bid(g.human, bid);
-/*							g.waiting = false;
-						});*/
 					}
 					else {
 						this.game.message('You cannot bid until your turn.');

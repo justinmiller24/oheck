@@ -279,10 +279,10 @@ io.sockets.on('connection', function(socket) {
     io.in('game').emit('dealHand', {game: game});
   });
 
-  socket.on('playerBid', function(data){
+  socket.on('bid', function(data){
 
     var playerId = data.playerId;
-    var currentPlayerBid = data.bid;
+    var currentBid = data.bid;
 
     // Check if round is currently in bidding status
     if (game.round.bids >= game.players.length){
@@ -299,13 +299,13 @@ io.sockets.on('connection', function(socket) {
 
     // Update player bid
     var player = game.player[playerId];
-    player.bid = currentPlayerBid;
+    player.bid = currentBid;
     player.tricksTaken = 0;
     player.pictureHand = [];
 
     // Update total bids in round
     game.round.bids++;
-    game.round.currentBid += currentPlayerBid;
+    game.round.currentBid += currentBid;
 
     // This was the last player to bid
     //if (game.currentPlayerId === game.round.dealerId)
