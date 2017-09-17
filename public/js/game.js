@@ -1,4 +1,4 @@
-/*
+g.game/*
  * OH HECK
  * Written by Justin Miller on 6.10.2012
  */
@@ -236,7 +236,7 @@ OHeck.prototype = {
 			var p = this.players[i];
 			p.tricks = [];
 			p.bidValue = -1;
-			webRenderer._adjustHand(p, function(){}, 50, true, g.game.oheck.cardCount);
+			webRenderer._adjustHand(p, function(){}, 50, true, g.oheck.cardCount);
 		}
 	},
 	afterPlayCards: function () {
@@ -255,7 +255,7 @@ OHeck.prototype = {
 			var firstPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
 			for (var i = 1; i < this.pile.length; i++) {
 				var card = this.pile[i];
-				if (g.game.oheck.trump != 'N' && bestCard.suit != g.game.oheck.trump && card.suit == g.game.oheck.trump) {
+				if (g.oheck.trump != 'N' && bestCard.suit != g.oheck.trump && card.suit == g.oheck.trump) {
 					bestCard = card;
 					winner = i;
 				} else if (card.suit == bestCard.suit && card.rank > bestCard.rank) {
@@ -271,12 +271,12 @@ OHeck.prototype = {
 			this.pile = [];
 
 			// Update tricks
-			g.game.oheck.message(g.game.oheck.players[winnerIndex].name + ' wins trick #' + g.game.oheck.hand);
+			g.oheck.message(g.oheck.players[winnerIndex].name + ' wins trick #' + g.oheck.hand);
 //			doLog('Waiting: ' + g.waiting);
 
 			// Not end of round (end of hand in round)
 			if (!finished) {
-				g.game.oheck.hand++;
+				g.oheck.hand++;
 
 				// Added in case getRound() was called previous to useCard(),
 				// and returns after this JSON response does
@@ -292,11 +292,11 @@ OHeck.prototype = {
 
 //				doLog('Just played last card in round');
 				g.waiting = true;
-//				g.game.oheck.cardsDealt = false;
+//				g.oheck.cardsDealt = false;
 
 				// Clear player bids
-				for (var i=0; i<g.game.oheck.players.length; i++) {
-					var p = g.game.oheck.players[i];
+				for (var i=0; i<g.oheck.players.length; i++) {
+					var p = g.oheck.players[i];
 
 					// Player made bid
 					if (p.tricks.length == p.bidValue) {
@@ -315,27 +315,27 @@ OHeck.prototype = {
 //				g.waiting = true;
 //				setTimeout("g.waiting=true;", 2000);
 				if (this.round == this.rounds) {
-					setTimeout("updateStats(); g.game.oheck.message('Scoreboard Update!');", 1000);
-					setTimeout("g.game.oheck.message('Game over -- thanks for playing!');", 3000);
-					setTimeout("g.game.oheck.message('You will be redirected to lobby in 3 sec');", 11000);
-					setTimeout("$('#board').fadeOut();", 14000);
+					setTimeout("updateStats(); g.oheck.message('Scoreboard Update!');", 1000);
+					setTimeout("g.oheck.message('Game over -- thanks for playing!');", 3000);
+					setTimeout("g.oheck.message('You will be redirected to lobby in 3 sec');", 11000);
+					setTimeout("$('#game-board').fadeOut();", 14000);
 					setTimeout("window.location.reload();", 15000);
 				}
 
 				// Nascar
 				else if (this.round == (this.rounds - 3) && this.rounds > 6) {
-//					setTimeout("updateStats(); g.game.oheck.message('Scoreboard Update -- NASCAR!');", 1000);
-					setTimeout("updateStats(); g.game.oheck.nascar();", 1000);
-//					setTimeout("g.game.oheck.nascar();", 3000);
-					setTimeout("g.game.oheck.message('Next round will load in 3 sec');", 5000);
-					setTimeout("$('#board').fadeOut();", 8000);
+//					setTimeout("updateStats(); g.oheck.message('Scoreboard Update -- NASCAR!');", 1000);
+					setTimeout("updateStats(); g.oheck.nascar();", 1000);
+//					setTimeout("g.oheck.nascar();", 3000);
+					setTimeout("g.oheck.message('Next round will load in 3 sec');", 5000);
+					setTimeout("$('#game-board').fadeOut();", 8000);
 					setTimeout("window.location.reload();", 9000);
 				}
 
 				else {
-					setTimeout("updateStats(); g.game.oheck.message('Scoreboard Update!');", 1000);
-					setTimeout("g.game.oheck.message('Next round will load in 2 sec');", 4000);
-					setTimeout("$('#board').fadeOut();", 6000);
+					setTimeout("updateStats(); g.oheck.message('Scoreboard Update!');", 1000);
+					setTimeout("g.oheck.message('Next round will load in 2 sec');", 4000);
+					setTimeout("$('#game-board').fadeOut();", 6000);
 					setTimeout("window.location.reload();", 7000);
 				}
 			}
@@ -372,11 +372,11 @@ OHeck.prototype = {
 	calculateScore: function () {
 //		this.message('End of round! Need to calculate score...');
 //		doLog('Rotate dealer...');
-		g.game.oheck.dealerIndex = g.game.oheck.nextIndex(g.game.oheck.dealerIndex);
-		g.game.oheck.nextPlayerToDealTo = g.game.oheck.nextIndex(g.game.oheck.dealerIndex);
-		g.game.oheck.currentPlayerIndex = g.game.oheck.nextIndex(g.game.oheck.dealerIndex);
-//		doLog('Next dealer: ' + g.game.oheck.dealerIndex);
-//		doLog('Next first player: ' + g.game.oheck.currentPlayerIndex);
+		g.oheck.dealerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
+		g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
+		g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
+//		doLog('Next dealer: ' + g.oheck.dealerIndex);
+//		doLog('Next first player: ' + g.oheck.currentPlayerIndex);
 	},
 	canPlayCard: function (player, card) {
 		if (this.pile.length == 0) {
@@ -407,6 +407,9 @@ OHeck.prototype = {
 				player.hand.push(card);
 				this.nextPlayerToDealTo = this.nextIndex(this.nextPlayerToDealTo);
 				this.dealtCardCount++;
+/*				console.log('Deal Card');
+				console.log(player);
+				console.log(card);*/
 				this.renderEvent('dealcard', this.deal, {
 					player: player,
 					cardpos: player.hand.length - 1,
@@ -421,10 +424,10 @@ OHeck.prototype = {
 	hand: 0,
 	message: function(msg) {
 		console.log(msg);
-//		$('#messageBox p').html(msg);
+		$('#messageBox p').html(msg);
 	},
 	nascar: function() {
-		g.game.oheck.message('Scoreboard Update -- NASCAR!');
+		g.oheck.message('Scoreboard Update -- NASCAR!');
 		g.nascar = new ParticleCanvas($('#nascar')[0], {x:50});
 		g.nascar.start();
 	},
@@ -459,19 +462,29 @@ OHeck.prototype = {
 	},*/
 	newDeck: function () {
 		this.deck = [];
-		if (g.status.player[1].hand == null || g.status.player[1].hand == '') {
+		//if (g.status.player[1].hand == null || g.status.player[1].hand == '') {
+		//if (g.game.players[1].hand == null || g.game.players[1].hand == '') {
+		if (!g.game.players[1].hand || g.game.players[1].hand == '') {
+			console.log('player 1 hand is null inside "newDeck", returning...');
 			return false;
 		}
 
 		// Set trump suit
-		this.trump = g.status.round.trump;
+		//this.trump = g.status.round.trump;
+		this.trump = g.game.round.trump;
 
-		var pos = g.game.oheck.nextPlayerToDealTo;
+		//var pos = g.oheck.nextPlayerToDealTo;
+		var pos = this.nextPlayerToDealTo;
+//		console.log('position: ' + pos);
 		var playersHands = Array();
-		for (var i=0; i<g.status.game.players; i++) {
-			playersHands.push(g.status.player[((i + pos) % g.status.game.players) + 1].hand.split(","));
+		for (var i=0; i<g.game.players.length; i++) {
+//			console.log('About to distribute hand to player ID: ' + ((i + pos) % g.game.players.length));
+//			console.log('Hand: ' + g.game.players[(i + pos) % g.game.players.length].hand);
+			playersHands.push(g.game.players[(i + pos) % g.game.players.length].hand.split(","));
 		}
-		for (var i=0; i<g.status.round.hands; i++) {
+		//for (var i=0; i<g.status.round.hands; i++) {
+		//for (var i=0; i<g.game.round.numTricks; i++) {
+		for (var i=0; i<this.rounds; i++) {
 			for (var j=0; j<playersHands.length; j++) {
 				var cardStr = playersHands[j].shift();
 				var suit = cardStr.substring(0,1);
@@ -481,8 +494,8 @@ OHeck.prototype = {
 		}
 
 		// Create cardpile
-		var left = ($('#board').width() - 71) / 2;
-		var top = ($('#board').height() - 96) / 2;
+		var left = ($('#game-board').width() - 71) / 2;
+		var top = ($('#game-board').height() - 96) / 2;
 		for (var i = 0; i < this.deck.length; i++) {
 			var card = this.deck[i];
 			if ((i + 1) % oh.CONDENSE_COUNT == 0) {
@@ -495,7 +508,7 @@ OHeck.prototype = {
 				"left": left,
 				"top": top
 			});
-			$('#board').append(divCard[0]);
+			$('#game-board').append(divCard[0]);
 			card.guiCard = divCard[0];
 			divCard[0].card = card;
 			card.moveToFront();
@@ -558,7 +571,8 @@ OHeck.prototype = {
 		};
 		player.hand.sort(function (c1, c2) {
 			var suits = {D:0,C:1,H:2,S:3};
-			switch (g.status.round.trump) {
+			//switch (g.game.round.trump) {
+			switch (this.trump) {
 				case "D":
 					suits = {C:0,H:1,S:2,D:3}; break;
 				case "C":
@@ -635,20 +649,20 @@ HumanPlayer.prototype = {
 	startBid: function () {
 		$('#bid').css('z-index', oh.zIndexCounter + 10000).show();
 		this.game.message('Choose how many tricks you think you will take.');
-		var isDealer = (this.game.dealerIndex == g.status.seatID - 1);
-		var cannotBidIndex = (g.status.round.hands - g.status.round.bids);
+		var isDealer = (this.game.dealerIndex == g.game.playerId - 1);
+		var cannotBidIndex = (g.game.round.numTricks - g.game.round.bids);
 
 		$('#bid div').remove();
-		for (var i=0; i <= g.status.round.hands; i++) {
+		for (var i=0; i <= g.game.round.numTricks; i++) {
 
 			// Force dealer
 			if (isDealer && (i == cannotBidIndex)) {
 				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid').click(function(e) {
-					g.game.oheck.message('Nice try! Anything but ' + $(this).text());
+					g.oheck.message('Nice try! Anything but ' + $(this).text());
 				}).mouseover(function () {
-					g.game.oheck.message('Anything but ' + $(this).text());
+					g.oheck.message('Anything but ' + $(this).text());
 				}).mouseout(function () {
-					g.game.oheck.message('');
+					g.oheck.message('');
 				});
 			}
 			else {
@@ -656,10 +670,13 @@ HumanPlayer.prototype = {
 					var bid = parseInt($(this).text());
 					if (g.human.isBidding) {
 						g.human.isBidding = false;
-						getJSON({op:"bid", gameID:user.currentGameID, roundID:g.status.currentRoundID, bid:bid}, function(data) {
-							g.game.oheck.bid(g.human, bid);
-							g.waiting = false;
-						});
+//						getJSON({op:"bid", gameID:user.currentGameID, roundID:g.status.currentRoundID, bid:bid}, function(data) {
+						g.socket.emit('playerBid', {playerId: g.game.playerId, bid: bid});
+
+						// TODO: move to callback so all users can update at once
+						g.oheck.bid(g.human, bid);
+/*							g.waiting = false;
+						});*/
 					}
 					else {
 						this.game.message('You cannot bid until your turn.');
@@ -667,9 +684,9 @@ HumanPlayer.prototype = {
 
 					$('#bid').hide();
 				}).mouseover(function () {
-					g.game.oheck.message('Bid ' + $(this).text());
+					g.oheck.message('Bid ' + $(this).text());
 				}).mouseout(function () {
-					g.game.oheck.message('');
+					g.oheck.message('');
 				});
 			}
 		}
@@ -689,26 +706,30 @@ HumanPlayer.prototype = {
 					this.game.message('Nice try! You must follow suit by playing a ' + this.game.pile[0].suitName());
 				} else {
 					this.game.message('Playing the ' + card.longName);
-					getJSON({
+
+					socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
+/*					getJSON({
 						op:"playCard",
 						gameID:user.currentGameID,
 						roundID:g.status.currentRoundID,
 						handID:g.status.handID,
 						card:card.shortName
 					}, function(data) {
-						if (data.has_data) {
-							g.game.oheck.playCards(g.game.oheck.players[g.game.oheck.currentPlayerIndex], [card]);
-							g.waiting = false;
+						if (data.has_data) {*/
+
+					//TODO: move this into a callback function so all players can update at the same time
+							g.oheck.playCards(g.oheck.players[g.oheck.currentPlayerIndex], [card]);
+//							g.waiting = false;
 
 							// Added in case getRound() was called previous to useCard(),
 							// and returns after this JSON response does
 //							setTimeout("g.waiting=false; doLog('Reset waiting after 1500');", 1500);
-							setTimeout("g.waiting=false;", 2000);
-						}
+//							setTimeout("g.waiting=false;", 2000);
+/*						}
 						else {
-							g.game.oheck.message('Error: ' + data.error);
+							g.oheck.message('Error: ' + data.error);
 						}
-					});
+					});*/
 				}
 			}
 		}
@@ -802,8 +823,8 @@ var webRenderer = {
 	play: function (e) {
 //		oh.PILE_POS.left = (oh.TABLE_SIZE.NORMAL.width - oh.CARD_SIZE.width) / 2;
 //		oh.PILE_POS.top = (oh.TABLE_SIZE.NORMAL.height - oh.CARD_SIZE.height) / 2;
-/*		oh.PILE_POS.left = ($('#board').width() - oh.CARD_SIZE.width) / 2;
-		oh.PILE_POS.top = ($('#board').height() - oh.CARD_SIZE.height) / 2;
+/*		oh.PILE_POS.left = ($('#game-board').width() - oh.CARD_SIZE.width) / 2;
+		oh.PILE_POS.top = ($('#game-board').height() - oh.CARD_SIZE.height) / 2;
 		if (e.player.position == 'top') {
 			oh.PILE_POS.top -= 60;
 		} else if (e.player.position == 'bottom') {
@@ -815,8 +836,8 @@ var webRenderer = {
 			oh.PILE_POS.left += 40;
 			oh.PILE_POS.top -= 25;
 		}*/
-		var boardCenterX = ($('#board').width() - oh.CARD_SIZE.width) / 2;
-		var boardCenterY = ($('#board').height() - oh.CARD_SIZE.height) / 2;
+		var boardCenterX = ($('#game-board').width() - oh.CARD_SIZE.width) / 2;
+		var boardCenterY = ($('#game-board').height() - oh.CARD_SIZE.height) / 2;
 
 		if (e.player.position == 'top') {
 			oh.PILE_POS.left = boardCenterX;
@@ -913,26 +934,26 @@ var webRenderer = {
 			var sidePlayerTop = 265;
 			var topEdgeDistance = playerMargin + (playerSizeY - trickHeight) / 2;
 			var sideEdgeDistance = playerMargin + (playerSizeX - trickHeight) / 2;
-			var cardDistance = ($('#board').width() / 2) + playerSizeX / 2 + e.player.tricks.length * overlay;
+			var cardDistance = ($('#game-board').width() / 2) + playerSizeX / 2 + e.player.tricks.length * overlay;
 			if (e.player.position == 'top') {
-//				props['left'] = (($('#board').width() / 2) - (oh.CARD_SIZE.width / 2)) + 'px';
+//				props['left'] = (($('#game-board').width() / 2) - (oh.CARD_SIZE.width / 2)) + 'px';
 				cssClass = 'verticalTrick';
 				trickProps['top'] = topEdgeDistance;
 				trickProps['left'] = cardDistance;
 				props = trickProps;
 			}
 			else if (e.player.position == 'topLeft') {
-//				props['left'] = (($('#board').width() / 3) - (oh.CARD_SIZE.width / 2)) + 'px';
+//				props['left'] = (($('#game-board').width() / 3) - (oh.CARD_SIZE.width / 2)) + 'px';
 				cssClass = 'verticalTrick';
 				trickProps['top'] = topEdgeDistance;
-				trickProps['left'] = (0.3 * $('#board').width()) + (playerSizeX / 2) + e.player.tricks.length * overlay;
+				trickProps['left'] = (0.3 * $('#game-board').width()) + (playerSizeX / 2) + e.player.tricks.length * overlay;
 				props = trickProps;
 			}
 			else if (e.player.position == 'topRight') {
-//				props['left'] = ((0.3 $('#board').width()) - (oh.CARD_SIZE.width / 2)) + 'px';
+//				props['left'] = ((0.3 $('#game-board').width()) - (oh.CARD_SIZE.width / 2)) + 'px';
 				cssClass = 'verticalTrick';
 				trickProps['top'] = topEdgeDistance;
-				trickProps['left'] = (0.7 * $('#board').width()) + (playerSizeX / 2) + e.player.tricks.length * overlay;
+				trickProps['left'] = (0.7 * $('#game-board').width()) + (playerSizeX / 2) + e.player.tricks.length * overlay;
 				props = trickProps;
 			}
 			else if (e.player.position == 'bottom') {
@@ -940,31 +961,31 @@ var webRenderer = {
 //				trickProps['bottom'] = playerMargin + 60 - playerSizeY + ((playerSizeY - trickHeight) / 2);
 				trickProps['bottom'] = playerMargin + (playerSizeY - trickHeight) / 2;
 				trickProps['right'] = cardDistance;
-				props['top'] = $('#board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
-				props['left'] = $('#board').width() - trickProps['right'] - oh.CARD_SIZE.width;
+				props['top'] = $('#game-board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
+				props['left'] = $('#game-board').width() - trickProps['right'] - oh.CARD_SIZE.width;
 			}
 			else if (e.player.position == 'bottomLeft') {
 				cssClass = 'verticalTrick';
 //				trickProps['bottom'] = playerMargin + 60 - playerSizeY + ((playerSizeY - trickHeight) / 2);
 				trickProps['bottom'] = playerMargin + (playerSizeY - trickHeight) / 2;
 				trickProps['right'] = cardDistance;
-				props['top'] = $('#board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
-				props['left'] = $('#board').width() - trickProps['right'] - oh.CARD_SIZE.width;
+				props['top'] = $('#game-board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
+				props['left'] = $('#game-board').width() - trickProps['right'] - oh.CARD_SIZE.width;
 			}
 			else if (e.player.position == 'bottomRight') {
 				cssClass = 'verticalTrick';
 //				trickProps['bottom'] = playerMargin + 60 - playerSizeY + ((playerSizeY - trickHeight) / 2);
 				trickProps['bottom'] = playerMargin + (playerSizeY - trickHeight) / 2;
 				trickProps['right'] = cardDistance;
-				props['top'] = $('#board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
-				props['left'] = $('#board').width() - trickProps['right'] - oh.CARD_SIZE.width;
+				props['top'] = $('#game-board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
+				props['left'] = $('#game-board').width() - trickProps['right'] - oh.CARD_SIZE.width;
 			}
 			else if (e.player.position == 'left') {
 				cssClass = 'horizontalTrick';
-				trickProps['bottom'] = $('#board').height() - sidePlayerTop + e.player.tricks.length * overlay;
+				trickProps['bottom'] = $('#game-board').height() - sidePlayerTop + e.player.tricks.length * overlay;
 //				trickProps['left'] = sideEdgeDistance + 1;
 				trickProps['left'] = sideEdgeDistance;
-				props['top'] = $('#board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
+				props['top'] = $('#game-board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
 				props['left'] = trickProps['left'];
 			}
 			else if (e.player.position == 'right') {
@@ -973,7 +994,7 @@ var webRenderer = {
 				trickProps['top'] = sidePlayerTop + playerSizeY + e.player.tricks.length * overlay;
 				trickProps['right'] = sideEdgeDistance;
 				props['top'] = trickProps['top'];
-				props['left'] = $('#board').width() - trickProps['right'] - oh.CARD_SIZE.width;
+				props['left'] = $('#game-board').width() - trickProps['right'] - oh.CARD_SIZE.width;
 			}
 			for (var i = 0; i < e.trick.length; i++) {
 				e.trick[i].moveToFront();
@@ -983,14 +1004,14 @@ var webRenderer = {
 			}
 			$(e.trick[e.trick.length - 1].guiCard).animate(props, oh.ANIMATION_SPEED, function () {
 				$('.trick').hide();
-				$('#board').append($('<div/>').addClass(cssClass).css(trickProps));
+				$('#game-board').append($('<div/>').addClass(cssClass).css(trickProps));
 				e.callback();
 			});
 		}, oh.TAKE_TRICK_DELAY);
 	},
 };
 
-
+/*
 function getRound() {
 
 	// Waiting for another player
@@ -999,29 +1020,30 @@ function getRound() {
 			g.roundLoading++;
 			getJSON({op:"getRound", gameID:user.currentGameID}, function(data) {
 				g.roundLoading = 0;
-				g.status = data;
+//				g.status = data;
 				updateStats();
 
 				// Check game status
 
 				// Need to deal
 				// TODO... check for same round
-				if (!g.game.oheck.cardsDealt && g.status.player[1].hand == null) {
+				if (!g.oheck.cardsDealt && g.game.players[0].hand == null) {
 
 					// Check for end of game
-					if (g.game.oheck.round == g.game.oheck.rounds) {
-						g.game.oheck.message('Game over -- thanks for playing!');
+					if (g.oheck.round == g.oheck.rounds) {
+						g.oheck.message('Game over -- thanks for playing!');
 						g.waiting = true;
 					}
 					else {
 						// Player is next dealer
-						if (g.game.oheck.dealerIndex + 1 == g.status.seatID) {
-							g.game.oheck.message('Waiting for you to deal!');
+						//if (g.oheck.dealerIndex + 1 == g.status.seatID) {
+						if (g.oheck.dealerIndex + 1 == g.game.playerId) {
+							g.oheck.message('Waiting for you to deal!');
 							$('#deal').fadeIn();
 							g.waiting = true;
 						}
 						else {
-							g.game.oheck.message('Waiting for ' + g.game.oheck.players[g.game.oheck.dealerIndex].name + ' to deal');
+							g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.dealerIndex].name + ' to deal');
 							$('#deal').hide();
 							g.waiting = false;
 						}
@@ -1029,12 +1051,13 @@ function getRound() {
 				}
 
 				// Just dealt
-				else if (!g.game.oheck.cardsDealt) {
+				else if (!g.oheck.cardsDealt) {
 					g.waiting = false;
-					g.game.oheck.cardCount = parseInt(g.status.round.hands, 10);
-					g.game.oheck.newDeck();
-					g.game.oheck.round++;
-					g.game.oheck.deal();
+					//g.oheck.cardCount = parseInt(g.status.round.hands, 10);
+					g.oheck.cardCount = g.game.round.numTricks;
+					g.oheck.newDeck();
+					g.oheck.round++;
+					g.oheck;
 				}
 
 				// Playing
@@ -1042,13 +1065,15 @@ function getRound() {
 					g.waiting = false;
 
 					// Update bids
-					while (g.game.oheck.players[g.game.oheck.bidPlayerIndex].bidValue == -1 && g.status.player[g.game.oheck.bidPlayerIndex+1].bid != null) {
-						g.game.oheck.bid(g.game.oheck.players[g.game.oheck.bidPlayerIndex], g.status.player[g.game.oheck.bidPlayerIndex+1].bid);
+					while (g.oheck.players[g.oheck.bidPlayerIndex].bidValue == -1 && g.game.players[g.oheck.bidPlayerIndex+1].bid != null) {
+						g.oheck.bid(g.oheck.players[g.oheck.bidPlayerIndex], g.game.players[g.oheck.bidPlayerIndex+1].bid);
 					}
 
 					// Need to bid
-					if (g.status.player[g.status.seatID].bid == null) {
-						if (g.status.seatID == g.game.oheck.bidPlayerIndex + 1) {
+					//if (g.game.players[g.status.seatID].bid == null) {
+					if (g.game.players[g.game.playerId].bid == null) {
+						//if (g.status.seatID == g.oheck.bidPlayerIndex + 1) {
+						if (g.game.playerId == g.oheck.bidPlayerIndex + 1) {
 							g.waiting = true;
 							g.human.startBid();
 						}
@@ -1056,43 +1081,43 @@ function getRound() {
 						// Check for other bid updates
 						else {
 							g.waiting = false;
-							g.game.oheck.message('Waiting for ' + g.game.oheck.players[g.game.oheck.bidPlayerIndex].name + ' to bid');
+							g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.bidPlayerIndex].name + ' to bid');
 						}
 					}
 
 					// Waiting for all players to bid -- check if current bidder has already bid
-					else if (g.game.oheck.players[g.game.oheck.bidPlayerIndex].bidValue == -1) {
+					else if (g.oheck.players[g.oheck.bidPlayerIndex].bidValue == -1) {
 						g.waiting = false;
-						g.game.oheck.message('Waiting for ' + g.game.oheck.players[g.game.oheck.bidPlayerIndex].name + ' to bid');
+						g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.bidPlayerIndex].name + ' to bid');
 					}
 
 					// Bidding finished
 					// Currently in the middle of a round/hand
 					else {
-						g.waiting = (g.status.seatID == g.game.oheck.currentPlayerIndex + 1);
+						g.waiting = (g.game.playerId == g.oheck.currentPlayerIndex + 1);
 						var numCardsInHand = 0;
-						var hand = g.status.player[g.game.oheck.currentPlayerIndex+1].currentHand;
+						var hand = g.game.players[g.oheck.currentPlayerIndex+1].currentHand;
 						if (hand != null && hand != '') {
 							var handArr = hand.split(",");
 							numCardsInHand = handArr.length;
 						}
 
 						// Update next card played
-						if (g.game.oheck.players[g.game.oheck.currentPlayerIndex].hand.length > numCardsInHand) {
+						if (g.oheck.players[g.oheck.currentPlayerIndex].hand.length > numCardsInHand) {
 
 							// Not end of hand
-							if (g.status.hand) {
-								var thisCard = g.status.hand[g.game.oheck.hand][g.game.oheck.currentPlayerIndex+1].card;
+							if (g.game.round.currentTrickPlayed.length < g.game.round.numTricks) {
+								var thisCard = g.game.round.currentTrickPlayed[g.oheck.hand][g.oheck.currentPlayerIndex+1].card;
 
 								// Find card position in player's hand
-								var cp = g.game.oheck.players[g.game.oheck.currentPlayerIndex];
+								var cp = g.oheck.players[g.oheck.currentPlayerIndex];
 								for (var pos = 0; pos < cp.hand.length; pos++) {
 									if (cp.hand[pos].shortName == thisCard) {
-										g.game.oheck.message(g.game.oheck.players[cp.pos].name + ' played the ' + cp.hand[pos].longName);
-										g.game.oheck.playCards(cp, [cp.hand[pos]]);
+										g.oheck.message(g.oheck.players[cp.pos].name + ' played the ' + cp.hand[pos].longName);
+										g.oheck.playCards(cp, [cp.hand[pos]]);
 
 										// If I played already (game reloaded), and I just played this card, resume checks
-										if (g.userPosition == cp.pos+1) {
+										if (g.game.playerId == cp.pos+1) {
 											g.waiting = false;
 										}
 										pos = cp.hand.length;
@@ -1101,26 +1126,26 @@ function getRound() {
 							}
 							else {
 //								doLog('User hand is null. Probably the end of the round!');
-								var cp = g.game.oheck.players[g.game.oheck.currentPlayerIndex];
+								var cp = g.oheck.players[g.oheck.currentPlayerIndex];
 								if (cp.hand.length == 1) {
 //									doLog('1 card left in hand... let\'s play it');
-									g.game.oheck.playCards(cp, [cp.hand[0]]);
+									g.oheck.playCards(cp, [cp.hand[0]]);
 								}
 								else {
-									g.game.oheck.message('An error occurred -- round is not over but hand is null');
+									g.oheck.message('An error occurred -- round is not over but hand is null');
 								}
 							}
 						}
 
 						// Need to play
-						else if (g.status.seatID == g.game.oheck.currentPlayerIndex + 1) {
-							g.game.oheck.message('Your turn! Select a card to play');
+						else if (g.game.playerId == g.oheck.currentPlayerIndex + 1) {
+							g.oheck.message('Your turn! Select a card to play');
 						}
 
 						// Check if all players have played
 						// Check if pile is full (go to next hand)
 						else {
-							g.game.oheck.message('Waiting for ' + g.game.oheck.players[g.game.oheck.currentPlayerIndex].name + ' to play');
+							g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.currentPlayerIndex].name + ' to play');
 						}
 					}
 				}
@@ -1137,4 +1162,4 @@ function getRound() {
 			}
 		}
 	}
-}
+}*/

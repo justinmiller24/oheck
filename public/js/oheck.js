@@ -5,9 +5,8 @@
 
 // Globals
 var COOKIE_NAME = 'oheck';
-var SNACKBAR_TIMEOUT = 1200;
+var SNACKBAR_TIMEOUT = 1000;
 var g = {
-  rooms: [],
   user: {
     id: null,
     name: null,
@@ -15,25 +14,24 @@ var g = {
     games: 0,
     wins: 0
   },
-  users: {},
-  game: {}
+  rooms: [],
+  users: [],
+  game: {},
+  oheck: {},
+  socket: null
 }
 
 
 $(document).ready(function(){
-
-  // Set default modal fade duration
-  //$.modal.defaults.fadeDuration = 100;
-
 
   /**
    * SOCKET.IO EVENTS
    */
 
   // Connect to Socket.IO
-  var socket = io();
+  g.socket = io();
 
-  socket.on('init', function(data){
+  g.socket.on('init', function(data){
     console.log(data);
     showMessage('Loading...');
     g.rooms = data.rooms;
@@ -44,6 +42,9 @@ $(document).ready(function(){
     if (g.game.isActive){
       // If user is logged in, send into existing game
       if (Cookies.getJSON(COOKIE_NAME)){
+        // Broadcast to other users
+        // This also triggers the socket joining the "game" room
+        g.socket.emit('userJoined', {user: g.user});
         sendUserToExistingGame();
       }
     }
@@ -52,97 +53,107 @@ $(document).ready(function(){
     }
   });
 
-  socket.on('myUserLogin', function(data){
-    console.log('my user login fn');
-    console.log(data);
-//    showMessage('My user ' + data.userId + ' logged in');
+  g.socket.on('myUserLogin', function(data){
+    g.users = data.users;
     g.user.id = data.userId;
+
     // Save to cookie
-    console.log('set cookie:');
-    console.log(g.user);
     Cookies.set(COOKIE_NAME, g.user);
-    g.users = data.users;
     updateUsersInLobby();
   });
 
-  socket.on('userJoined', function(data){
-    console.log('user joined fn');
-    console.log(data);
+  g.socket.on('userJoined', function(data){
     g.users = data.users;
-    var loggedInUser = g.users[data.userId].name;
-    showMessage('New user ' + loggedInUser + ' has arrived');
-    updateUsersInLobby();
+
+    // Find user
+    for (var i in g.users){
+      if (g.users[i].id === data.userId){
+        var loggedInUserName = g.users[data.userId].name;
+        showMessage('New user ' + loggedInUserName + ' has arrived');
+        updateUsersInLobby();
+        return;
+      }
+    }
   });
 
-  socket.on('userLogout', function(data){
-    console.log('user logout fn');
-    console.log(data);
-    var loggedOutUser = g.users[data.userId].name;
-    showMessage(loggedOutUser + ' logged out');
+  g.socket.on('userLogout', function(data){
     g.users = data.users;
-    updateUsersInLobby();
+
+    // Find user
+    if (g.users[data.userId] && g.users[data.userId].name){
+      var loggedOutUserName = g.users[data.userId].name;
+      showMessage(loggedOutUserName + ' logged out');
+      updateUsersInLobby();
+    }
   });
 
-  socket.on('forceReloadAll', function(data){
-    console.log(data);
+  g.socket.on('forceReloadAll', function(data){
     showMessage('Reloading...', function(){
       window.location.reload();
     });
   });
 
-  socket.on('userDisconnected', function(data){
+/*  g.socket.on('userDisconnected', function(data){
     console.log('Some user disconnected');
     //showMessage('User Disconnected event received');
-  });
+  });*/
 
-  socket.on('startGame', function(data){
-    console.log(data.game);
+  g.socket.on('startGame', function(data){
+//    console.log(data);
     g.game = data.game;
-
     showMessage('Starting Game!', function(){
       $.modal.close();
-      $('#lobby, #game-board').slideToggle(400, function(){
-        loadGameBoard();
-      });
+      $('#lobby, #game-board').slideToggle();
+      loadGameBoard();
     });
+  });
+
+  g.socket.on('dealHand', function(data){
+//    console.log(data);
+    g.game = data.game;
+    g.game.playerId = g.user.id + 1;
+    g.oheck.newDeck();
+    g.oheck.deal();
   });
 
 
   /**
    * Login dialogs
    */
+
   // Enter name
-  $('#select-name form').submit(function(){
+  $('#select-name form').submit(function(e){
+    e.preventDefault();
     g.user.name = this.name.value;
-    showMessage('User entered: ' + g.user.name);
 
     // Update confirmation HTML
     updateConfirmHTML();
 
     // Simulate click on next tab
-    $("#login .mdl-tabs__tab:eq(1) span").click (); //for the second tab (index 1)
-    return false;
-  })
+    $("#login .mdl-tabs__tab:eq(1) span").click();
+  });
+
   // Select avatar
   $('#select-avatar form button').click(function(){
     g.user.avatar = $(this).attr('id');
   });
-  $('#select-avatar form').submit(function(){
-    showMessage('user selected avatar id: ' + g.user.avatar);
+  $('#select-avatar form').submit(function(e){
+    e.preventDefault();
+
     // Update confirmation HTML
     updateConfirmHTML();
-    // Simulate click on next tab
-    $("#login .mdl-tabs__tab:eq(2) span").click (); //for the last tab (index 2)
-    return false;
-  });
-  $('#sign-in-button').click(function(event){
-    event.preventDefault();
 
-    // Wait to save cookie until server response occurs via "myUserLogin"
-    //Cookies.set(COOKIE_NAME, g.user);
+    // Simulate click on next tab
+    $("#login .mdl-tabs__tab:eq(2) span").click();
+  });
+
+  // Sign in
+  // Wait to save cookie until server response via "myUserLogin" socket event
+  $('#sign-in-button').click(function(e){
+    e.preventDefault();
 
     // Broadcast to users
-    socket.emit('userLogin', g.user);
+    g.socket.emit('userLogin', {user: g.user});
 
     showMessage('Logging In', function(){
       updateUsersInLobby();
@@ -156,16 +167,15 @@ $(document).ready(function(){
   // http://api.jquery.com/delegate/
   $(document).on('click', '#logout-button', function(event){
     event.preventDefault();
-    showMessage('Logging out', function(event){
-      socket.emit('userLogout', {userId: g.user.id});
-      Cookies.remove(COOKIE_NAME);
-      location.reload();
-    });
+
+    g.socket.emit('userLogout', {userId: g.user.id});
+    Cookies.remove(COOKIE_NAME);
+    location.reload();
   });
 
   // Force Reload
   $('#force-reload').click(function(){
-    socket.emit('forceReloadAll', 'Force Reload All Clients');
+    g.socket.emit('forceReloadAll', 'Force Reload All Clients');
     showMessage('Force Reload All', function(){
       location.reload();
     });
@@ -182,20 +192,10 @@ $(document).ready(function(){
   // http://api.jquery.com/delegate/
   $(document).on('click', '#start-game-button', function(event){
     event.preventDefault();
-    showMessage('Starting Game', function(){
 
-      //INSERT INTO `game` (ownerID, players, rounds, decks, trump, instant, nascar, scoring, active)
-      socket.emit('startGame', {
-        ownerId: g.user.id,
-        rounds: $('#create-game-form #rounds').val(),
-/*        decks: $('#create-game-form #decks').val()
-        trump: $('#create-game-form #trump').val(),
-        instantBid: $('#create-game-form #instantBid').val(),
-        nascar: $('#create-game-form #nascar').val()*/
-      });
-    });
+    //TODO: add options for "decks", "trump", "instantBid", and "nascar"
+    g.socket.emit('startGame', {ownerId: g.user.id, rounds: $('#create-game-form #rounds').val() });
   });
-
 
 
   function updateConfirmHTML(){
@@ -205,17 +205,15 @@ $(document).ready(function(){
 
   // Show snackbar message
   function showMessage(msg, callback){
-    //console.log(msg);
+//    console.log(msg);
 
     // Log on server console...
-    socket.emit('snackbarMessage', msg);
+//    g.socket.emit('snackbarMessage', msg);
 
     document.querySelector('#snackbar-message')
       .MaterialSnackbar.showSnackbar({
         message: msg,
-        timeout: SNACKBAR_TIMEOUT,
-//      actionHandler: function(event){},
-//      actionText: 'Undo'
+        timeout: SNACKBAR_TIMEOUT
     });
     // Have to do the function callback through "setTimeout" function because
     // the stupid snackbar in MDL doesn't allow a native event callback
@@ -233,32 +231,25 @@ $(document).ready(function(){
     // Check if user is already logged in
     if (Cookies.getJSON(COOKIE_NAME)){
       g.user = Cookies.getJSON(COOKIE_NAME);
-
+      console.log('User is already logged in -- ');
       console.log(g.user);
-      var myString = 'Welcome back, ' + g.user.name + '!';
-      alert(myString);
+//      var myString = 'Welcome back, ' + g.user.name + '!';
+//      alert(myString);
 
-      // If user is already logged in, we can delete the login form HTML
+      // Delete login form HTML since user is already logged in
       $('#login').remove();
 
-      // Check if game is already in progress
-//      if (g.game && g.game.isActive){
-//        sendUserToExistingGame();
-//      }
-//      else{
-        // If user is already logged in, but no game is in progress,
-        // the "get started" button should take them to the lobby
-        $('#get-started-button-action').click(function(event){
-          event.preventDefault();
+      // The "get started" button should take user to lobby if no game is in progress
+      $('#get-started-button-action').click(function(e){
+        e.preventDefault();
 
-          // Broadcast to other users
-          // This also triggers the socket joining the "game" room
-          socket.emit('userJoined', g.user);
+        // Broadcast to other users
+        // This also triggers the socket joining the "game" room
+        g.socket.emit('userJoined', {user: g.user});
 
-          // Switch to lobby view
-          $('#welcome, #lobby').slideToggle();
-        });
-//      }
+        // Switch to lobby view
+        $('#welcome, #lobby').slideToggle();
+      });
     }
     else{
 
@@ -271,74 +262,35 @@ $(document).ready(function(){
       })
     }
   }
-  function updateUsersInLobby(){
-    console.log('Updating users in lobby.');
-    console.log(g.users);
-    var usersHtml = '';
-    for (var i in g.users){
-      // Skip null users
-      if (g.users[i]){
-        usersHtml += '<li class="mdl-list__item mdl-list__item--two-line">';
-        usersHtml += '<span class="mdl-list__item-primary-content">';
-        usersHtml += '<i class="material-icons mdl-list__item-avatar">person</i>';
-        usersHtml += '<span>' + g.users[i].name + '</span>';
-        usersHtml += '<span class="mdl-list__item-sub-title">' + g.users[i].wins + ' wins / ' + g.users[i].games + ' games</span>';
-        usersHtml += '</span></li>';
-      }
-      else{
-        console.log('PROBLEM! server returned userArray which includes userID ' + i + ' which is null!');
-      }
-    }
-    $('#usersOnline').html(usersHtml);
-  }
-  function sendUserToExistingGame(){
-    showMessage('Game is already in progress', function(){
-      $('#welcome, #game-board').slideToggle(400, function(){
-        loadGameBoard();
-      });
-    });
-  }
-
-  // Load rules dialog
-//        $("#rules-dialog .mdl-dialog__content").load("/html/rules.html");
-
 
   function loadGameBoard(){
-/*    showMessage('Loading Game Board!', function(){
-      //$('#game-board').slideToggle();
-    });*/
-
-    showMessage('Load game board!');
-  	g.game.oheck = new OHeck();
+  	g.oheck = new OHeck();
 
     // Setup event renderers
-    for (var name in g.game.oheck.renderers) {
-      g.game.oheck.setEventRenderer(name, function (e) {
+    for (var name in g.oheck.renderers){
+      g.oheck.setEventRenderer(name, function(e) {
         e.callback();
       });
     }
-    g.game.oheck.setEventRenderer('dealcard', webRenderer.dealCard);
-    g.game.oheck.setEventRenderer('play', webRenderer.play);
-    g.game.oheck.setEventRenderer('sorthand', webRenderer.sortHand);
+    g.oheck.setEventRenderer('dealcard', webRenderer.dealCard);
+    g.oheck.setEventRenderer('play', webRenderer.play);
+    g.oheck.setEventRenderer('sorthand', webRenderer.sortHand);
 
     // Setup deal handler
     $('#deal').click(function(e) {
       $(this).hide();
-      g.game.oheck.message('Dealing...');
 
       // Deal hand
-      socket.emit('dealHand', {});
-//      socket.emit('dealHand', {gameId: g.game.id, playerId: g.game.userId});
-//      getJSON({"op":"dealHand", "gameID":user.currentGameID}, function(data) {
-        g.waiting = false;
-        getRound();
+      g.socket.emit('dealHand');
+//        g.waiting = false;
+//        getRound();
 
         // TODO: update bidIndex, currentPlayerIndex, etc on next round
 //      });
     });
 
     // Setup start handler
-    g.game.oheck.setEventRenderer('start', function (e) {
+    g.oheck.setEventRenderer('start', function(e){
       $('.card').click(function() {
         g.human.useCard(this.card);
       });
@@ -347,8 +299,8 @@ $(document).ready(function(){
     });
 
     // Extra setup
-    g.game.oheck.setEventRenderer('taketrick', webRenderer.takeTrick);
-    g.game.oheck.setEventRenderer('bid', webRenderer.bid);
+    g.oheck.setEventRenderer('taketrick', webRenderer.takeTrick);
+    g.oheck.setEventRenderer('bid', webRenderer.bid);
 
     // Preload images
     var imgs = ['horizontal-trick', 'vertical-trick'];
@@ -358,15 +310,17 @@ $(document).ready(function(){
     }
 
     // Calculate table position
-    g.game.userPosition = g.user.id + 1;
-    showMessage('My position: ' + g.game.userPosition + '/' + g.game.numPlayers);
+    //g.game.playerId = g.user.id + 1;
+    g.game.playerId = g.user.id;
+    showMessage('My position: ' + g.game.playerId + '/' + g.game.players.length);
+    console.log(g.game.players);
 
     // Wide mode
-    if (g.game.numPlayers > 4){
+    if (g.game.players.length > 4){
       $('#wrapper').addClass('wide');
     }
     // Add players class
-    $('#game-board').addClass('players-' + g.game.numPlayers);
+    $('#game-board').addClass('players-' + g.game.players.length);
 
     var players = [],
       p = null,
@@ -382,21 +336,13 @@ $(document).ready(function(){
     $('#playersBlock').html(h);
     $('#playersBidBlock').html(h2);
 
-/*    console.log('Logging some stuff...');
-    console.log('My user position: ' + g.game.userPosition);
-    console.log('Number of players: ' + g.game.numPlayers);
-    console.log('Number of players from array: ' + g.game.players.length);
-    console.log('Players Array:');
-    console.log(g.game.players);*/
-
-    //switch (games[user.currentGameID].numPlayers) {
-    switch (g.game.numPlayers) {
+    switch (g.game.players.length) {
 
       // 2 PLAYER GAME
       case 2:
 
         // Create player 2 (top center)
-        thisPlayer = g.game.players[(g.game.userPosition + 0) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 0) % g.game.players.length];
         $('#player-position-1 div').addClass('player-' + thisPlayer.position);
         $('#player-position-1 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -408,8 +354,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 1 (bottom)
-        //uid = g.game.userOrder[(g.game.userPosition + 1) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 1) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 1) % g.game.players.length];
         $('#player-position-2 div').addClass('player-' + thisPlayer.position);
         $('#player-position-2 small').text(thisPlayer.name);
         g.human = new HumanPlayer(thisPlayer.name);
@@ -426,8 +371,7 @@ $(document).ready(function(){
       case 3:
 
         // Create player 2 (left)
-        //uid = g.game.userOrder[(g.game.userPosition + 0) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 0) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 0) % g.game.players.length];
         $('#player-position-1 div').addClass('player-' + thisPlayer.position);
         $('#player-position-1 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -439,8 +383,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 3 (right)
-        //uid = g.game.userOrder[(g.game.userPosition + 1) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 1) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 1) % g.game.players.length];
         $('#player-position-2 div').addClass('player-' + thisPlayer.position);
         $('#player-position-2 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -452,8 +395,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 1 (bottom)
-        //uid = g.game.userOrder[(g.game.userPosition + 2) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 2) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 2) % g.game.players.length];
         $('#player-position-3 div').addClass('player-' + thisPlayer.position);
         $('#player-position-3 small').text(g.users[thisPlayer.position].name);
         g.human = new HumanPlayer(thisPlayer.name);
@@ -470,8 +412,7 @@ $(document).ready(function(){
       case 4:
 
         // Create player 2 (left)
-        //uid = g.game.userOrder[(g.game.userPosition + 0) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 0) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 0) % g.game.players.length];
         $('#player-position-1 div').addClass('player-' + thisPlayer.position);
         $('#player-position-1 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -483,8 +424,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 3 (top center)
-        //uid = g.game.userOrder[(g.game.userPosition + 1) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 1) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 1) % g.game.players.length];
         $('#player-position-2 div').addClass('player-' + thisPlayer.position);
         $('#player-position-2 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -496,8 +436,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 4 (right)
-        //uid = g.game.userOrder[(g.game.userPosition + 2) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 2) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 2) % g.game.players.length];
         $('#player-position-3 div').addClass('player-' + thisPlayer.position);
         $('#player-position-3 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -509,8 +448,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 1 (bottom)
-        //uid = g.game.userOrder[(g.game.userPosition + 3) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 3) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 3) % g.game.players.length];
         $('#player-position-4 div').addClass('player-' + thisPlayer.position);
         $('#player-position-4 small').text(thisPlayer.name);
         g.human = new HumanPlayer(thisPlayer.name);
@@ -527,8 +465,7 @@ $(document).ready(function(){
       case 5:
 
         // Create player 2 (left)
-        //uid = g.game.userOrder[(g.game.userPosition + 0) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 0) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 0) % g.game.players.length];
         $('#player-position-1 div').addClass('player-' + thisPlayer.position);
         $('#player-position-1 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -540,8 +477,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 3 (top left)
-        //uid = g.game.userOrder[(g.game.userPosition + 1) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 1) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 1) % g.game.players.length];
         $('#player-position-2 div').addClass('player-' + thisPlayer.position);
         $('#player-position-2 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -553,8 +489,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 4 (top right)
-        //uid = g.game.userOrder[(g.game.userPosition + 2) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 2) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 2) % g.game.players.length];
         $('#player-position-3 div').addClass('player-' + thisPlayer.position);
         $('#player-position-3 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -566,8 +501,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 5 (right)
-        //uid = g.game.userOrder[(g.game.userPosition + 3) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 3) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 3) % g.game.players.length];
         $('#player-position-4 div').addClass('player-' + thisPlayer.position);
         $('#player-position-4 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -579,8 +513,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 1 (bottom)
-        //uid = g.game.userOrder[(g.game.userPosition + 4) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 4) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 4) % g.game.players.length];
         $('#player-position-5 div').addClass('player-' + thisPlayer.position);
         $('#player-position-5 small').text(thisPlayer.name);
         g.human = new HumanPlayer(thisPlayer.name);
@@ -598,8 +531,7 @@ $(document).ready(function(){
       default:
 
         // Create player 2 (left)
-        //uid = g.game.userOrder[(g.game.userPosition + 0) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 0) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 0) % g.game.players.length];
         $('#player-position-1 div').addClass('player-' + thisPlayer.position);
         $('#player-position-1 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -611,8 +543,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 3 (top left)
-        //uid = g.game.userOrder[(g.game.userPosition + 1) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 1) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 1) % g.game.players.length];
         $('#player-position-2 div').addClass('player-' + thisPlayer.position);
         $('#player-position-2 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -624,8 +555,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 4 (top right)
-        //uid = g.game.userOrder[(g.game.userPosition + 2) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 2) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 2) % g.game.players.length];
         $('#player-position-3 div').addClass('player-' + thisPlayer.position);
         $('#player-position-3 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -637,8 +567,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 5 (right)
-        //uid = g.game.userOrder[(g.game.userPosition + 3) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 3) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 3) % g.game.players.length];
         $('#player-position-4 div').addClass('player-' + thisPlayer.position);
         $('#player-position-4 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -650,8 +579,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 5 (bottom right)
-        //uid = g.game.userOrder[(g.game.userPosition + 4) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 4) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 4) % g.game.players.length];
         $('#player-position-5 div').addClass('player-' + thisPlayer.position);
         $('#player-position-5 small').text(thisPlayer.name);
         p = new ComputerPlayer(thisPlayer.name);
@@ -663,8 +591,7 @@ $(document).ready(function(){
         players.push(p);
 
         // Create player 1 (bottom left)
-        //uid = g.game.userOrder[(g.game.userPosition + 5) % game.players];
-        thisPlayer = g.game.players[(g.game.userPosition + 5) % g.game.numPlayers];
+        thisPlayer = g.game.players[(g.game.playerId + 5) % g.game.players.length];
         $('#player-position-6 div').addClass('player-' + thisPlayer.position);
         $('#player-position-6 small').text(thisPlayer.name);
         g.human = new HumanPlayer(thisPlayer.name);
@@ -680,62 +607,127 @@ $(document).ready(function(){
 
     // Add players
     //for (var i=0; i<games[user.currentGameID].numPlayers; i++) {
-    for (var i=0; i<g.game.numPlayers; i++){
-      var pos = (players.length + i - g.game.userPosition) % players.length;
-      g.game.oheck.addPlayer(players[pos]);
+    console.log('adding players...');
+    for (var i = 0; i < g.game.players.length; i++){
+      var pos = (players.length + i - g.game.playerId) % players.length;
+      console.log('adding player in position: ' + pos);
+      g.oheck.addPlayer(players[pos]);
     }
 
 
     // Set rounds
-    g.game.oheck.rounds = g.game.numRounds;
-    //	console.log('# rounds in game: ' + g.game.oheck.rounds);
+    g.oheck.rounds = g.game.numRounds;
+    //	console.log('# rounds in game: ' + g.oheck.rounds);
 
     // Beginning of game
+    // First person who joined the game bids first
+    // Last person who joined the game deals first
     if (g.game.currentRound == 0){
-//		console.log('No rounds exist yet!');
-      g.game.oheck.dealerIndex = g.game.oheck.players.length - 1;
-      g.game.oheck.nextPlayerToDealTo = g.game.oheck.nextIndex(g.game.oheck.dealerIndex);
-      g.game.oheck.currentPlayerIndex = g.game.oheck.nextIndex(g.game.oheck.dealerIndex);
-      g.game.oheck.bidPlayerIndex = g.game.oheck.currentPlayerIndex;
-//		console.log('Dealer: ' + g.game.oheck.dealerIndex);
-//		console.log('Player: ' + g.game.oheck.currentPlayerIndex);
-      return;
+//      g.oheck.dealerIndex = g.oheck.players.length;
+      g.oheck.dealerIndex = g.game.currentDealerId;
+      g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
+      g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
+      g.oheck.bidPlayerIndex = g.oheck.currentPlayerIndex;
+      console.log('No rounds exist yet!');
+      console.log('Dealer: ' + g.oheck.dealerIndex);
+      console.log('Player: ' + g.oheck.currentPlayerIndex);
+      console.log('PlayerId: ' + g.game.playerId);
     }
 
-    // Set game to current state
-    // Might be in this case if the page was reloaded
-//    if (g.status.currentRoundID > 0) {
-
     // Beginning of round
-    //if (g.status.round == null) {
-    if (!g.game.round){
+    if (g.game.round.status == 'Deal') {
+
+      // Player is next dealer
+      if (g.oheck.dealerIndex == g.game.playerId){
+        g.oheck.message('Waiting for you to deal!');
+        $('#deal').fadeIn();
+//        g.waiting = true;
+      }
+      else {
+        g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.dealerIndex-1].name + ' to deal');
+        $('#deal').hide();
+//        g.waiting = false;
+      }
+
       return;
     }
 
     // In middle of round
-    //g.game.oheck.cardCount = parseInt(g.status.round.hands, 10);
-    g.game.oheck.cardCount = g.game.round.numTricks;
-//	console.log('Set card count: ' + g.game.oheck.cardCount);
-    //g.game.oheck.round = g.status.currentRoundID;
-    g.game.oheck.round = g.game.currentRound;
-//	console.log('Set Round: ' + g.game.oheck.round);
+    //g.oheck.cardCount = parseInt(g.status.round.hands, 10);
+    g.oheck.cardCount = g.game.round.numTricks;
+//	console.log('Set card count: ' + g.oheck.cardCount);
+    //g.oheck.round = g.status.currentRoundID;
+    g.oheck.round = g.game.currentRound;
+//	console.log('Set Round: ' + g.oheck.round);
 
     // Set dealer index
-    g.game.oheck.dealerIndex = (g.game.currentRound - 2 + g.game.oheck.players.length) % g.game.oheck.players.length;
-    g.game.oheck.nextPlayerToDealTo = g.game.oheck.nextIndex(g.game.oheck.dealerIndex);
-    g.game.oheck.currentPlayerIndex = g.game.oheck.nextIndex(g.game.oheck.dealerIndex);
-    g.game.oheck.bidPlayerIndex = g.game.oheck.currentPlayerIndex;
-//	console.log('Dealer: ' + g.game.oheck.dealerIndex);
-//	console.log('Player: ' + g.game.oheck.currentPlayerIndex);
+//    g.oheck.dealerIndex = (g.game.currentRound - 2 + g.oheck.players.length) % g.oheck.players.length;
+    g.oheck.dealerIndex = g.game.currentDealerId;
+    g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
+    g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
+    g.oheck.bidPlayerIndex = g.oheck.currentPlayerIndex;
+    console.log('In middle of round. Set dealer index.');
+    console.log('Dealer: ' + g.oheck.dealerIndex);
+    console.log('Player: ' + g.oheck.currentPlayerIndex);
+//    console.log('Position: ' + g.game.playerId);
 
     // If cards were already dealt (page reloaded), go ahead and deal
     //if (g.status.player[1].hand != null && g.status.player[1].hand) {
     if (g.game.players[1].hand.length){
-//	console.log('Cards already dealt... deal!');
-      g.game.oheck.newDeck();
-      g.game.oheck.deal();
+	console.log('Cards already dealt... deal!');
+      g.oheck.newDeck();
+      g.oheck.deal();
     }
     //	console.log('Seat: ' + (g.status.seatID-1));
+
+    // Once cards are dealt, it's someone's turn to bid
+    //TODO: check if someone needs to bid
+//    if (g.game.status == 'Bid'){
+      if (g.oheck.currentPlayerIndex == g.game.playerId){
+        g.oheck.message('Waiting for you to bid!');
+        g.human.startBid();
+      }
+      else{
+        g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.currentPlayerIndex-1].name + ' to bid!');
+      }
+//    }
+  }
+
+  function sendUserToExistingGame(){
+    showMessage('Game is already in progress', function(){
+      $('#welcome, #game-board').slideToggle();
+      loadGameBoard();
+    });
+  }
+
+  function updateUsersInLobby(){
+//    console.log('Updating users in lobby.');
+//    console.log(g.users);
+    var usersHtml = '';
+    for (var i in g.users){
+      // Skip null users
+      if (g.users[i]){
+        usersHtml += '<li class="mdl-list__item mdl-list__item--two-line">';
+        usersHtml += '<span class="mdl-list__item-primary-content">';
+        usersHtml += '<i class="material-icons mdl-list__item-avatar">person</i>';
+        usersHtml += '<span>' + g.users[i].name + '</span>';
+        usersHtml += '<span class="mdl-list__item-sub-title">' + g.users[i].wins + ' wins / ' + g.users[i].games + ' games</span>';
+        usersHtml += '</span></li>';
+      }
+    }
+    $('#usersOnline').html(usersHtml);
+
+    // Only show "create game" button if there are 2-6 users waiting
+    var usersOnline = $('#usersOnline li').length;
+    console.log('users online: ' + usersOnline);
+    if (usersOnline >= 2 && usersOnline <= 6){
+      $('#create-game-button').removeAttr('disabled', 'disabled');
+      $('#create-game-button-link').attr('href', '/html/create-game.html').attr('rel', 'modal:open');
+    }
+    else{
+      $('#create-game-button').attr('disabled', 'disabled');
+      $('#create-game-button-link').attr('href', '#').removeAttr('rel', 'modal:open').attr('onclick', 'javascript:return false;');
+    }
   }
 
   // Initialize
@@ -777,64 +769,6 @@ var g = {
 };
 
 $(document).ready(function() {
-
-	setActiveUser();
-	g.timeout.user = setInterval("setActiveUser();", 60000);
-	getUsers();
-	g.timeout.users = setInterval("getUsers();", 5000);
-	getGames();
-	g.timeout.games = setInterval("getGames();", 5000);
-
-	// Create game
-	$("#create-game").click(function() {
-		$("#create-game-form-dialog").dialog({
-			height: 300,
-			width: 420,
-			modal: true,
-			buttons: {
-				"Create Game": function() {
-					var str = $("#create-game-form").serialize() + "&op=createGame";
-					getJSON(str, function(data) {
-						document.location.reload();
-					});
-				},
-				"Cancel": function() {
-					$(this).dialog('destroy');
-				}
-			}
-		});
-	});
-});
-
-function setActiveUser() {
-	if (g.inLobby) {
-		getJSON({op:"setActiveUser"}, function(data) {});
-	}
-}
-
-function getUsers() {
-	if (g.inLobby) {
-		getJSON({op:"getUsers"}, function(data) {
-			users = data.users;
-			if (users != {} && users != []) {
-				var h = '';
-
-				// Show active users
-				for (var i in users) {
-					var u = users[i];
-					if (u.isActive) {
-						h += '<div class="row">';
-						h += '<div class="player-' + i + '"></div>';
-						h += '<span>' + u.name + '<br />';
-						h += 'Games: ' + u.games + '<br />';
-						h += 'Wins: ' + u.wins + '</span></div>';
-					}
-				}
-				$('#playersOnline').html(h);
-			}
-		});
-	}
-}
 
 function getGames() {
 	if (g.inLobby) {
@@ -889,7 +823,7 @@ function getGames() {
 								g.timeout.game = setInterval("getRound();", 1500);
 
 								// Check if cards are being dealt
-								if (g.game.oheck.cardsDealt) {
+								if (g.oheck.cardsDealt) {
 									g.waiting = true;
 									setTimeout("g.waiting = false;", 5000);
 								}
@@ -1038,19 +972,19 @@ function updateStats() {
 	$('#trump span').removeClass().addClass(trumpSuits[trump]);
 
 	// Update scoreboard (right sidebar)
-	var leader = g.game.oheck.players[0];
+	var leader = g.oheck.players[0];
 	var scoreboardHTML = '';
-	for (var i=0; i<g.game.oheck.players.length; i++) {
-		var p = g.game.oheck.players[i];
+	for (var i=0; i<g.oheck.players.length; i++) {
+		var p = g.oheck.players[i];
 
 		// Waiting
-		var c = (g.game.oheck.currentPlayerIndex == i) ? ' current' : '';
+		var c = (g.oheck.currentPlayerIndex == i) ? ' current' : '';
 		scoreboardHTML += '<div class="row' + c + '">';
 		scoreboardHTML += '<div class="player-' + g.status.player[i+1].userID + '"></div>';
 		scoreboardHTML += '<span>' + p.name;
 
 		// Check for dealer
-		if (g.game.oheck.dealerIndex == i) {
+		if (g.oheck.dealerIndex == i) {
 			scoreboardHTML += ' - DEALER';
 		}
 		scoreboardHTML += '<br />';
