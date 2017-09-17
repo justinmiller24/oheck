@@ -65,14 +65,10 @@ $(document).ready(function(){
   g.socket.on('userJoined', function(data){
     g.users = data.users;
 
-    // Find user
-    for (var i in g.users){
-      if (g.users[i].id === data.userId){
-        var loggedInUserName = g.users[data.userId].name;
-        showMessage('New user ' + loggedInUserName + ' has arrived');
-        updateUsersInLobby();
-        return;
-      }
+    if (g.users[data.userId] && g.users[data.userId].name){
+      var loggedInUserName = g.users[data.userId].name;
+      showMessage('New user ' + loggedInUserName + ' has arrived');
+      updateUsersInLobby();
     }
   });
 

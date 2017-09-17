@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 var DEFAULT_ROOM = 'general';
 var ROOM_LIST = ['general', 'game'];
 var allClients = [];
-var users = [];
+var users = [{}];
 var game = {};
 var GAME_DEFAULTS = {
   isActive: false,
@@ -73,6 +73,7 @@ var GAME_DEFAULTS = {
 };
 
 
+/*
 // Listen for socket connection
 io.sockets.on('connection', function(socket) {
 
@@ -81,11 +82,11 @@ io.sockets.on('connection', function(socket) {
       var i = allClients.indexOf(socket);
       allClients.splice(i, 1);
 
-/*      // Broadcast event to users
+      // Broadcast event to users
       //io.in(DEFAULT_ROOM).emit('userDisconnected');
-      socket.to('game').emit('userDisconnected');*/
+      socket.to('game').emit('userDisconnected');
    });
-});
+});*/
 
 
 io.sockets.on('connection', function(socket) {
@@ -112,10 +113,19 @@ io.sockets.on('connection', function(socket) {
   socket.on('userLogin', function(data){
 
     // Create user ID
-    var userId = users.length + 1;
-    data.user.id = userId;
-    users[userId] = data.user;
-    console.log('A new user joined and has been assigned user ID: ' + userId);
+
+    // Check for first user
+    if (users.length < 2){
+      var newUserId = 1;
+    }
+    else{
+      var newUserId = users.length;
+    }
+
+    data.user.id = newUserId;
+    users[newUserId] = data.user;
+    console.log('A new user joined and has been assigned user ID: ' + newUserId);
+    console.log('The next user will have ID: ' + users.length);
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: userId, users: users});
