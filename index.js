@@ -56,24 +56,21 @@ var GAME_DEFAULTS = {
   // Array of players
   players: [],
   round: {
-    currentTrick: 0,  // int between 1 - numHands
+    bids: 0,
+    // Integer between 1 and numTricks
+    currentTrick: 0,
+    // Array of cards played
+    currentTrickPlayed: [],
     currentBid: 0,
+    dealerId: null,
     numBid: 0,
     numTricks: 0,
-    bids: 0,
-    dealerId: null,
-    trump: null, // C, S, H, D, or N
-    status: null, // Deal, Bid, or Play
-    // Array of cards played
-    currentTrickPlayed: []
+    // Deal, Bid, or Play
+    status: null,
+    // C, S, H, D, or N
+    trump: null
   }
 };
-
-function getRandom(min, max) {
-  min = Math.ceil(min);
-  max = Math.floor(max);
-  return Math.floor(Math.random() * (max - min + 1)) + min; //The maximum is inclusive and the minimum is inclusive
-}
 
 
 // Listen for socket connection
@@ -199,7 +196,7 @@ io.sockets.on('connection', function(socket) {
     io.in('game').emit('startGame', {game: game});
   });
 
-  socket.on('dealHand', function(data){
+  socket.on('dealHand', function(){
 
     game.currentRoundId++;
     //game.currentDealerId = game.currentRoundId % game.players.length;
@@ -213,7 +210,7 @@ io.sockets.on('connection', function(socket) {
     var CARDS_TO_DEAL_THIS_ROUND = 10;
     var cardsToDeal = Math.max(1, Math.min(maxCards, CARDS_TO_DEAL_THIS_ROUND));
     var trumpArray = ['D', 'C', 'H', 'S', 'N'];
-    var nextTrump = game.options.noTrump ? trumpArray[4] : trumpArray[getRandom(0,3)];
+    var nextTrump = game.options.noTrump ? trumpArray[4] : trumpArray[getRandomInclusive(0,3)];
 
     // Create new round
     game.round = {
@@ -257,7 +254,7 @@ io.sockets.on('connection', function(socket) {
       for (var i = 0; i < game.round.numTricks; i++){
 
         // Pick a random card from remaining cards and assign to player
-        var random = getRandom(0, cards.length - 1);
+        var random = getRandomInclusive(0, cards.length - 1);
         playerCards.push(cards[random]);
         cards.splice(random, 1);
       }
@@ -280,31 +277,16 @@ io.sockets.on('connection', function(socket) {
     var playerBidding = data.playerId;
     var playerBid = data.bid;
 
-/*    // Check for player's turn to bid
-    if (game.currentPlayerId !== playerBidding){
+    // Check for player turn to bid
+/*    if (game.currentPlayerId !== playerBidding){
       console.log('ERROR - player bid out of turn');
       io.in('game').emit('error', {msg:'Player bid out of turn'});
+      return;
     }*/
-/*
-    $gameID = $_REQUEST["gameID"];
-    $roundID = $_REQUEST["roundID"];
-    $bid = $_REQUEST["bid"];
 
-    # Make sure it is the user's turn to bid
-    $sql = "SELECT round.dealerID, game.players, game.currentPlayerID, player.*
-          FROM `game`
-          LEFT JOIN `player` ON (player.gameID = game.id AND player.seatID = game.currentPlayerID)
-          LEFT JOIN `round` ON (round.gameID = game.id AND round.roundID = game.currentRoundID)
-        WHERE game.id = ?
-        AND game.currentRoundID = ?
-        AND player.userID = ?";
-    $db->query($sql, "iii", $gameID, $roundID, $_SESSION["userID"]);
-    if ($db->numRows() == 1) {
-      $rows = $db->fetchAll();
-      $dealerID = $rows[0]["dealerID"];
-      $players = $rows[0]["players"];
-      $currentPlayerID = $rows[0]["currentPlayerID"];
 
+
+    /*
       # Update player bid
       $sql = "UPDATE `player` SET currentBid = ? WHERE userID = ? AND seatID = ? AND gameID = ?";
       $db->query($sql, "iiii", $bid, $_SESSION["userID"], $currentPlayerID, $gameID);
@@ -575,3 +557,13 @@ io.sockets.on('connection', function(socket) {
   });
 
 });
+
+
+/**
+ * HELPER FUNCTIONS
+ */
+function getRandomInclusive(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min; //The maximum is inclusive and the minimum is inclusive
+}
