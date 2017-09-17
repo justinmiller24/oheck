@@ -31,10 +31,9 @@ var game = {};
 var GAME_DEFAULTS = {
   isActive: false,
   cardsDealt: false,
-  currentDealer: null,
+  currentDealerId: null,
   currentPlayerId: 0,
-  currentRound: 0,
-  numPlayers: 0,
+  currentRoundId: 0,
   numRounds: 0,
   oheck: {},
   options: {
@@ -47,14 +46,14 @@ var GAME_DEFAULTS = {
     // Do nascar 3 rounds before final round
     nascar: false,
     // Allow hands without trump
-    noTrump: false, // Set to "true" to allow trump-less hands
+    // Set to true to allow "trump-less" hands
+    noTrump: false,
     // Change number of cards each round
     upDown: false
   },
   // User ID that created the game
   ownerId: null,
   // Array of players
-  // Each player will have a "currentBid", "numTricksTaken", "hand", "currentHand", and "score"
   players: [],
   round: {
     currentTrick: 0,  // int between 1 - numHands
@@ -64,7 +63,7 @@ var GAME_DEFAULTS = {
     bids: 0,
     dealerId: null,
     trump: null, // C, S, H, D, or N
-    status: null, // Bid or Play
+    status: null, // Deal, Bid, or Play
     // Array of cards played
     currentTrickPlayed: []
   }
@@ -85,9 +84,9 @@ io.sockets.on('connection', function(socket) {
       var i = allClients.indexOf(socket);
       allClients.splice(i, 1);
 
-      // Broadcast event to users
+/*      // Broadcast event to users
       //io.in(DEFAULT_ROOM).emit('userDisconnected');
-      socket.to('game').emit('userDisconnected');
+      socket.to('game').emit('userDisconnected');*/
    });
 });
 
@@ -116,10 +115,10 @@ io.sockets.on('connection', function(socket) {
   socket.on('userLogin', function(data){
 
     // Create user ID
-    var userId = users.length;
-    data.id = userId;
-    users[userId] = data;
-    console.log('A new user joined and has been assigned user ID ' + userId);
+    var userId = users.length + 1;
+    data.user.id = userId;
+    users[userId] = data.user;
+    console.log('A new user joined and has been assigned user ID: ' + userId);
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: userId, users: users});
@@ -132,13 +131,13 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('userJoined', function(data){
-    var userId = data.id;
-    users[userId] = data;
+    var userId = data.user.id;
+    users[userId] = data.user;
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: userId, users: users});
 
-    console.log('User ' + userId + ' has returned!');
+    console.log('User ' + users[userId].name + ' has returned!');
 
     // Joins the game room
     socket.join('game');
@@ -148,13 +147,14 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('userLogout', function(data){
-    console.log('user logout: ' + data.userId);
+    var loggedOutUserId = data.userId;
+    console.log('User ' + users[loggedOutUserId].name + ' has logged out');
 
     // Remove from user array
-    users.splice(data.userId, 1);
+    users.splice(loggedOutUserId, 1);
 
     // Broadcast event to users
-    socket.to('game').emit('userLogout', {userId: data.userId, users: users});
+    socket.to('game').emit('userLogout', {userId: loggedOutUserId, users: users});
   });
 
 
@@ -165,27 +165,33 @@ io.sockets.on('connection', function(socket) {
     console.log(users[data.ownerId].name + ' started the game!');
 
     // Setup game
+    // First person who joined the game bids first
+    // Last person who joined the game deals first
     game = GAME_DEFAULTS;
     game.isActive = true;
-    game.numPlayers = users.length;
-    game.numRounds = data.rounds;
-    game.currentRound = 0;
-    game.currentDealer = 0;
+    game.numRounds = parseInt(data.rounds, 10);
+    game.currentRoundId = 0;
+    game.currentDealerId = users.length;
+    game.currentPlayerId = 1;
     game.ownerId = data.ownerId;
     game.players = [];
     for (var i in users){
-      game.players.push({
-        position: i,
+      var playerId = users[i].id;
+      game.players[playerId] = {
+        position: playerId,
         name: users[i].name,
         avatar: users[i].avatar,
         bid: null,
         tricksTaken: 0,
         hand: [],
         currentHand: [],
+        pictureHand: [],
         score: 0
-      })
+      };
     }
-    game.currentPlayerId = 1;
+    console.log('players array:');
+    console.log(game.players);
+    game.round.status = 'Deal';
 
     console.log('Game setup and ready for broadcast!');
 
@@ -195,74 +201,78 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('dealHand', function(data){
 
-    game.currentRound++;
-    //game.currentDealer = game.currentRound % game.numPlayers;
+    game.currentRoundId++;
+    //game.currentDealerId = game.currentRoundId % game.players.length;
 
-    if (game.currentRound >= game.numRounds){
+    if (game.currentRoundId >= game.numRounds){
       console.log('ERROR - game is complete');
     }
 
     // Can't deal less than 1 card or more than MAX_CARDS
-    var maxCards = Math.floor(52 * game.options.decks / game.numPlayers);
+    var maxCards = Math.floor(52 * game.options.decks / game.players.length);
     var CARDS_TO_DEAL_THIS_ROUND = 10;
     var cardsToDeal = Math.max(1, Math.min(maxCards, CARDS_TO_DEAL_THIS_ROUND));
     var trumpArray = ['D', 'C', 'H', 'S', 'N'];
-    var nextTrump = game.options.noTrump ? trumpArray[4] : trumpArray(getRandom(0,3));
+    var nextTrump = game.options.noTrump ? trumpArray[4] : trumpArray[getRandom(0,3)];
 
     // Create new round
     game.round = {
-      currentTrick: 0,  // Reset current trick
-      currentBid: 0,  // Reset current bid
-      numBid: 0,  // Reset number of tricks bid
-      numTricks: cardsToDeal, // Initialize on each round
-      bids: 0,  // Reset how many players have bid
-      dealerId: game.currentRound % game.numPlayers,  // Advance dealer ID based on round
-      trump: nextTrump, // C, S, H, D, or N
-      status: 'Bid', // Bid or Play
-      currentTrickPlayed: []  // Clear array of cards played
+      // Reset current trick
+      currentTrick: 0,
+      // Reset current bid
+      currentBid: 0,
+      // Reset number of tricks bid
+      numBid: 0,
+      // Initialize on each round
+      numTricks: cardsToDeal,
+      // Reset how many players have bid
+      bids: 0,
+      // Advance dealer ID based on round
+      dealerId: (game.currentRoundId + game.players.length - 1) % game.players.length,
+      // C, S, H, D, or N
+      trump: nextTrump,
+      // Bid or Play
+      status: 'Bid',
+      // Clear array of cards played
+      currentTrickPlayed: []
     };
 
     // Set current player to person after dealer
-    game.currentPlayerId = (game.round.dealerId + 1) % game.numPlayers;
+    game.currentPlayerId = (game.round.dealerId + 1) % game.players.length;
 
-    // Create list of all cards in each deck
-    var cardArray = [];
-    for (var i = 2; i <= 14; i++){
-      cardArray.push('H' + i);
-      cardArray.push('S' + i);
-      cardArray.push('D' + i);
-      cardArray.push('C' + i);
-    }
-
-    // Create deck/cards to deal
+    // Create array of cards
     var cards = [];
-    for (var i=0; i<game.options.decks; i++){
-      for (var j in cardArray){
-        cards.push(cardArray[j]);
+    for (var i = 0; i < game.options.decks; i++){
+      for (var j = 2; j <= 14; j++){
+        cards.push('H' + i);
+        cards.push('S' + i);
+        cards.push('D' + i);
+        cards.push('C' + i);
       }
     }
 
     // Deal cards
-    for (var seat=0; seat<game.numPlayers; seat++){
+    for (var playerId = 1; playerId <= game.players.length; playerId++){
       var playerCards = [];
-      for (var i=0; i<cardsToDeal; i++){
-        // Pick a random card from remaining cards
-        var random = getRandom(0, cards.length-1);
+      for (var i = 0; i < game.round.numTricks; i++){
+
+        // Pick a random card from remaining cards and assign to player
+        var random = getRandom(0, cards.length - 1);
         playerCards.push(cards[random]);
         cards.splice(random, 1);
       }
 
       // Save player hand
+      var player = game.players[playerId];
       var playerHand = playerCards.join();
-      var playerScore = game.players[seat].score;
-      game.players[seat] = {
-        currentBid: null,
-        numTricksTaken: 0,
-        hand: playerHand,
-        currentHand: playerHand,
-        score: playerScore
-      }
+      player.currentBid = null;
+      player.numTricksTaken = 0;
+      player.hand = playerHand;
+      player.currentHand = playerHand;
     }
+
+    // Broadcast event to users
+    io.in('game').emit('dealHand', {game: game});
   });
 
   socket.on('playerBid', function(data){
