@@ -670,7 +670,6 @@ HumanPlayer.prototype = {
 					var bid = parseInt($(this).text());
 					if (g.human.isBidding) {
 						g.human.isBidding = false;
-//						getJSON({op:"bid", gameID:user.currentGameID, roundID:g.status.currentRoundID, bid:bid}, function(data) {
 						g.socket.emit('playerBid', {playerId: g.game.playerId, bid: bid});
 
 						// TODO: move to callback so all users can update at once

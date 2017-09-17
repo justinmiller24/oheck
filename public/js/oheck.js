@@ -107,9 +107,20 @@ $(document).ready(function(){
   g.socket.on('dealHand', function(data){
 //    console.log(data);
     g.game = data.game;
-    g.game.playerId = g.user.id + 1;
+    //g.game.playerId = g.user.id + 1;
+    g.game.playerId = g.user.id;
     g.oheck.newDeck();
     g.oheck.deal();
+  });
+
+  g.socket.on('playerBid', function(data){
+    console.log(data);
+    g.game = data.game;
+    //g.oheck.bid(g.oheck.players[g.oheck.bidPlayerIndex], g.game.players[g.oheck.bidPlayerIndex+1].bid);
+    g.oheck.bid(data.playerId, data.bid);
+
+    // Still bidding
+    checkForBidding();
   });
 
 
@@ -256,6 +267,27 @@ $(document).ready(function(){
         // Switch to lobby view
         $('#welcome, #login').slideToggle();
       })
+    }
+  }
+
+  function checkForBidding(){
+
+    // Done bidding
+    if (g.game.round.bids === g.game.players.length){
+      return;
+    }
+
+    // My turn to bid
+    if (g.game.currentPlayerId == g.game.playerId){
+    //if (g.oheck.currentPlayerIndex == g.game.playerId){
+      g.oheck.message('Waiting for you to bid!');
+      g.human.startBid();
+    }
+
+    // Waiting for another player to bid
+    else{
+      //g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.currentPlayerIndex-1].name + ' to bid!');
+      g.oheck.message('Waiting for ' + g.game.players[g.game.currentPlayerId].name + ' to bid!');
     }
   }
 
@@ -651,8 +683,6 @@ $(document).ready(function(){
     // In middle of round
     //g.oheck.cardCount = parseInt(g.status.round.hands, 10);
     g.oheck.cardCount = g.game.round.numTricks;
-//	console.log('Set card count: ' + g.oheck.cardCount);
-    //g.oheck.round = g.status.currentRoundID;
     g.oheck.round = g.game.currentRound;
 //	console.log('Set Round: ' + g.oheck.round);
 
@@ -670,23 +700,16 @@ $(document).ready(function(){
     // If cards were already dealt (page reloaded), go ahead and deal
     //if (g.status.player[1].hand != null && g.status.player[1].hand) {
     if (g.game.players[1].hand.length){
-	console.log('Cards already dealt... deal!');
+      console.log('Cards already dealt... deal!');
       g.oheck.newDeck();
       g.oheck.deal();
     }
-    //	console.log('Seat: ' + (g.status.seatID-1));
 
     // Once cards are dealt, it's someone's turn to bid
-    //TODO: check if someone needs to bid
-//    if (g.game.status == 'Bid'){
-      if (g.oheck.currentPlayerIndex == g.game.playerId){
-        g.oheck.message('Waiting for you to bid!');
-        g.human.startBid();
-      }
-      else{
-        g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.currentPlayerIndex-1].name + ' to bid!');
-      }
-//    }
+    checkForBidding();
+
+    // Once bids are complete, it's someone's turn to play
+    checkForPlaying();
   }
 
   function sendUserToExistingGame(){

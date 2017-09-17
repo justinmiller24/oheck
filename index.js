@@ -63,7 +63,6 @@ var GAME_DEFAULTS = {
     currentTrickPlayed: [],
     currentBid: 0,
     dealerId: null,
-    numBid: 0,
     numTricks: 0,
     // Deal, Bid, or Play
     status: null,
@@ -228,8 +227,6 @@ io.sockets.on('connection', function(socket) {
       currentTrick: 0,
       // Reset current bid
       currentBid: 0,
-      // Reset number of tricks bid
-      numBid: 0,
       // Initialize on each round
       numTricks: cardsToDeal,
       // Reset how many players have bid
@@ -245,7 +242,7 @@ io.sockets.on('connection', function(socket) {
     };
 
     // Set current player to person after dealer
-    game.currentPlayerId = (game.round.dealerId + 1) % game.players.length;
+    game.currentPlayerId = nextPlayerId(game.round.dealerId);
 
     // Create array of cards
     var cards = [];
@@ -284,49 +281,47 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('playerBid', function(data){
 
-    var playerBidding = data.playerId;
-    var playerBid = data.bid;
+    var playerId = data.playerId;
+    var currentPlayerBid = data.bid;
+
+    // Check if round is currently in bidding status
+    if (game.round.bids >= game.players.length){
+      console.log('ERROR - Player ID ' + playerId + ' tried to bid');
+      return;
+    }
 
     // Check for player turn to bid
-/*    if (game.currentPlayerId !== playerBidding){
-      console.log('ERROR - player bid out of turn');
-      io.in('game').emit('error', {msg:'Player bid out of turn'});
+    if (game.currentPlayerId !== playerId){
+      console.log('ERROR - player ' + playerId + ' bid out of turn');
+//      io.in('game').emit('error', {msg:'Player bid out of turn'});
       return;
-    }*/
-
-
-
-    /*
-      # Update player bid
-      $sql = "UPDATE `player` SET currentBid = ? WHERE userID = ? AND seatID = ? AND gameID = ?";
-      $db->query($sql, "iiii", $bid, $_SESSION["userID"], $currentPlayerID, $gameID);
-
-      # Update round total bid
-      $sql = "UPDATE `round` SET bids = (SELECT SUM(currentBid) FROM `player` WHERE gameID = ? AND roundID = ?)
-          WHERE gameID = ?
-          AND roundID = ?";
-      $db->query($sql, "iiii", $gameID, $roundID, $gameID, $roundID);
-
-      # Update current player
-      $nextPlayerID = ($currentPlayerID % $players) + 1;
-      $sql = "UPDATE `game` SET currentPlayerID = (currentPlayerID % players + 1) WHERE id = ?";
-      $db->query($sql, "i", $gameID);
-
-      # Check for last player to bid
-      if ($currentPlayerID == $dealerID) {
-
-        # Update round
-        $sql = "UPDATE `round` SET status = 'Play', currentHandID = 1
-            WHERE gameID = ?
-            AND roundID = ?";
-        $db->query($sql, "ii", $gameID, $roundID);
-        $json = array("has_data" => true, "hand" => 1);
-      }
     }
-    else {
-      $json = array("has_data" => false, "error" => "Wrong bidding order: " . $db->error);
+
+    // Update player bid
+    var player = game.player[playerId];
+    player.bid = currentPlayerBid;
+    player.tricksTaken = 0;
+    player.pictureHand = [];
+
+    // Update total bids in round
+    game.round.bids++;
+    game.round.currentBid += currentPlayerBid;
+
+    // This was the last player to bid
+    //if (game.currentPlayerId === game.round.dealerId)
+    if (game.round.bids == game.players.length){
+      game.round.currentTrick = 1;
+      game.round.currentTrickPlayed = [];
+      game.round.numTricks = 0;
+      game.round.status = 'Play';
     }
-*/
+
+    // Advance player
+    game.currentPlayerId = nextPlayerId(game.currentPlayerId);
+
+    // Broadcast event to users
+    io.in('game').emit('playerBid', {playerId: data.playerId, bid: data.bid, game: game});
+//    notifyNextPlayer();
   });
 
   socket.on('playCard', function(data){
@@ -576,4 +571,13 @@ function getRandomInclusive(min, max) {
   min = Math.ceil(min);
   max = Math.floor(max);
   return Math.floor(Math.random() * (max - min + 1)) + min; //The maximum is inclusive and the minimum is inclusive
+}
+
+function nextPlayerId(playerId){
+  return (playerId + game.players.length + 1) % game.players.length;
+}
+
+function notifyNextPlayer(){
+  // Send data to all clients
+//  io.in('game').emit('notifyNextPlayer', {game: game, playerId: game.currentPlayerId});
 }
