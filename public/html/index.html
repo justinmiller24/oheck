@@ -177,8 +177,8 @@
             <div class="content-section-title mdl-typography--display-1-color-contrast">Users Online</div>
             <ul id="usersOnline" class="mdl-list mdl-typography--text-left"></ul>
             <div class="mdl-typography--text-center">
-              <a class="mdl-navigation__link" href="/html/create-game.html" rel="modal:open">
-                <button id="create-game-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Create Game</button>
+              <a id="create-game-button-link" class="mdl-navigation__link" href="/html/create-game.html" rel="modal:open">
+                <button id="create-game-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" disabled>Create Game</button>
               </a>
             </div>
           </div>
@@ -207,14 +207,14 @@
             <div id="playersBlock"></div>
     				<div id="playersBidBlock"></div>
     				<div id="messageBox"><p>Loading...</p></div>
-    				<button id="deal" class="mdl-button mdl-js-button mdl-js-ripple-effect">Deal Next Hand</button>
+    				<button id="deal" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-color--accent mdl-color-text--accent-contrast">Deal Hand</button>
     				<div id="bid"><h4>What is your bid?</h4></div>
             <div class="play block">
       				<h2>Scoreboard</h2>
       				<div id="scoreboard"><div class="loading">Loading...</div></div>
       			</div>
           </div>
-          
+
     		</div>
 
         <!-- FOOTER -->
