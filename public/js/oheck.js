@@ -22,7 +22,8 @@ var g = {
 }
 
 
-$(document).ready(function(){
+//$(document).ready(function(){
+$(window).on('load', function(){
 
   /**
    * SOCKET.IO EVENTS
@@ -33,7 +34,6 @@ $(document).ready(function(){
 
   g.socket.on('init', function(data){
     console.log(data);
-    showMessage('Loading...');
     g.rooms = data.rooms;
     g.users = data.users;
     g.game = data.game;
@@ -49,12 +49,14 @@ $(document).ready(function(){
       }
     }
     else{
-      updateUsersInLobby();
+      showMessage('Loading...', function(){
+        updateUsersInLobby();
+      });
     }
   });
 
   g.socket.on('myUserLogin', function(data){
-    console.log(data);
+    //console.log(data);
     g.users = data.users;
     g.user.id = data.userId;
 
@@ -64,7 +66,7 @@ $(document).ready(function(){
   });
 
   g.socket.on('userJoined', function(data){
-    console.log(data);
+    //console.log(data);
     g.users = data.users;
 
     if (g.users[data.userId] && g.users[data.userId].name){
@@ -75,7 +77,7 @@ $(document).ready(function(){
   });
 
   g.socket.on('userLogout', function(data){
-    console.log(data);
+    //console.log(data);
 
     // Find user
     if (g.users[data.userId] && g.users[data.userId].name){
@@ -88,7 +90,7 @@ $(document).ready(function(){
   });
 
   g.socket.on('forceReloadAll', function(data){
-    console.log(data);
+    //console.log(data);
     showMessage('Reloading...', function(){
       window.location.reload();
     });
@@ -121,11 +123,11 @@ $(document).ready(function(){
 
     // This was my bid
     if (data.playerId === g.game.playerId){
-			g.oheck.bid(g.human, bid);
+      g.oheck.bid(g.human, data.bid);
     }
     else{
       //g.oheck.bid(g.oheck.players[g.oheck.bidPlayerIndex], g.game.players[g.oheck.bidPlayerIndex+1].bid);
-      g.oheck.bid(data.playerId, data.bid);
+      g.oheck.bid(g.oheck.players[data.playerId - 1], data.bid);
     }
 
     // Need to bid
@@ -137,12 +139,12 @@ $(document).ready(function(){
     }
   });
 
-  g.socket.on('play', function(data){
+  g.socket.on('playCard', function(data){
     updateData(data);
 
     // Find card in my hand
     //var player = g.oheck.players[g.oheck.currentPlayerIndex];
-    var player = g.oheck.players[data.playerId];
+    var player = g.oheck.players[data.playerId - 1];
     for (var pos = 0; pos < player.hand.length; pos++) {
       if (player.hand[pos].shortName == data.cardShortName){
         g.oheck.message(getPlayerName(data.playerId) + ' played the ' + player.hand[pos].longName);
@@ -336,12 +338,14 @@ $(document).ready(function(){
 
     // Waiting for another player to bid
     else{
+      console.log(g.game.currentPlayerId);
       //g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.currentPlayerIndex-1].name + ' to bid!');
       g.oheck.message('Waiting for ' + getCurrentPlayerName() + ' to bid');
     }
   }
 
   function checkForPlaying(){
+    console.log('check for playing...');
 
     // My turn to play
     if (g.game.currentPlayerId === g.game.playerId){
@@ -651,10 +655,11 @@ $(document).ready(function(){
   }
 
   function dealCards(){
-    g.oheck.newDeck();
-    g.oheck.deal();
+    //console.log('Call dealCards()');
     g.oheck.cardCount = g.game.round.numTricks;
     g.oheck.round = g.game.currentRoundId;
+    g.oheck.newDeck();
+    g.oheck.deal();
   }
 
   function getCurrentPlayerName(){
@@ -732,8 +737,8 @@ $(document).ready(function(){
     g.oheck.rounds = g.game.numRounds;
     g.oheck.dealerIndex = g.game.currentDealerId;
     g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
-    g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
-    g.oheck.bidPlayerIndex = g.oheck.currentPlayerIndex;
+    //g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
+    g.oheck.bidPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
     console.log('No rounds exist yet!');
     console.log('Dealer: ' + g.oheck.dealerIndex);
     console.log('Player: ' + g.oheck.currentPlayerIndex);
@@ -748,6 +753,27 @@ $(document).ready(function(){
     // Deal
     dealCards();
 
+    // Update existing bids
+    //console.log('dealer index: ' + g.oheck.dealerIndex);
+    var firstPlayerToBidThisHand = g.oheck.nextIndex(g.oheck.dealerIndex);
+    //console.log('first bidding player is: ' + firstPlayerToBidThisHand);
+    for (var i = 0; i < g.game.round.bids; i++){
+      var pos = (firstPlayerToBidThisHand + i + g.game.players.length - 1) % g.game.players.length;
+      //console.log('position: ' + pos);
+//      if (g.game.players[pos].bid){
+        var thisBid = g.game.players[pos].bid;
+        // This was my bid
+        if (g.game.playerId === pos + 1){
+          //console.log('update my bid: ' + thisBid);
+          g.oheck.bid(g.human, thisBid);
+        }
+        else{
+          //console.log('update other bid: ' + thisBid);
+          g.oheck.bid(g.oheck.players[pos], thisBid);
+        }
+//      }
+    }
+
     // Need to bid
     if (g.game.round.bids < g.game.players.length){
       checkForBidding();
@@ -755,7 +781,7 @@ $(document).ready(function(){
     }
 
     // Need to play
-    if (g.game.round.numTricksTaken < g.game.round.numTricks){
+    if (g.game.round.currentTrick < g.game.round.numTricks){
 
       //TODO: Show tricks won in current round
 
@@ -767,10 +793,9 @@ $(document).ready(function(){
   }
 
   function sendUserToExistingGame(){
-    showMessage('Game is already in progress', function(){
-      $('#welcome, #game-board').slideToggle();
-      loadGameBoard();
-    });
+    showMessage('Game is already in progress');
+    $('#welcome, #game-board').slideToggle();
+    loadGameBoard();
   }
 
   function updateData(data){
@@ -780,15 +805,18 @@ $(document).ready(function(){
   }
 
   function updateUsersInLobby(){
-    var usersHtml = '';
+    var thisUser,
+        usersHtml = '';
     for (var i in g.users){
       // Skip null users
       if (i != "0"){
+        thisUser = g.users[i];
         usersHtml += '<li class="mdl-list__item mdl-list__item--two-line">';
         usersHtml += '<span class="mdl-list__item-primary-content">';
-        usersHtml += '<i class="material-icons mdl-list__item-avatar">person</i>';
-        usersHtml += '<span>' + g.users[i].name + '</span>';
-        usersHtml += '<span class="mdl-list__item-sub-title">' + g.users[i].wins + ' wins / ' + g.users[i].games + ' games</span>';
+        usersHtml += '<span class="player-avatar player-' + thisUser.avatar.substring(7) + '"></span>';
+        usersHtml += '<span>' + thisUser.name + '</span>';
+        usersHtml += '<span class="mdl-list__item-sub-title">' + thisUser.wins + ' wins</span>';
+        usersHtml += '<span class="mdl-list__item-sub-title">' + thisUser.games + ' games</span>';
         usersHtml += '</span></li>';
       }
     }
@@ -796,7 +824,6 @@ $(document).ready(function(){
 
     // Only show "create game" button if there are 2-6 users waiting
     var usersOnline = $('#usersOnline li').length;
-    console.log('users online: ' + usersOnline);
     if (usersOnline >= 2 && usersOnline <= 6){
       $('#create-game-button').removeAttr('disabled', 'disabled');
       $('#create-game-button-link').attr('href', '/html/create-game.html').attr('rel', 'modal:open');

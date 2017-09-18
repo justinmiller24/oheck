@@ -21,7 +21,7 @@
 
 .avatar {position:absolute;}
 .avatar div {width:60px; height:68px; background-image:url("/img/mk.png");}
-.avatar small {display:block; text-align:center;}
+.avatar small {display:block; text-align:center; color: #fff; font-weight: bold;}
 
 #scoreboard .row,
 #playersOnline .row {height:74px; border-bottom:1px solid #fff;}
@@ -34,31 +34,31 @@
 #playersOnline .row span {float:left; margin:8px 8px 0;}
 
 .gamesRow span {width:60px; height:68px; float:left; background-image:url("/img/mk.png"); margin:0 2px;}
-#player-0, .player-0 {background-position:0 0;}
-#player-1, .player-1 {background-position:-64px 0;}
-#player-2, .player-2 {background-position:-1068px 0;}
-#player-3, .player-3 {background-position:-1196px 0;}
-#player-4, .player-4 {background-position:-1450px 0;}
-#player-5, .player-5 {background-position:-632px 0;}
-#player-6, .player-6 {background-position:-376px 0;}
-#player-7, .player-7 {background-position:-568px 0;}
-#player-8, .player-8 {background-position:-316px 0;}
-#player-9, .player-9 {background-position:-128px 0;}
-#player-10, .player-10 {background-position:-756px 0;}
-#player-11, .player-11 {background-position:-192px 0;}
-#player-12, .player-12 {background-position:-441px 0;}
-#player-13, .player-13 {background-position:-820px 0;}
-#player-14, .player-14 {background-position:-252px 0;}
-#player-15, .player-15 {background-position:-1510px 0;}
-#player-16, .player-16 {background-position:-568px 0;}
-#player-17, .player-17 {background-position:-502px 0;}
-#player-18, .player-18 {background-position:-1006px 0;}
-#player-19, .player-19 {background-position:-1072px 0;}
-#player-20, .player-20 {background-position:-756px 0;}
+#player-1, .player-1 {background-position:0 0;}
+#player-2, .player-2 {background-position:-64px 0;}
+#player-3, .player-3 {background-position:-1068px 0;}
+#player-4, .player-4 {background-position:-1196px 0;}
+#player-5, .player-5 {background-position:-1450px 0;}
+#player-6, .player-6 {background-position:-632px 0;}
+#player-7, .player-7 {background-position:-376px 0;}
+#player-8, .player-8 {background-position:-568px 0;}
+#player-9, .player-9 {background-position:-316px 0;}
+#player-10, .player-10 {background-position:-128px 0;}
+#player-11, .player-11 {background-position:-756px 0;}
+#player-12, .player-12 {background-position:-192px 0;}
+#player-13, .player-13 {background-position:-441px 0;}
+#player-14, .player-14 {background-position:-820px 0;}
+#player-15, .player-15 {background-position:-252px 0;}
+#player-16, .player-16 {background-position:-1510px 0;}
+#player-17, .player-17 {background-position:-568px 0;}
+#player-18, .player-18 {background-position:-502px 0;}
+#player-19, .player-19 {background-position:-1006px 0;}
+#player-20, .player-20 {background-position:-1072px 0;}
 #player-21, .player-21 {background-position:-756px 0;}
 #player-22, .player-22 {background-position:-756px 0;}
 #player-23, .player-23 {background-position:-756px 0;}
 #player-24, .player-24 {background-position:-756px 0;}
+#player-25, .player-25 {background-position:-756px 0;}
 
 #game-board.players-2 #player-position-1 {top:5px; left:50%; margin-left:-30px;}
 #game-board.players-2 #player-position-2 {bottom:5px; left:50%; margin-left:-30px;}

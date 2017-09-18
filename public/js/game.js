@@ -232,7 +232,6 @@ OHeck.prototype = {
 			}
 		}
 		for (var i = 0; i < this.players.length; i++) {
-//			doLog('Clear tricks, bid value for player ' + i);
 			var p = this.players[i];
 			p.tricks = [];
 			p.bidValue = -1;
@@ -272,16 +271,10 @@ OHeck.prototype = {
 
 			// Update tricks
 			g.oheck.message(g.oheck.players[winnerIndex].name + ' wins trick #' + g.oheck.hand);
-//			doLog('Waiting: ' + g.waiting);
 
 			// Not end of round (end of hand in round)
 			if (!finished) {
 				g.oheck.hand++;
-
-				// Added in case getRound() was called previous to useCard(),
-				// and returns after this JSON response does
-//				setTimeout("g.waiting=false; doLog('Reset waiting after 1500');", 1500);
-				setTimeout("g.waiting=false;", 2000);
 			}
 
 			// End of round (last hand in round)
@@ -291,7 +284,7 @@ OHeck.prototype = {
 //				this.hand = 0;
 
 //				doLog('Just played last card in round');
-				g.waiting = true;
+//				g.waiting = true;
 //				g.oheck.cardsDealt = false;
 
 				// Clear player bids
@@ -362,10 +355,12 @@ OHeck.prototype = {
 //		updateStats();
 
 		if (this.allPlayersBid()) {
+			console.log('all players have bid');
 			this.renderEvent('start', this.playerStartTurn);
 		}
 		else {
 			this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
+			console.log('all players have NOT bid. next bid index is: ' + this.bidPlayerIndex);
 		}
 	},
 	bidPlayerIndex: 0,
@@ -394,7 +389,7 @@ OHeck.prototype = {
 		if (!this.deck) {
 			this.message('Cannot deal... deck is empty!');
 		} else {
-			this.message('Dealing...');
+//			this.message('Dealing...');
 			this.cardsDealt = true;
 
 			if (this.dealtCardCount == this.cardCount * this.players.length) {
@@ -407,9 +402,7 @@ OHeck.prototype = {
 				player.hand.push(card);
 				this.nextPlayerToDealTo = this.nextIndex(this.nextPlayerToDealTo);
 				this.dealtCardCount++;
-/*				console.log('Deal Card');
-				console.log(player);
-				console.log(card);*/
+				//console.log('Deal Card to ' + player.name + ' - ' + card.shortName);
 				this.renderEvent('dealcard', this.deal, {
 					player: player,
 					cardpos: player.hand.length - 1,
@@ -470,29 +463,30 @@ OHeck.prototype = {
 		}
 
 		// Set trump suit
-		//this.trump = g.status.round.trump;
 		this.trump = g.game.round.trump;
 
-		//var pos = g.oheck.nextPlayerToDealTo;
+		// Set position / seat arrangement
 		var pos = this.nextPlayerToDealTo;
-//		console.log('position: ' + pos);
 		var playersHands = Array();
 		for (var i = 0; i < g.game.players.length; i++) {
-			var tPlayerId = (i + pos) % g.game.players.length;
-			console.log('About to distribute hand to player ID: ' + tPlayerId);
-			var hand = g.game.players[tPlayerId].hand;
-			console.log('Hand: ' + hand);
-			playersHands.push(hand.split(","));
+			var tPlayerId = (i + pos - 1) % g.game.players.length;
+			var thisHand = g.game.players[tPlayerId].hand;
+			console.log('About to deal to player ID: ' + (tPlayerId + 1));
+			console.log(thisHand);
+			playersHands.push(thisHand);
 		}
-		//for (var i=0; i<g.status.round.hands; i++) {
-		//for (var i=0; i<g.game.round.numTricks; i++) {
-		for (var i=0; i<this.rounds; i++) {
-			for (var j=0; j<playersHands.length; j++) {
+
+		// Round robin cards from players hands to sort deck
+		// This allows us to distribute in reverse order
+		for (var i = 0; i < g.game.round.numTricks; i++) {
+			for (var j = 0; j < playersHands.length; j++) {
 				var cardStr = playersHands[j].shift();
 				var suit = cardStr.substring(0,1);
 				var num = cardStr.substring(1);
 				this.deck.unshift(new Card(suit, num));
 			}
+//			console.log('After ' + (i+1) + ' rounds, deck is: ');
+//			console.log(this.deck);
 		}
 
 		// Create cardpile
@@ -537,6 +531,7 @@ OHeck.prototype = {
 	players: [],
 	playerStartTurn: function () {
 		this.players[this.currentPlayerIndex].canPlay = true;
+		console.log('player ' + this.currentPlayerIndex + ' can play!');
 	},
 	renderEvent: function (name, callback, eventData) {
 		if (!eventData) {
@@ -689,30 +684,31 @@ HumanPlayer.prototype = {
 		this.isBidding = true;
 	},
 	useCard: function (card) {
-		if (g.waiting) {
+//		if (g.waiting) {
 			if (this.isBidding) {
 				this.game.message('It\'s your turn to bid now. You can\'t play any card while you\'re bidding!');
+//			} else {
+//				this.game.message('');
+//				if (!this.hasCard(card)) {
+			} else if (!this.hasCard(card)) {
+				this.game.message('You cannot play that card!');
+			} else if (!this.canPlay) {
+				this.game.message('It\'s not your turn to play!');
+			} else if (!this.game.canPlayCard(this, card)) {
+				this.game.message('Nice try! You must follow suit by playing a ' + this.game.pile[0].suitName());
 			} else {
-				this.game.message('');
-				if (!this.hasCard(card)) {
-					this.game.message('You cannot play that card!');
-				} else if (!this.canPlay) {
-					this.game.message('It\'s not your turn to play!');
-				} else if (!this.game.canPlayCard(this, card)) {
-					this.game.message('Nice try! You must follow suit by playing a ' + this.game.pile[0].suitName());
-				} else {
-					this.game.message('Playing the ' + card.longName);
+				this.game.message('Playing the ' + card.longName);
 
-					g.socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
-				}
+				g.socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
 			}
-		}
+//		}
+/*		}
 		else if (!this.canPlay) {
 			this.game.message('It\'s not your turn to play!');
 		}
 		else {
 			this.game.message('Retry after this message updates');
-		}
+		}*/
 	},
 
 	init: ComputerPlayer.prototype.init,

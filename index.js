@@ -64,7 +64,6 @@ var GAME_DEFAULTS = {
     currentBid: 0,
     dealerId: null,
     numTricks: 0,
-    numTricksTaken: 0,
     // Deal, Bid, or Play
     status: null,
     // C, S, H, D, or N
@@ -226,8 +225,6 @@ io.sockets.on('connection', function(socket) {
       currentBid: 0,
       // Initialize on each round
       numTricks: cardsToDeal,
-      // Number of tricks won
-      numTricksTaken: 0,
       // Reset how many players have bid
       bids: 0,
       // Advance dealer ID based on round
@@ -247,10 +244,10 @@ io.sockets.on('connection', function(socket) {
     var cards = [];
     for (var i = 0; i < game.options.decks; i++){
       for (var j = 2; j <= 14; j++){
-        cards.push('H' + i);
-        cards.push('S' + i);
-        cards.push('D' + i);
-        cards.push('C' + i);
+        cards.push('H' + j);
+        cards.push('S' + j);
+        cards.push('D' + j);
+        cards.push('C' + j);
       }
     }
 
@@ -269,7 +266,7 @@ io.sockets.on('connection', function(socket) {
       var player = game.players[playerId];
 //      var playerHand = playerCards.join();
       player.currentBid = null;
-      player.numTricksTaken = 0;
+      player.tricksTaken = 0;
       player.hand = playerCards; //playerHand;
       player.currentHand = playerCards; // playerHand;
     }
@@ -297,7 +294,7 @@ io.sockets.on('connection', function(socket) {
     }
 
     // Update player bid
-    var player = game.player[playerId - 1];
+    var player = game.players[playerId - 1];
     player.bid = currentBid;
     player.tricksTaken = 0;
     player.pictureHand = [];
@@ -311,8 +308,7 @@ io.sockets.on('connection', function(socket) {
     if (game.round.bids == game.players.length){
       game.round.currentTrick = 1;
       game.round.currentTrickPlayed = [];
-      game.round.numTricks = 0;
-      game.round.numTricksTaken = 0;
+//      game.round.numTricks = 10;
       game.round.status = 'Play';
     }
 
@@ -320,7 +316,7 @@ io.sockets.on('connection', function(socket) {
     game.currentPlayerId = nextPlayerId(game.currentPlayerId);
 
     // Broadcast event to users
-    io.in('game').emit('bid', {playerId: data.playerId, bid: data.bid, game: game});
+    io.in('game').emit('bid', {playerId: data.playerId, bid: currentBid, game: game});
 
   });
 
@@ -328,7 +324,7 @@ io.sockets.on('connection', function(socket) {
     var card = data.card;
 
     // Broadcast event to users
-    io.in('game').emit('bid', {playerId: data.playerId, cardShortName: data.card});
+    io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
 /*
 		$gameID = $_REQUEST["gameID"];
 		$roundID = $_REQUEST["roundID"];
@@ -577,7 +573,7 @@ function getRandomInclusive(min, max) {
 }
 
 function nextPlayerId(playerId){
-  return (playerId + game.players.length + 1) % game.players.length;
+  return (playerId % game.players.length) + 1;
 }
 
 function notifyNextPlayer(){
