@@ -54,6 +54,7 @@ $(document).ready(function(){
   });
 
   g.socket.on('myUserLogin', function(data){
+    console.log(data);
     g.users = data.users;
     g.user.id = data.userId;
 
@@ -63,6 +64,7 @@ $(document).ready(function(){
   });
 
   g.socket.on('userJoined', function(data){
+    console.log(data);
     g.users = data.users;
 
     if (g.users[data.userId] && g.users[data.userId].name){
@@ -73,17 +75,20 @@ $(document).ready(function(){
   });
 
   g.socket.on('userLogout', function(data){
-    g.users = data.users;
+    console.log(data);
 
     // Find user
     if (g.users[data.userId] && g.users[data.userId].name){
-      var loggedOutUserName = g.users[data.userId].name;
-      showMessage(loggedOutUserName + ' logged out');
-      updateUsersInLobby();
+      var loggedOutUser = g.users[data.userId].name;
+      showMessage(loggedOutUser + ' logged out');
     }
+
+    g.users = data.users;
+    updateUsersInLobby();
   });
 
   g.socket.on('forceReloadAll', function(data){
+    console.log(data);
     showMessage('Reloading...', function(){
       window.location.reload();
     });
@@ -95,8 +100,9 @@ $(document).ready(function(){
   });*/
 
   g.socket.on('startGame', function(data){
+    updateData(data);
 //    console.log(data);
-    g.game = data.game;
+//    g.game = data.game;
     showMessage('Starting Game!', function(){
       $.modal.close();
       $('#lobby, #game-board').slideToggle();
@@ -105,19 +111,22 @@ $(document).ready(function(){
   });
 
   g.socket.on('dealHand', function(data){
-//    console.log(data);
-    g.game = data.game;
-    //g.game.playerId = g.user.id + 1;
-    //g.game.playerId = g.user.id;
+    updateData(data);
     dealCards();
     checkForBidding();
   });
 
-  g.socket.on('playerBid', function(data){
-    console.log(data);
-    g.game = data.game;
-    //g.oheck.bid(g.oheck.players[g.oheck.bidPlayerIndex], g.game.players[g.oheck.bidPlayerIndex+1].bid);
-    g.oheck.bid(data.playerId, data.bid);
+  g.socket.on('bid', function(data){
+    updateData(data);
+
+    // This was my bid
+    if (data.playerId === g.game.playerId){
+			g.oheck.bid(g.human, bid);
+    }
+    else{
+      //g.oheck.bid(g.oheck.players[g.oheck.bidPlayerIndex], g.game.players[g.oheck.bidPlayerIndex+1].bid);
+      g.oheck.bid(data.playerId, data.bid);
+    }
 
     // Need to bid
     if (g.game.round.bids < g.game.players.length){
@@ -126,6 +135,30 @@ $(document).ready(function(){
     else{
       checkForPlaying();
     }
+  });
+
+  g.socket.on('play', function(data){
+    updateData(data);
+
+    // Find card in my hand
+    //var player = g.oheck.players[g.oheck.currentPlayerIndex];
+    var player = g.oheck.players[data.playerId];
+    for (var pos = 0; pos < player.hand.length; pos++) {
+      if (player.hand[pos].shortName == data.cardShortName){
+        g.oheck.message(getPlayerName(data.playerId) + ' played the ' + player.hand[pos].longName);
+        g.oheck.playCards(player, [player.hand[pos]]);
+        break;
+      }
+    }
+
+    // Need to play
+    if (g.game.round.numTricksTaken < g.game.round.numTricks){
+      checkForPlaying();
+    }
+    else{
+      checkForEndOfRound();
+    }
+
   });
 
 
@@ -160,7 +193,7 @@ $(document).ready(function(){
   });
 
   // Sign in
-  // Wait to save cookie until server response via "myUserLogin" socket event
+  // Wait to save cookie until server response via "" socket event
   $('#sign-in-button').click(function(e){
     e.preventDefault();
 
@@ -279,7 +312,7 @@ $(document).ready(function(){
 
     // My turn to deal
     //if (g.oheck.dealerIndex == g.game.playerId){
-    if (g.game.currentDealerId == g.game.playerId){
+    if (g.game.currentDealerId === g.game.playerId){
       g.oheck.message('Waiting for you to deal!');
       $('#deal').fadeIn();
     }
@@ -295,7 +328,7 @@ $(document).ready(function(){
   function checkForBidding(){
 
     // My turn to bid
-    if (g.game.currentPlayerId == g.game.playerId){
+    if (g.game.currentPlayerId === g.game.playerId){
     //if (g.oheck.currentPlayerIndex == g.game.playerId){
       g.oheck.message('Waiting for you to bid!');
       g.human.startBid();
@@ -309,7 +342,18 @@ $(document).ready(function(){
   }
 
   function checkForPlaying(){
-    console.log('Time to play!');
+
+    // My turn to play
+    if (g.game.currentPlayerId === g.game.playerId){
+      g.oheck.message('Your turn! Select a card to play');
+    }
+    else{
+      g.oheck.message('Waiting for ' + getCurrentPlayerName() + ' to play');
+    }
+  }
+
+  function checkForEndOfRound(){
+
   }
 
   function createPlayers(){
@@ -600,7 +644,7 @@ $(document).ready(function(){
     console.log('adding players...');
     for (var i = 0; i < g.game.players.length; i++){
       var position = (players.length + i - g.game.playerId) % players.length;
-      console.log('adding player in position: ' + position);
+      console.log('Adding pos: ' + position + ' player: ' + players[position].name);
       g.oheck.addPlayer(players[position]);
     }
 
@@ -618,7 +662,8 @@ $(document).ready(function(){
   }
 
   function getPlayerName(id){
-    return g.game.players[id].name;
+    var playerId = (id + g.game.players.length - 1) % g.game.players.length;
+    return g.game.players[playerId].name;
   }
 
   function loadGameBoard(){
@@ -710,7 +755,15 @@ $(document).ready(function(){
     }
 
     // Need to play
-    checkForPlaying();
+    if (g.game.round.numTricksTaken < g.game.round.numTricks){
+
+      //TODO: Show tricks won in current round
+
+      //TODO: Show cards played in current trick
+
+      checkForPlaying();
+      return;
+    }
   }
 
   function sendUserToExistingGame(){
@@ -720,11 +773,17 @@ $(document).ready(function(){
     });
   }
 
+  function updateData(data){
+    console.log(data);
+    g.game = data.game;
+    g.game.playerId = g.user.id;
+  }
+
   function updateUsersInLobby(){
     var usersHtml = '';
     for (var i in g.users){
       // Skip null users
-      if (g.users[i]){
+      if (i != "0"){
         usersHtml += '<li class="mdl-list__item mdl-list__item--two-line">';
         usersHtml += '<span class="mdl-list__item-primary-content">';
         usersHtml += '<i class="material-icons mdl-list__item-avatar">person</i>';

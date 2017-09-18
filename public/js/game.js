@@ -464,7 +464,7 @@ OHeck.prototype = {
 		this.deck = [];
 		//if (g.status.player[1].hand == null || g.status.player[1].hand == '') {
 		//if (g.game.players[1].hand == null || g.game.players[1].hand == '') {
-		if (!g.game.players[1].hand || g.game.players[1].hand == '') {
+		if (!g.game.players[0].hand || g.game.players[0].hand == '') {
 			console.log('player 1 hand is null inside "newDeck", returning...');
 			return false;
 		}
@@ -477,10 +477,12 @@ OHeck.prototype = {
 		var pos = this.nextPlayerToDealTo;
 //		console.log('position: ' + pos);
 		var playersHands = Array();
-		for (var i=0; i<g.game.players.length; i++) {
-//			console.log('About to distribute hand to player ID: ' + ((i + pos) % g.game.players.length));
-//			console.log('Hand: ' + g.game.players[(i + pos) % g.game.players.length].hand);
-			playersHands.push(g.game.players[(i + pos) % g.game.players.length].hand.split(","));
+		for (var i = 0; i < g.game.players.length; i++) {
+			var tPlayerId = (i + pos) % g.game.players.length;
+			console.log('About to distribute hand to player ID: ' + tPlayerId);
+			var hand = g.game.players[tPlayerId].hand;
+			console.log('Hand: ' + hand);
+			playersHands.push(hand.split(","));
 		}
 		//for (var i=0; i<g.status.round.hands; i++) {
 		//for (var i=0; i<g.game.round.numTricks; i++) {
@@ -671,9 +673,6 @@ HumanPlayer.prototype = {
 					if (g.human.isBidding) {
 						g.human.isBidding = false;
 						g.socket.emit('bid', {playerId: g.game.playerId, bid: bid});
-
-						// TODO: move to callback so all users can update at once
-						g.oheck.bid(g.human, bid);
 					}
 					else {
 						this.game.message('You cannot bid until your turn.');
@@ -704,29 +703,7 @@ HumanPlayer.prototype = {
 				} else {
 					this.game.message('Playing the ' + card.longName);
 
-					socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
-/*					getJSON({
-						op:"playCard",
-						gameID:user.currentGameID,
-						roundID:g.status.currentRoundID,
-						handID:g.status.handID,
-						card:card.shortName
-					}, function(data) {
-						if (data.has_data) {*/
-
-					//TODO: move this into a callback function so all players can update at the same time
-							g.oheck.playCards(g.oheck.players[g.oheck.currentPlayerIndex], [card]);
-//							g.waiting = false;
-
-							// Added in case getRound() was called previous to useCard(),
-							// and returns after this JSON response does
-//							setTimeout("g.waiting=false; doLog('Reset waiting after 1500');", 1500);
-//							setTimeout("g.waiting=false;", 2000);
-/*						}
-						else {
-							g.oheck.message('Error: ' + data.error);
-						}
-					});*/
+					g.socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
 				}
 			}
 		}

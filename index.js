@@ -64,6 +64,7 @@ var GAME_DEFAULTS = {
     currentBid: 0,
     dealerId: null,
     numTricks: 0,
+    numTricksTaken: 0,
     // Deal, Bid, or Play
     status: null,
     // C, S, H, D, or N
@@ -111,56 +112,49 @@ io.sockets.on('connection', function(socket) {
    */
   socket.on('userLogin', function(data){
 
-    // Create user ID
-
-    // Check for first user
-    if (users.length < 2){
-      var newUserId = 1;
-    }
-    else{
-      var newUserId = users.length;
-    }
-
-    data.user.id = newUserId;
-    users[newUserId] = data.user;
-    console.log('A new user joined and has been assigned user ID: ' + newUserId);
+    // The first user in the "users" array is null, so no need to increment by 1 here
+    data.user.id = users.length;
+    users[data.user.id] = data.user;
+    console.log('A new user joined and has been assigned user ID: ' + data.user.id);
     console.log('The next user will have ID: ' + users.length);
 
     // Send data to user that just logged in
-    socket.emit('myUserLogin', {userId: userId, users: users});
+    socket.emit('myUserLogin', {userId: data.user.id, users: users});
 
     // Joins the game room
     socket.join('game');
 
     // Send data to all other clients in room except sender
-    socket.to('game').emit('userJoined', {userId: userId, users: users});
+    socket.to('game').emit('userJoined', {userId: data.user.id, users: users});
   });
 
   socket.on('userJoined', function(data){
-    var userId = data.user.id;
-    users[userId] = data.user;
+    users[data.user.id] = data.user;
+    console.log('User ' + users[data.user.id].name + ' with ID: ' + data.user.id + ' has returned!');
 
     // Send data to user that just logged in
-    socket.emit('myUserLogin', {userId: userId, users: users});
+    socket.emit('myUserLogin', {userId: data.user.id, users: users});
 
-    console.log('User ' + users[userId].name + ' has returned!');
-
-    // Joins the game room
+    // Join the game room
     socket.join('game');
 
     // Send data to all clients including sender
-    io.in('game').emit('userJoined', {userId: userId, users: users});
+    io.in('game').emit('userJoined', {userId: data.user.id, users: users});
   });
 
   socket.on('userLogout', function(data){
-    var loggedOutUserId = data.userId;
-    console.log('User ' + users[loggedOutUserId].name + ' has logged out');
 
-    // Remove from user array
-    users.splice(loggedOutUserId, 1);
+    // Prevent error if socket server had been restarted
+    if (users[data.userId]){
+      console.log('User ' + users[data.userId].name + ' with ID: ' + data.userId + ' has logged out');
 
-    // Broadcast event to users
-    socket.to('game').emit('userLogout', {userId: loggedOutUserId, users: users});
+      // Remove from user array
+      users.splice(data.userId, 1);
+      console.log((users.length - 1) + ' users remain online');
+
+      // Broadcast event to users
+      socket.to('game').emit('userLogout', {userId: data.userId, users: users});
+    }
   });
 
 
@@ -177,23 +171,26 @@ io.sockets.on('connection', function(socket) {
     game.isActive = true;
     game.numRounds = parseInt(data.rounds, 10);
     game.currentRoundId = 0;
-    game.currentDealerId = users.length;
+    // The first user in the "users" array is null, so we need to decrement by 1 here
+    game.currentDealerId = users.length - 1;
     game.currentPlayerId = 1;
     game.ownerId = data.ownerId;
     game.players = [];
     for (var i in users){
-      var playerId = users[i].id;
-      game.players[playerId] = {
-        position: playerId,
-        name: users[i].name,
-        avatar: users[i].avatar,
-        bid: null,
-        tricksTaken: 0,
-        hand: [],
-        currentHand: [],
-        pictureHand: [],
-        score: 0
-      };
+      if (i && i != "0" && users[i] && users[i].id){
+        var playerId = users[i].id;
+        game.players.push({
+          position: playerId,
+          name: users[i].name,
+          avatar: users[i].avatar,
+          bid: null,
+          tricksTaken: 0,
+          hand: [],
+          currentHand: [],
+          pictureHand: [],
+          score: 0
+        });
+      }
     }
     console.log('players array:');
     console.log(game.players);
@@ -229,6 +226,8 @@ io.sockets.on('connection', function(socket) {
       currentBid: 0,
       // Initialize on each round
       numTricks: cardsToDeal,
+      // Number of tricks won
+      numTricksTaken: 0,
       // Reset how many players have bid
       bids: 0,
       // Advance dealer ID based on round
@@ -256,7 +255,7 @@ io.sockets.on('connection', function(socket) {
     }
 
     // Deal cards
-    for (var playerId = 1; playerId <= game.players.length; playerId++){
+    for (var playerId = 0; playerId < game.players.length; playerId++){
       var playerCards = [];
       for (var i = 0; i < game.round.numTricks; i++){
 
@@ -268,11 +267,11 @@ io.sockets.on('connection', function(socket) {
 
       // Save player hand
       var player = game.players[playerId];
-      var playerHand = playerCards.join();
+//      var playerHand = playerCards.join();
       player.currentBid = null;
       player.numTricksTaken = 0;
-      player.hand = playerHand;
-      player.currentHand = playerHand;
+      player.hand = playerCards; //playerHand;
+      player.currentHand = playerCards; // playerHand;
     }
 
     // Broadcast event to users
@@ -298,7 +297,7 @@ io.sockets.on('connection', function(socket) {
     }
 
     // Update player bid
-    var player = game.player[playerId];
+    var player = game.player[playerId - 1];
     player.bid = currentBid;
     player.tricksTaken = 0;
     player.pictureHand = [];
@@ -313,6 +312,7 @@ io.sockets.on('connection', function(socket) {
       game.round.currentTrick = 1;
       game.round.currentTrickPlayed = [];
       game.round.numTricks = 0;
+      game.round.numTricksTaken = 0;
       game.round.status = 'Play';
     }
 
@@ -320,12 +320,15 @@ io.sockets.on('connection', function(socket) {
     game.currentPlayerId = nextPlayerId(game.currentPlayerId);
 
     // Broadcast event to users
-    io.in('game').emit('playerBid', {playerId: data.playerId, bid: data.bid, game: game});
-//    notifyNextPlayer();
+    io.in('game').emit('bid', {playerId: data.playerId, bid: data.bid, game: game});
+
   });
 
   socket.on('playCard', function(data){
     var card = data.card;
+
+    // Broadcast event to users
+    io.in('game').emit('bid', {playerId: data.playerId, cardShortName: data.card});
 /*
 		$gameID = $_REQUEST["gameID"];
 		$roundID = $_REQUEST["roundID"];
