@@ -29,6 +29,12 @@
   overflow: visible;
 }
 
+.h,
+.display {
+  display: none;
+}
+
+
 /*.modal {
   max-width: none;
 }*/
@@ -61,9 +67,6 @@
 h2,
 .slackey {
   font-family: "Slackey";
-}
-.h {
-  display: none;
 }
 #force-reload {
   position: fixed;

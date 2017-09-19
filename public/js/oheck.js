@@ -10,7 +10,7 @@ var g = {
   user: {
     id: null,
     name: null,
-    avatar: 0,
+    avatarId: 0,
     games: 0,
     wins: 0
   },
@@ -182,7 +182,7 @@ $(window).on('load', function(){
 
   // Select avatar
   $('#select-avatar form button').click(function(){
-    g.user.avatar = $(this).attr('id');
+    g.user.avatarId = parseInt($(this).attr('id').substring(7), 10);
   });
   $('#select-avatar form').submit(function(e){
     e.preventDefault();
@@ -247,7 +247,7 @@ $(window).on('load', function(){
 
   function updateConfirmHTML(){
     $('#show-confirm .confirm-name').text(g.user.name);
-    $('#show-confirm .confirm-avatar').text(g.user.avatar);
+    $('#show-confirm .confirm-avatar').text(g.user.avatarId);
   }
 
   // Show snackbar message
@@ -364,16 +364,16 @@ $(window).on('load', function(){
     var players = [],
       p = null,
       h = '',
-      h2 = '',
+      //h2 = '',
       thisPlayer = null;
 
     // Add players blocks
     for (var i = 1; i <= g.game.players.length; i++) {
       h += '<div id="player-position-' + i + '" class="avatar"><div class="userPic"></div><small></small></div>';
-      h2 += '<div id="player-position-' + i + '-bubble" class="bubble"><p></p></div>';
+      //h2 += '<div id="player-position-' + i + '-bubble" class="bubble"><p></p></div>';
     }
     $('#playersBlock').html(h);
-    $('#playersBidBlock').html(h2);
+    //$('#playersBidBlock').html(h2);
 
     switch (g.game.players.length) {
 
@@ -699,7 +699,7 @@ $(window).on('load', function(){
       $('.card').click(function() {
         g.human.useCard(this.card);
       });
-      $('.bubble').fadeOut();
+      //$('.bubble').fadeOut();
       e.callback();
     });
 
@@ -798,6 +798,29 @@ $(window).on('load', function(){
     g.game.playerId = g.user.id;
   }
 
+  function updateScoreboard(){
+
+    var playerScores = [];
+		for (var i = 0; i < g.game.players.length; i++) {
+			var player = g.game.players[i];
+			playerScores.push({id: i, name: player.name, score: player.score});
+		}
+
+    // Sort players by score DESC
+		playerScores.sort(function(a,b) { return parseInt(b.score) - parseInt(a.score) } );
+
+    // Create HTML
+    var scoreboardHTML = '';
+    for (var i = 0; i < playerScores.length; i++){
+      var playerSorted = playerScores[i];
+      scoreboardHTML += '<tr>';
+      scoreboardHTML += '<td class="mdl-data-table__cell--non-numeric">' + playerSorted.name + '</td>';
+      scoreboardHTML += '<td class="mdl-data-table__cell--non-numeric">' + playerSorted.score + '</td>';
+      scoreboardHTML += '</tr>';
+    }
+    $('#scoreboard-dialog table tbody').html(scoreboardHTML);
+  }
+
   function updateUsersInLobby(){
     var thisUser,
         usersHtml = '';
@@ -807,7 +830,7 @@ $(window).on('load', function(){
         thisUser = g.users[i];
         usersHtml += '<li class="mdl-list__item mdl-list__item--two-line">';
         usersHtml += '<span class="mdl-list__item-primary-content">';
-        usersHtml += '<span class="player-avatar player-' + thisUser.avatar.substring(7) + '"></span>';
+        usersHtml += '<span class="player-avatar player-' + thisUser.avatarId + '"></span>';
         usersHtml += '<span>' + thisUser.name + '</span>';
         usersHtml += '<span class="mdl-list__item-sub-title">' + thisUser.wins + ' wins</span>';
         usersHtml += '<span class="mdl-list__item-sub-title">' + thisUser.games + ' games</span>';

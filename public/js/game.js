@@ -1,4 +1,4 @@
-g.game/*
+/*
  * OH HECK
  * Written by Justin Miller on 6.10.2012
  */
@@ -20,6 +20,7 @@ var oh = {
 		y: -5 * 96	// -5 * this.CARD_SIZE.height
 	},
 	HORIZONTAL_MARGIN: 70,	// PLAYER WIDTH (60) + HORIZONTAL PADDING (10)
+	NASCAR_SCORE_GAP: 2,
 	OVERLAY_MARGIN: 2,
 	PILE_POS: {
 		left: 720 * 0.5,			// this.DECK_POS.left + 1.3 * this.CARD_SIZE.width
@@ -201,7 +202,7 @@ OHeck.prototype = {
 		return function (e) {
 			with(e) {
 				var msg = eval(format.replace(/@(\w+(\.\w+)*)/g, "'+$1+'").replace(/(.*)/, "'$1'"));
-				doLog(msg);
+				this.message(msg);
 			}
 			e.game.callbackQueue.push(e);
 		};
@@ -239,14 +240,15 @@ OHeck.prototype = {
 		}
 	},
 	afterPlayCards: function () {
-		// Not end of trick/hand
+
+		// Not end of current trick, advance player turn
 		if (this.pile.length < this.players.length) {
 			var player = this.players[this.currentPlayerIndex];
 			this.currentPlayerIndex = this.nextIndex(this.currentPlayerIndex);
 			this.playerStartTurn();
 		}
 
-		// End of trick/hand
+		// End of current trick
 		else {
 			var winner = 0;
 			var firstCard = this.pile[0];
@@ -263,81 +265,75 @@ OHeck.prototype = {
 				}
 			}
 			var winnerIndex = (firstPlayerIndex + winner) % this.players.length;
-			var finished = this.players[0].hand.length == 0;
+
+			// Set next player to winner of current trick
 			this.currentPlayerIndex = winnerIndex;
 			this.players[this.currentPlayerIndex].tricks.push(this.pile.slice(0));
 			var oldPile = this.pile;
 			this.pile = [];
-
-			// Update tricks
 			this.message(this.players[winnerIndex].name + ' wins trick #' + this.hand);
 
-			// Not end of round (end of hand in round)
-			if (!finished) {
+			// Not end of round
+			if (this.players[0].hand.length > 0) {
 				this.hand++;
+				this.renderEvent('taketrick', this.playerStartTurn, { trick: oldPile });
+				return;
 			}
 
-			// End of round (last hand in round)
-			else {
-//				doLog('New round starting');
-//				this.round++;
-//				this.hand = 0;
+			// End of round
+			this.round++;
+			this.hand = 0;
+			this.cardCount = 0;
+			this.cardsDealt = false;
+			this.pile = [];
+			this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
+			this.dealerIndex = this.nextIndex(this.dealerIndex);
+			this.nextPlayerToDealTo = this.nextIndex(this.dealerIndex);
+			this.currentPlayerIndex = this.nextIndex(this.dealerIndex);
 
-//				doLog('Just played last card in round');
-//				g.waiting = true;
-//				this.cardsDealt = false;
+			// Update players for next round
+			for (var i = 0; i < this.players.length; i++) {
+				var p = this.players[i];
 
-				// Clear player bids
-				for (var i=0; i<this.players.length; i++) {
-					var p = this.players[i];
-
-					// Player made bid
-					if (p.tricks.length == p.bidValue) {
-						p.score += (10 + p.bidValue);
-					}
-					else {
-						p.score += p.bidValue;
-					}
-
-					// Reset player hand
-					p.bidValue = -1;
-					p.tricks = [];
+				// Player made bid
+				if (p.tricks.length === p.bidValue) {
+					p.score += (10 + p.bidValue);
 				}
-
-				// End of game
-//				g.waiting = true;
-//				setTimeout("g.waiting=true;", 2000);
-				if (this.round == this.rounds) {
-					setTimeout("updateStats(); g.oheck.message('Scoreboard Update!');", 1000);
-					setTimeout("g.oheck.message('Game over -- thanks for playing!');", 3000);
-					setTimeout("g.oheck.message('You will be redirected to lobby in 3 sec');", 11000);
-					setTimeout("$('#game-board').fadeOut();", 14000);
-					setTimeout("window.location.reload();", 15000);
-				}
-
-				// Nascar
-				else if (this.round == (this.rounds - 3) && this.rounds > 6) {
-//					setTimeout("updateStats(); g.oheck.message('Scoreboard Update -- NASCAR!');", 1000);
-					setTimeout("updateStats(); g.oheck.nascar();", 1000);
-//					setTimeout("g.oheck.nascar();", 3000);
-					setTimeout("g.oheck.message('Next round will load in 3 sec');", 5000);
-					setTimeout("$('#game-board').fadeOut();", 8000);
-					setTimeout("window.location.reload();", 9000);
-				}
-
 				else {
-					setTimeout("updateStats(); g.oheck.message('Scoreboard Update!');", 1000);
-					setTimeout("g.oheck.message('Next round will load in 2 sec');", 4000);
-					setTimeout("$('#game-board').fadeOut();", 6000);
-					setTimeout("window.location.reload();", 7000);
+					p.score += p.bidValue;
 				}
+
+				// Clear player hand and bid
+				p.bidValue = -1;
+				p.tricks = [];
 			}
 
-			var callback = !finished ? this.playerStartTurn : this.calculateScore;
-			this.renderEvent('taketrick', callback, {
-				trick: oldPile
-			});
+			this.renderEvent('taketrick', this.afterRound, { trick: oldPile });
 		}
+	},
+	afterRound: function () {
+
+		// Nascar
+		if (g.game.options.nascar && this.round === (this.rounds - 3) && this.rounds > 6){
+			this.nascar();
+		}
+
+		// Update scoreboard and trigger click to show scoreboard
+		updateScoreboard();
+
+		// End of game
+		if (this.round === this.rounds){
+			this.message('Game over, thanks for playing!');
+			$('#show-scoreboard').click();
+//			setTimeout("$.modal.close()", 3000);
+//			setTimeout("$('#game-board').fadeOut();", 14000);
+			setTimeout("location.reload();", 5000);
+			return;
+		}
+
+		// Show scoreboard
+		$('#show-scoreboard').click();
+		setTimeout("$.modal.close()", 3000);
 	},
 	allPlayersBid: function () {
 		return ($A(this.players).all(function (p) {
@@ -346,33 +342,19 @@ OHeck.prototype = {
 	},
 	bid: function (player, bid) {
 		player.bidValue = bid;
-		this.message(player.name + ' bids ' + player.bidValue);
-		$('#' + player.id + ' small').append(' (' + player.bidValue + ')');
-		$('#' + player.id + '-bubble p').text('I bid ' + player.bidValue).parent().fadeIn();
+		this.message(player.name + ' bids ' + bid);
+		$('#' + player.id + ' small').append(' (' + bid + ')');
 
-		// Update total bids
-//		g.status.round.bids += bid;
-//		updateStats();
+		//TODO: update bid stats
 
 		if (this.allPlayersBid()) {
-			console.log('all players have bid');
 			this.renderEvent('start', this.playerStartTurn);
 		}
 		else {
 			this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
-			console.log('all players have NOT bid. next bid index is: ' + this.bidPlayerIndex);
 		}
 	},
 	bidPlayerIndex: 0,
-	calculateScore: function () {
-//		this.message('End of round! Need to calculate score...');
-//		doLog('Rotate dealer...');
-		this.dealerIndex = this.nextIndex(this.dealerIndex);
-		this.nextPlayerToDealTo = this.nextIndex(this.dealerIndex);
-		this.currentPlayerIndex = this.nextIndex(this.dealerIndex);
-//		doLog('Next dealer: ' + this.dealerIndex);
-//		doLog('Next first player: ' + this.currentPlayerIndex);
-	},
 	canPlayCard: function (player, card) {
 		if (this.pile.length == 0) {
 			return true;
@@ -389,14 +371,15 @@ OHeck.prototype = {
 		if (!this.deck) {
 			this.message('Cannot deal... deck is empty!');
 		} else {
-//			this.message('Dealing...');
 			this.cardsDealt = true;
 
-			if (this.dealtCardCount == this.cardCount * this.players.length) {
+			// All cards have been dealt
+			if (this.dealtCardCount == this.cardCount * this.players.length){
 				this.bidPlayerIndex = this.currentPlayerIndex;
 				this.afterDealing();
 				this.hand = 1;
-			} else {
+			}
+			else{
 				var card = this.deck.pop();
 				var player = this.players[this.nextPlayerToDealTo];
 				player.hand.push(card);
@@ -417,16 +400,9 @@ OHeck.prototype = {
 	hand: 0,
 	message: function(msg) {
 		console.log(msg);
-		$('#messageBox p').html(msg);
+		showMessage(msg);
 	},
 	nascar: function() {
-		this.message('Scoreboard Update -- NASCAR!');
-		g.nascar = new ParticleCanvas($('#nascar')[0], {x:50});
-		g.nascar.start();
-	},
-/*	nascar: function() {
-		this.message('NASCAR!');
-
 		var playerScores = [];
 		for (var i=0; i<this.players.length; i++) {
 			var p = this.players[i];
@@ -440,23 +416,21 @@ OHeck.prototype = {
 		for (var i=1; i<playerScores.length; i++) {
 			var pointsBehindNextPlayer = playerScores[i-1].score - playerScores[i].score;
 			var newPointsBehindNextPlayer = Math.min(pointsBehindNextPlayer, oh.NASCAR_SCORE_GAP);
+
+			// Bump player score so it is no more than "NASCAR_SCORE_GAP" points behind previous player
 			playerScores[i].newScore = playerScores[i-1].newScore - newPointsBehindNextPlayer;
 
-			// Bump player score
+			// Save new score
 			this.players[playerScores[i].id].score = playerScores[i].newScore;
 		}
-		updateStats();
 
-/*		getJSON({op:"nascar", gameID:user.currentGameID}, function(data) {
-			if (data.has_data) {
-				console.log('data');
-			}
-		});*
-	},*/
+		// Update scores on server
+		g.socket.emit('nascar');
+
+		//TODO: move backend nascar to callback so all players can update
+	},
 	newDeck: function () {
 		this.deck = [];
-		//if (g.status.player[1].hand == null || g.status.player[1].hand == '') {
-		//if (g.game.players[1].hand == null || g.game.players[1].hand == '') {
 		if (!g.game.players[0].hand || g.game.players[0].hand == '') {
 			console.log('player 1 hand is null inside "newDeck", returning...');
 			return false;
@@ -485,8 +459,6 @@ OHeck.prototype = {
 				var num = cardStr.substring(1);
 				this.deck.unshift(new Card(suit, num));
 			}
-//			console.log('After ' + (i+1) + ' rounds, deck is: ');
-//			console.log(this.deck);
 		}
 
 		// Create cardpile
@@ -520,7 +492,6 @@ OHeck.prototype = {
 		for (var i = 0; i < cards.length; i++) {
 			var card = cards[i];
 			this.pile.push(card);
-//			card.selected = false;
 			player.remove(card);
 		}
 		player.canPlay = false;
@@ -531,7 +502,6 @@ OHeck.prototype = {
 	players: [],
 	playerStartTurn: function () {
 		this.players[this.currentPlayerIndex].canPlay = true;
-		console.log('player ' + this.currentPlayerIndex + ' can play!');
 	},
 	renderEvent: function (name, callback, eventData) {
 		if (!eventData) {
@@ -553,9 +523,6 @@ OHeck.prototype = {
 	setEventRenderer: function (eventName, func) {
 		this.renderers[eventName] = func;
 	},
-//	showDealButton: function () {
-//		$('#deal').fadeIn();
-//	},
 	sortHand: function (player, callback, dontRender) {
 		if (!player.hand) {
 			return;
@@ -650,10 +617,10 @@ HumanPlayer.prototype = {
 		var cannotBidIndex = (g.game.round.numTricks - g.game.round.bids);
 
 		$('#bid div').remove();
-		for (var i=0; i <= g.game.round.numTricks; i++) {
+		for (var i = 0; i <= g.game.round.numTricks; i++) {
 
 			// Force dealer
-			if (isDealer && (i == cannotBidIndex)) {
+			if (isDealer && (i === cannotBidIndex)) {
 				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid').click(function(e) {
 					this.message('Nice try! Anything but ' + $(this).text());
 				}).mouseover(function () {
@@ -672,43 +639,25 @@ HumanPlayer.prototype = {
 					else {
 						this.game.message('You cannot bid until your turn.');
 					}
-
 					$('#bid').hide();
-				}).mouseover(function () {
-					this.message('Bid ' + $(this).text());
-				}).mouseout(function () {
-					this.message('');
 				});
 			}
 		}
 		this.isBidding = true;
 	},
 	useCard: function (card) {
-//		if (g.waiting) {
-			if (this.isBidding) {
-				this.game.message('It\'s your turn to bid now. You can\'t play any card while you\'re bidding!');
-//			} else {
-//				this.game.message('');
-//				if (!this.hasCard(card)) {
-			} else if (!this.hasCard(card)) {
-				this.game.message('You cannot play that card!');
-			} else if (!this.canPlay) {
-				this.game.message('It\'s not your turn to play!');
-			} else if (!this.game.canPlayCard(this, card)) {
-				this.game.message('Nice try! You must follow suit by playing a ' + this.game.pile[0].suitName());
-			} else {
-				this.game.message('Playing the ' + card.longName);
-
-				g.socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
-			}
-//		}
-/*		}
-		else if (!this.canPlay) {
+		if (this.isBidding) {
+			this.game.message('It\'s your turn to bid now. You can\'t play any card while you\'re bidding!');
+		} else if (!this.hasCard(card)) {
+			this.game.message('You cannot play that card!');
+		} else if (!this.canPlay) {
 			this.game.message('It\'s not your turn to play!');
+		} else if (!this.game.canPlayCard(this, card)) {
+			this.game.message('Nice try! You must follow suit by playing a ' + this.game.pile[0].suitName());
+		} else {
+			this.game.message('Playing the ' + card.longName);
+			g.socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
 		}
-		else {
-			this.game.message('Retry after this message updates');
-		}*/
 	},
 
 	init: ComputerPlayer.prototype.init,
@@ -791,21 +740,6 @@ var webRenderer = {
 		}, speed || (oh.ANIMATION_SPEED / 2));
 	},
 	play: function (e) {
-//		oh.PILE_POS.left = (oh.TABLE_SIZE.NORMAL.width - oh.CARD_SIZE.width) / 2;
-//		oh.PILE_POS.top = (oh.TABLE_SIZE.NORMAL.height - oh.CARD_SIZE.height) / 2;
-/*		oh.PILE_POS.left = ($('#game-board').width() - oh.CARD_SIZE.width) / 2;
-		oh.PILE_POS.top = ($('#game-board').height() - oh.CARD_SIZE.height) / 2;
-		if (e.player.position == 'top') {
-			oh.PILE_POS.top -= 60;
-		} else if (e.player.position == 'bottom') {
-			oh.PILE_POS.top += 10;
-		} else if (e.player.position == 'left') {
-			oh.PILE_POS.left -= 40;
-			oh.PILE_POS.top -= 25;
-		} else if (e.player.position == 'right') {
-			oh.PILE_POS.left += 40;
-			oh.PILE_POS.top -= 25;
-		}*/
 		var boardCenterX = ($('#game-board').width() - oh.CARD_SIZE.width) / 2;
 		var boardCenterY = ($('#game-board').height() - oh.CARD_SIZE.height) / 2;
 
@@ -893,12 +827,10 @@ var webRenderer = {
 			var props = {};
 			var cssClass;
 			var trickProps = {};
-//			var playerMargin = 2;
 			var playerMargin = 5;
 			var trickHeight = 45;
 			var trickWidth = 33;
 			var overlay = 10;
-//			var playerSize = 50;
 			var playerSizeX = 60;
 			var playerSizeY = 90;
 			var sidePlayerTop = 265;
@@ -906,21 +838,18 @@ var webRenderer = {
 			var sideEdgeDistance = playerMargin + (playerSizeX - trickHeight) / 2;
 			var cardDistance = ($('#game-board').width() / 2) + playerSizeX / 2 + e.player.tricks.length * overlay;
 			if (e.player.position == 'top') {
-//				props['left'] = (($('#game-board').width() / 2) - (oh.CARD_SIZE.width / 2)) + 'px';
 				cssClass = 'verticalTrick';
 				trickProps['top'] = topEdgeDistance;
 				trickProps['left'] = cardDistance;
 				props = trickProps;
 			}
 			else if (e.player.position == 'topLeft') {
-//				props['left'] = (($('#game-board').width() / 3) - (oh.CARD_SIZE.width / 2)) + 'px';
 				cssClass = 'verticalTrick';
 				trickProps['top'] = topEdgeDistance;
 				trickProps['left'] = (0.3 * $('#game-board').width()) + (playerSizeX / 2) + e.player.tricks.length * overlay;
 				props = trickProps;
 			}
 			else if (e.player.position == 'topRight') {
-//				props['left'] = ((0.3 $('#game-board').width()) - (oh.CARD_SIZE.width / 2)) + 'px';
 				cssClass = 'verticalTrick';
 				trickProps['top'] = topEdgeDistance;
 				trickProps['left'] = (0.7 * $('#game-board').width()) + (playerSizeX / 2) + e.player.tricks.length * overlay;
@@ -928,7 +857,6 @@ var webRenderer = {
 			}
 			else if (e.player.position == 'bottom') {
 				cssClass = 'verticalTrick';
-//				trickProps['bottom'] = playerMargin + 60 - playerSizeY + ((playerSizeY - trickHeight) / 2);
 				trickProps['bottom'] = playerMargin + (playerSizeY - trickHeight) / 2;
 				trickProps['right'] = cardDistance;
 				props['top'] = $('#game-board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
@@ -936,7 +864,6 @@ var webRenderer = {
 			}
 			else if (e.player.position == 'bottomLeft') {
 				cssClass = 'verticalTrick';
-//				trickProps['bottom'] = playerMargin + 60 - playerSizeY + ((playerSizeY - trickHeight) / 2);
 				trickProps['bottom'] = playerMargin + (playerSizeY - trickHeight) / 2;
 				trickProps['right'] = cardDistance;
 				props['top'] = $('#game-board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
@@ -944,7 +871,6 @@ var webRenderer = {
 			}
 			else if (e.player.position == 'bottomRight') {
 				cssClass = 'verticalTrick';
-//				trickProps['bottom'] = playerMargin + 60 - playerSizeY + ((playerSizeY - trickHeight) / 2);
 				trickProps['bottom'] = playerMargin + (playerSizeY - trickHeight) / 2;
 				trickProps['right'] = cardDistance;
 				props['top'] = $('#game-board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
@@ -953,14 +879,12 @@ var webRenderer = {
 			else if (e.player.position == 'left') {
 				cssClass = 'horizontalTrick';
 				trickProps['bottom'] = $('#game-board').height() - sidePlayerTop + e.player.tricks.length * overlay;
-//				trickProps['left'] = sideEdgeDistance + 1;
 				trickProps['left'] = sideEdgeDistance;
 				props['top'] = $('#game-board').height() - trickProps['bottom'] - oh.CARD_SIZE.height;
 				props['left'] = trickProps['left'];
 			}
 			else if (e.player.position == 'right') {
 				cssClass = 'horizontalTrick';
-//				trickProps['top'] = sidePlayerTop + $('#player-position-1').height() + e.player.tricks.length * overlay;
 				trickProps['top'] = sidePlayerTop + playerSizeY + e.player.tricks.length * overlay;
 				trickProps['right'] = sideEdgeDistance;
 				props['top'] = trickProps['top'];
@@ -980,156 +904,3 @@ var webRenderer = {
 		}, oh.TAKE_TRICK_DELAY);
 	},
 };
-
-/*
-function getRound() {
-
-	// Waiting for another player
-	if (!g.waiting) {
-		if (g.roundLoading == 0) {
-			g.roundLoading++;
-			getJSON({op:"getRound", gameID:user.currentGameID}, function(data) {
-				g.roundLoading = 0;
-//				g.status = data;
-				updateStats();
-
-				// Check game status
-
-				// Need to deal
-				// TODO... check for same round
-				if (!this.cardsDealt && g.game.players[0].hand == null) {
-
-					// Check for end of game
-					if (this.round == this.rounds) {
-						this.message('Game over -- thanks for playing!');
-						g.waiting = true;
-					}
-					else {
-						// Player is next dealer
-						//if (this.dealerIndex + 1 == g.status.seatID) {
-						if (this.dealerIndex + 1 == g.game.playerId) {
-							this.message('Waiting for you to deal!');
-							$('#deal').fadeIn();
-							g.waiting = true;
-						}
-						else {
-							this.message('Waiting for ' + this.players[this.dealerIndex].name + ' to deal');
-							$('#deal').hide();
-							g.waiting = false;
-						}
-					}
-				}
-
-				// Just dealt
-				else if (!this.cardsDealt) {
-					g.waiting = false;
-					//this.cardCount = parseInt(g.status.round.hands, 10);
-					this.cardCount = g.game.round.numTricks;
-					this.newDeck();
-					this.round++;
-//					g.oheck;
-				}
-
-				// Playing
-				else {
-					g.waiting = false;
-
-					// Update bids
-					while (this.players[this.bidPlayerIndex].bidValue == -1 && g.game.players[this.bidPlayerIndex+1].bid != null) {
-						this.bid(this.players[this.bidPlayerIndex], g.game.players[this.bidPlayerIndex+1].bid);
-					}
-
-					// Need to bid
-					//if (g.game.players[g.status.seatID].bid == null) {
-					if (g.game.players[g.game.playerId].bid == null) {
-						//if (g.status.seatID == this.bidPlayerIndex + 1) {
-						if (g.game.playerId == this.bidPlayerIndex + 1) {
-							g.waiting = true;
-							g.human.startBid();
-						}
-
-						// Check for other bid updates
-						else {
-							g.waiting = false;
-							this.message('Waiting for ' + this.players[this.bidPlayerIndex].name + ' to bid');
-						}
-					}
-
-					// Waiting for all players to bid -- check if current bidder has already bid
-					else if (this.players[this.bidPlayerIndex].bidValue == -1) {
-						g.waiting = false;
-						this.message('Waiting for ' + this.players[this.bidPlayerIndex].name + ' to bid');
-					}
-
-					// Bidding finished
-					// Currently in the middle of a round/hand
-					else {
-						g.waiting = (g.game.playerId == this.currentPlayerIndex + 1);
-						var numCardsInHand = 0;
-						var hand = g.game.players[this.currentPlayerIndex+1].currentHand;
-						if (hand != null && hand != '') {
-							var handArr = hand.split(",");
-							numCardsInHand = handArr.length;
-						}
-
-						// Update next card played
-						if (this.players[this.currentPlayerIndex].hand.length > numCardsInHand) {
-
-							// Not end of hand
-							if (g.game.round.currentTrickPlayed.length < g.game.round.numTricks) {
-								var thisCard = g.game.round.currentTrickPlayed[this.hand][this.currentPlayerIndex+1].card;
-
-								// Find card position in player's hand
-								var cp = this.players[this.currentPlayerIndex];
-								for (var pos = 0; pos < cp.hand.length; pos++) {
-									if (cp.hand[pos].shortName == thisCard) {
-										this.message(this.players[cp.pos].name + ' played the ' + cp.hand[pos].longName);
-										this.playCards(cp, [cp.hand[pos]]);
-
-										// If I played already (game reloaded), and I just played this card, resume checks
-										if (g.game.playerId == cp.pos+1) {
-											g.waiting = false;
-										}
-										pos = cp.hand.length;
-									}
-								}
-							}
-							else {
-//								doLog('User hand is null. Probably the end of the round!');
-								var cp = this.players[this.currentPlayerIndex];
-								if (cp.hand.length == 1) {
-//									doLog('1 card left in hand... let\'s play it');
-									this.playCards(cp, [cp.hand[0]]);
-								}
-								else {
-									this.message('An error occurred -- round is not over but hand is null');
-								}
-							}
-						}
-
-						// Need to play
-						else if (g.game.playerId == this.currentPlayerIndex + 1) {
-							this.message('Your turn! Select a card to play');
-						}
-
-						// Check if all players have played
-						// Check if pile is full (go to next hand)
-						else {
-							this.message('Waiting for ' + this.players[this.currentPlayerIndex].name + ' to play');
-						}
-					}
-				}
-			});
-		}
-		else {
-			g.roundLoading++;
-
-			// Auto-reset timeout
-			if (g.roundLoading == 5) {
-				g.waiting = true;
-				g.roundLoading = 0;
-				setTimeout("g.waiting = false;", 5000);
-			}
-		}
-	}
-}*/
