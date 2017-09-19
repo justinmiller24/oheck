@@ -235,7 +235,7 @@ OHeck.prototype = {
 			var p = this.players[i];
 			p.tricks = [];
 			p.bidValue = -1;
-			webRenderer._adjustHand(p, function(){}, 50, true, g.oheck.cardCount);
+			webRenderer._adjustHand(p, function(){}, 50, true, this.cardCount);
 		}
 	},
 	afterPlayCards: function () {
@@ -254,7 +254,7 @@ OHeck.prototype = {
 			var firstPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
 			for (var i = 1; i < this.pile.length; i++) {
 				var card = this.pile[i];
-				if (g.oheck.trump != 'N' && bestCard.suit != g.oheck.trump && card.suit == g.oheck.trump) {
+				if (this.trump != 'N' && bestCard.suit != this.trump && card.suit == this.trump) {
 					bestCard = card;
 					winner = i;
 				} else if (card.suit == bestCard.suit && card.rank > bestCard.rank) {
@@ -270,11 +270,11 @@ OHeck.prototype = {
 			this.pile = [];
 
 			// Update tricks
-			g.oheck.message(g.oheck.players[winnerIndex].name + ' wins trick #' + g.oheck.hand);
+			this.message(this.players[winnerIndex].name + ' wins trick #' + this.hand);
 
 			// Not end of round (end of hand in round)
 			if (!finished) {
-				g.oheck.hand++;
+				this.hand++;
 			}
 
 			// End of round (last hand in round)
@@ -285,11 +285,11 @@ OHeck.prototype = {
 
 //				doLog('Just played last card in round');
 //				g.waiting = true;
-//				g.oheck.cardsDealt = false;
+//				this.cardsDealt = false;
 
 				// Clear player bids
-				for (var i=0; i<g.oheck.players.length; i++) {
-					var p = g.oheck.players[i];
+				for (var i=0; i<this.players.length; i++) {
+					var p = this.players[i];
 
 					// Player made bid
 					if (p.tricks.length == p.bidValue) {
@@ -367,11 +367,11 @@ OHeck.prototype = {
 	calculateScore: function () {
 //		this.message('End of round! Need to calculate score...');
 //		doLog('Rotate dealer...');
-		g.oheck.dealerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
-		g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
-		g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
-//		doLog('Next dealer: ' + g.oheck.dealerIndex);
-//		doLog('Next first player: ' + g.oheck.currentPlayerIndex);
+		this.dealerIndex = this.nextIndex(this.dealerIndex);
+		this.nextPlayerToDealTo = this.nextIndex(this.dealerIndex);
+		this.currentPlayerIndex = this.nextIndex(this.dealerIndex);
+//		doLog('Next dealer: ' + this.dealerIndex);
+//		doLog('Next first player: ' + this.currentPlayerIndex);
 	},
 	canPlayCard: function (player, card) {
 		if (this.pile.length == 0) {
@@ -420,7 +420,7 @@ OHeck.prototype = {
 		$('#messageBox p').html(msg);
 	},
 	nascar: function() {
-		g.oheck.message('Scoreboard Update -- NASCAR!');
+		this.message('Scoreboard Update -- NASCAR!');
 		g.nascar = new ParticleCanvas($('#nascar')[0], {x:50});
 		g.nascar.start();
 	},
@@ -655,11 +655,11 @@ HumanPlayer.prototype = {
 			// Force dealer
 			if (isDealer && (i == cannotBidIndex)) {
 				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid').click(function(e) {
-					g.oheck.message('Nice try! Anything but ' + $(this).text());
+					this.message('Nice try! Anything but ' + $(this).text());
 				}).mouseover(function () {
-					g.oheck.message('Anything but ' + $(this).text());
+					this.message('Anything but ' + $(this).text());
 				}).mouseout(function () {
-					g.oheck.message('');
+					this.message('');
 				});
 			}
 			else {
@@ -675,9 +675,9 @@ HumanPlayer.prototype = {
 
 					$('#bid').hide();
 				}).mouseover(function () {
-					g.oheck.message('Bid ' + $(this).text());
+					this.message('Bid ' + $(this).text());
 				}).mouseout(function () {
-					g.oheck.message('');
+					this.message('');
 				});
 			}
 		}
@@ -997,23 +997,23 @@ function getRound() {
 
 				// Need to deal
 				// TODO... check for same round
-				if (!g.oheck.cardsDealt && g.game.players[0].hand == null) {
+				if (!this.cardsDealt && g.game.players[0].hand == null) {
 
 					// Check for end of game
-					if (g.oheck.round == g.oheck.rounds) {
-						g.oheck.message('Game over -- thanks for playing!');
+					if (this.round == this.rounds) {
+						this.message('Game over -- thanks for playing!');
 						g.waiting = true;
 					}
 					else {
 						// Player is next dealer
-						//if (g.oheck.dealerIndex + 1 == g.status.seatID) {
-						if (g.oheck.dealerIndex + 1 == g.game.playerId) {
-							g.oheck.message('Waiting for you to deal!');
+						//if (this.dealerIndex + 1 == g.status.seatID) {
+						if (this.dealerIndex + 1 == g.game.playerId) {
+							this.message('Waiting for you to deal!');
 							$('#deal').fadeIn();
 							g.waiting = true;
 						}
 						else {
-							g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.dealerIndex].name + ' to deal');
+							this.message('Waiting for ' + this.players[this.dealerIndex].name + ' to deal');
 							$('#deal').hide();
 							g.waiting = false;
 						}
@@ -1021,13 +1021,13 @@ function getRound() {
 				}
 
 				// Just dealt
-				else if (!g.oheck.cardsDealt) {
+				else if (!this.cardsDealt) {
 					g.waiting = false;
-					//g.oheck.cardCount = parseInt(g.status.round.hands, 10);
-					g.oheck.cardCount = g.game.round.numTricks;
-					g.oheck.newDeck();
-					g.oheck.round++;
-					g.oheck;
+					//this.cardCount = parseInt(g.status.round.hands, 10);
+					this.cardCount = g.game.round.numTricks;
+					this.newDeck();
+					this.round++;
+//					g.oheck;
 				}
 
 				// Playing
@@ -1035,15 +1035,15 @@ function getRound() {
 					g.waiting = false;
 
 					// Update bids
-					while (g.oheck.players[g.oheck.bidPlayerIndex].bidValue == -1 && g.game.players[g.oheck.bidPlayerIndex+1].bid != null) {
-						g.oheck.bid(g.oheck.players[g.oheck.bidPlayerIndex], g.game.players[g.oheck.bidPlayerIndex+1].bid);
+					while (this.players[this.bidPlayerIndex].bidValue == -1 && g.game.players[this.bidPlayerIndex+1].bid != null) {
+						this.bid(this.players[this.bidPlayerIndex], g.game.players[this.bidPlayerIndex+1].bid);
 					}
 
 					// Need to bid
 					//if (g.game.players[g.status.seatID].bid == null) {
 					if (g.game.players[g.game.playerId].bid == null) {
-						//if (g.status.seatID == g.oheck.bidPlayerIndex + 1) {
-						if (g.game.playerId == g.oheck.bidPlayerIndex + 1) {
+						//if (g.status.seatID == this.bidPlayerIndex + 1) {
+						if (g.game.playerId == this.bidPlayerIndex + 1) {
 							g.waiting = true;
 							g.human.startBid();
 						}
@@ -1051,40 +1051,40 @@ function getRound() {
 						// Check for other bid updates
 						else {
 							g.waiting = false;
-							g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.bidPlayerIndex].name + ' to bid');
+							this.message('Waiting for ' + this.players[this.bidPlayerIndex].name + ' to bid');
 						}
 					}
 
 					// Waiting for all players to bid -- check if current bidder has already bid
-					else if (g.oheck.players[g.oheck.bidPlayerIndex].bidValue == -1) {
+					else if (this.players[this.bidPlayerIndex].bidValue == -1) {
 						g.waiting = false;
-						g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.bidPlayerIndex].name + ' to bid');
+						this.message('Waiting for ' + this.players[this.bidPlayerIndex].name + ' to bid');
 					}
 
 					// Bidding finished
 					// Currently in the middle of a round/hand
 					else {
-						g.waiting = (g.game.playerId == g.oheck.currentPlayerIndex + 1);
+						g.waiting = (g.game.playerId == this.currentPlayerIndex + 1);
 						var numCardsInHand = 0;
-						var hand = g.game.players[g.oheck.currentPlayerIndex+1].currentHand;
+						var hand = g.game.players[this.currentPlayerIndex+1].currentHand;
 						if (hand != null && hand != '') {
 							var handArr = hand.split(",");
 							numCardsInHand = handArr.length;
 						}
 
 						// Update next card played
-						if (g.oheck.players[g.oheck.currentPlayerIndex].hand.length > numCardsInHand) {
+						if (this.players[this.currentPlayerIndex].hand.length > numCardsInHand) {
 
 							// Not end of hand
 							if (g.game.round.currentTrickPlayed.length < g.game.round.numTricks) {
-								var thisCard = g.game.round.currentTrickPlayed[g.oheck.hand][g.oheck.currentPlayerIndex+1].card;
+								var thisCard = g.game.round.currentTrickPlayed[this.hand][this.currentPlayerIndex+1].card;
 
 								// Find card position in player's hand
-								var cp = g.oheck.players[g.oheck.currentPlayerIndex];
+								var cp = this.players[this.currentPlayerIndex];
 								for (var pos = 0; pos < cp.hand.length; pos++) {
 									if (cp.hand[pos].shortName == thisCard) {
-										g.oheck.message(g.oheck.players[cp.pos].name + ' played the ' + cp.hand[pos].longName);
-										g.oheck.playCards(cp, [cp.hand[pos]]);
+										this.message(this.players[cp.pos].name + ' played the ' + cp.hand[pos].longName);
+										this.playCards(cp, [cp.hand[pos]]);
 
 										// If I played already (game reloaded), and I just played this card, resume checks
 										if (g.game.playerId == cp.pos+1) {
@@ -1096,26 +1096,26 @@ function getRound() {
 							}
 							else {
 //								doLog('User hand is null. Probably the end of the round!');
-								var cp = g.oheck.players[g.oheck.currentPlayerIndex];
+								var cp = this.players[this.currentPlayerIndex];
 								if (cp.hand.length == 1) {
 //									doLog('1 card left in hand... let\'s play it');
-									g.oheck.playCards(cp, [cp.hand[0]]);
+									this.playCards(cp, [cp.hand[0]]);
 								}
 								else {
-									g.oheck.message('An error occurred -- round is not over but hand is null');
+									this.message('An error occurred -- round is not over but hand is null');
 								}
 							}
 						}
 
 						// Need to play
-						else if (g.game.playerId == g.oheck.currentPlayerIndex + 1) {
-							g.oheck.message('Your turn! Select a card to play');
+						else if (g.game.playerId == this.currentPlayerIndex + 1) {
+							this.message('Your turn! Select a card to play');
 						}
 
 						// Check if all players have played
 						// Check if pile is full (go to next hand)
 						else {
-							g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.currentPlayerIndex].name + ' to play');
+							this.message('Waiting for ' + this.players[this.currentPlayerIndex].name + ' to play');
 						}
 					}
 				}

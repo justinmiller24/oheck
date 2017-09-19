@@ -754,24 +754,18 @@ $(window).on('load', function(){
     dealCards();
 
     // Update existing bids
-    //console.log('dealer index: ' + g.oheck.dealerIndex);
     var firstPlayerToBidThisHand = g.oheck.nextIndex(g.oheck.dealerIndex);
-    //console.log('first bidding player is: ' + firstPlayerToBidThisHand);
     for (var i = 0; i < g.game.round.bids; i++){
       var pos = (firstPlayerToBidThisHand + i + g.game.players.length - 1) % g.game.players.length;
-      //console.log('position: ' + pos);
-//      if (g.game.players[pos].bid){
         var thisBid = g.game.players[pos].bid;
+
         // This was my bid
         if (g.game.playerId === pos + 1){
-          //console.log('update my bid: ' + thisBid);
           g.oheck.bid(g.human, thisBid);
         }
         else{
-          //console.log('update other bid: ' + thisBid);
           g.oheck.bid(g.oheck.players[pos], thisBid);
         }
-//      }
     }
 
     // Need to bid
