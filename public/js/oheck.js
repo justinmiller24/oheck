@@ -103,8 +103,6 @@ $(window).on('load', function(){
 
   g.socket.on('startGame', function(data){
     updateData(data);
-//    console.log(data);
-//    g.game = data.game;
     showMessage('Starting Game!', function(){
       $.modal.close();
       $('#lobby, #game-board').slideToggle();
@@ -227,6 +225,15 @@ $(window).on('load', function(){
       location.reload();
     });
   });
+
+  // Scoreboard
+  $('#show-scoreboard').click(function(){
+    updateScoreboard();
+    $('#scoreboard-dialog').modal();
+    setTimeout("$.modal.close()", 3000);
+  });
+
+
 
 
   /**
@@ -672,6 +679,7 @@ $(window).on('load', function(){
   }
 
   function loadGameBoard(){
+    g.snackbarMessage = showMessage;
   	g.oheck = new OHeck();
 
     // Setup event renderers
@@ -731,6 +739,9 @@ $(window).on('load', function(){
     // Create players
     createPlayers();
 
+    // Create scoreboard
+    updateScoreboard();
+
     // Create game
     // First person who joined the game bids first
     // Last person who joined the game deals first
@@ -745,7 +756,7 @@ $(window).on('load', function(){
     console.log('PlayerId: ' + g.game.playerId);
 
     // Need to deal
-    if (!g.game.players[1].hand.length){
+    if (!g.game.players[0].hand.length){
       checkForDealing();
       return;
     }
@@ -799,7 +810,6 @@ $(window).on('load', function(){
   }
 
   function updateScoreboard(){
-
     var playerScores = [];
 		for (var i = 0; i < g.game.players.length; i++) {
 			var player = g.game.players[i];

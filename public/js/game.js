@@ -320,20 +320,16 @@ OHeck.prototype = {
 
 		// Update scoreboard and trigger click to show scoreboard
 		updateScoreboard();
+		$('#scoreboard-dialog').modal();
+		setTimeout("$.modal.close()", 3000);
 
 		// End of game
 		if (this.round === this.rounds){
 			this.message('Game over, thanks for playing!');
-			$('#show-scoreboard').click();
-//			setTimeout("$.modal.close()", 3000);
 //			setTimeout("$('#game-board').fadeOut();", 14000);
 			setTimeout("location.reload();", 5000);
 			return;
 		}
-
-		// Show scoreboard
-		$('#show-scoreboard').click();
-		setTimeout("$.modal.close()", 3000);
 	},
 	allPlayersBid: function () {
 		return ($A(this.players).all(function (p) {
@@ -398,9 +394,9 @@ OHeck.prototype = {
 	dealtCardCount: 0,
 	deck: null,
 	hand: 0,
-	message: function(msg) {
+	message: function(msg, callback) {
 		console.log(msg);
-		showMessage(msg);
+		g.snackbarMessage(msg, callback);
 	},
 	nascar: function() {
 		var playerScores = [];
@@ -655,7 +651,7 @@ HumanPlayer.prototype = {
 		} else if (!this.game.canPlayCard(this, card)) {
 			this.game.message('Nice try! You must follow suit by playing a ' + this.game.pile[0].suitName());
 		} else {
-			this.game.message('Playing the ' + card.longName);
+//			this.game.message('Playing the ' + card.longName);
 			g.socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
 		}
 	},
