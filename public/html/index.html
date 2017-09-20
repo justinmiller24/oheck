@@ -29,7 +29,7 @@
     <link rel="stylesheet" href="/css/material.indigo-blue.min.css" />
     <link rel="stylesheet" href="/css/jquery.modal.min.css">
     <link rel="stylesheet" href="/css/oheck.css">
-    <link rel="stylesheet" href="/css/board.css">
+    <!--link rel="stylesheet" href="/css/board.css"-->
   </head>
   <body>
     <!-- LOADING SPINNER -->
@@ -64,7 +64,7 @@
               <a class="mdl-navigation__link" href="#"><i class="material-icons">add_a_photo</i></a-->
 
               <!-- Scoreboard -->
-              <a id="show-scoreboard" class="mdl-navigation__link" href="/html/scoreboard.html" rel="modal:open">
+              <a id="show-scoreboard" class="mdl-navigation__link" href="#scoreboard-dialog" rel="modal:open">
                 <i class="material-icons">insert_chart</i>
                 <div class="mdl-tooltip" data-mdl-for="show-scoreboard">Scoreboard</div>
               </a>
@@ -113,7 +113,7 @@
         </div>
         <div class="content-section">
 
-          <!-- LOGIN -->
+          <!-- LOGIN >
           <div id="login" class="h mdl-tabs mdl-js-tabs mdl-js-ripple-effect">
             <div class="mdl-tabs__tab-bar">
               <a href="#select-name" class="mdl-tabs__tab is-active">Name</a>
@@ -137,28 +137,26 @@
               <h2>Choose Avatar</h2>
               <form action="#">
                 <div class="mdl-grid">
-                  <div class="mdl-card mdl-cell mdl-cell--4-col mdl-cell--3-col-tablet mdl-shadow--2dp">
+                  <div class="mdl-card mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-shadow--2dp">
                     <figure class="mdl-card__media">
-                      <img src="http://tfirdaus.github.io/mdl/images/laptop.jpg" alt="" />
+                      <img class="player-1" />
                     </figure>
                     <div class="mdl-card__title">
                       <h1 class="mdl-card__title-text">Avatar #1</h1>
                     </div>
                     <div class="mdl-card__actions mdl-card--border">
-                      <p style="margin:auto 8px;">Name</p>
                       <div class="mdl-layout-spacer"></div>
                       <button id="avatar-1" class="mdl-button mdl-js-button mdl-button--colored mdl-js-ripple-effect">Select</button>
                     </div>
                   </div>
-                  <div class="mdl-card mdl-cell mdl-cell--4-col mdl-cell--3-col-tablet mdl-shadow--2dp">
+                  <div class="mdl-card mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-shadow--2dp">
                     <figure class="mdl-card__media">
-                      <img src="http://tfirdaus.github.io/mdl/images/laptop.jpg" alt="" />
+                      <img class="player-2" />
                     </figure>
                     <div class="mdl-card__title">
                       <h1 class="mdl-card__title-text">Avatar #2</h1>
                     </div>
                     <div class="mdl-card__actions mdl-card--border">
-                      <p style="margin:auto 8px;">Name</p>
                       <div class="mdl-layout-spacer"></div>
                       <button id="avatar-2" class="mdl-button mdl-js-button mdl-button--colored mdl-js-ripple-effect">Select</button>
                     </div>
@@ -181,7 +179,7 @@
                 <button id="sign-in-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Let's Go!</button>
               </div>
             </div>
-          </div>
+          </div-->
 
 
           <!-- LOBBY -->
@@ -231,12 +229,51 @@
       <button class="mdl-snackbar__action" type="button"></button>
     </div>
 
+
     <!-- DIALOGS -->
-    <div id="rules-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
-    <div id="create-game-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
-    <div id="scoreboard-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
-    <div id="settings-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
-    <did id="logout-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
+
+    <!-- RULES >
+    <div id="rules-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp" style="display: none;"></div-->
+
+    <!-- CREATE GAME -->
+    <div id="create-game-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp" style="display: none;"></div>
+
+    <!-- SCOREBOARD -->
+    <div id="scoreboard-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp" style="display: none;">
+      <h2 class="mdl-card__title-text">Scoreboard</h2>
+      <table class="mdl-data-table mdl-js-data-table">
+        <thead>
+          <tr>
+            <th class="mdl-data-table__cell--non-numeric">Name</th>
+            <th class="mdl-data-table__cell--non-numeric">Score</th>
+          </tr>
+        </thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SETTINGS >
+    <div id="settings-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp" style="display: none;"></div-->
+
+    <!-- LOGIN -->
+    <div id="login-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp" style="display: none;">
+      <form id="sign-in-form" action="#">
+        <h2>Enter Name</h2>
+        <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
+          <input class="mdl-textfield__input" type="text" pattern="[A-Z,a-z]*" id="name" autocomplete="off" />
+          <label class="mdl-textfield__label" for="name">Name</label>
+          <span class="mdl-textfield__error">Only alphabet and no spaces, please!</span>
+        </div>
+        <div>
+          <button class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Let's Go!</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- LOGOUT -->
+    <div id="logout-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp" style="display: none;"></div>
+
 
     <!--Import jQuery before MDL-->
     <script type="text/javascript" src="/socket.io/socket.io.js"></script>

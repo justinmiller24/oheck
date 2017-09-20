@@ -10,7 +10,6 @@ var g = {
   user: {
     id: null,
     name: null,
-    avatarId: 0,
     games: 0,
     wins: 0
   },
@@ -163,48 +162,24 @@ $(window).on('load', function(){
 
 
   /**
-   * Login dialogs
+   * Lobby functions
    */
 
-  // Enter name
-  $('#select-name form').submit(function(e){
-    e.preventDefault();
-    g.user.name = this.name.value;
-
-    // Update confirmation HTML
-    updateConfirmHTML();
-
-    // Simulate click on next tab
-    $("#login .mdl-tabs__tab:eq(1) span").click();
-  });
-
-  // Select avatar
-  $('#select-avatar form button').click(function(){
-    g.user.avatarId = parseInt($(this).attr('id').substring(7), 10);
-  });
-  $('#select-avatar form').submit(function(e){
-    e.preventDefault();
-
-    // Update confirmation HTML
-    updateConfirmHTML();
-
-    // Simulate click on next tab
-    $("#login .mdl-tabs__tab:eq(2) span").click();
-  });
-
   // Sign in
-  // Wait to save cookie until server response via "" socket event
-  $('#sign-in-button').click(function(e){
+  // Wait to save cookie until server response via "myUserLogin" socket event
+  $('#sign-in-form').submit(function(e){
     e.preventDefault();
+
+    g.user.name = this.name.value;
 
     // Broadcast to users
     g.socket.emit('userLogin', {user: g.user});
 
-    showMessage('Logging In', function(){
-      updateUsersInLobby();
-      $('#login, #lobby').slideToggle();
-    });
+    updateUsersInLobby();
+    $.modal.close();
+    $('#welcome, #lobby').slideToggle();
   });
+
 
   // Logout
   // Have to use a delegated event because the button ID does not exist when document.onReady event fires initially
@@ -242,11 +217,6 @@ $(window).on('load', function(){
     g.socket.emit('startGame', {ownerId: g.user.id, rounds: $('#create-game-form #rounds').val() });
   });
 
-
-  function updateConfirmHTML(){
-    $('#show-confirm .confirm-name').text(g.user.name);
-    $('#show-confirm .confirm-avatar').text(g.user.avatarId);
-  }
 
   // Show snackbar message
   function showMessage(msg, callback){
@@ -301,9 +271,15 @@ $(window).on('load', function(){
       // If user is not logged in, when they click, it should show the login dialog
       $('#get-started-button-action').click(function(event){
         event.preventDefault();
+        $('#login-dialog').modal();
+/*        $.get('/html/login.html', function(html) {
+          $(html).appendTo('body').modal();
+          $('#name').trigger('md:updateinput');
+        });*/
+//        $('#login-dialog').modal();
 
         // Switch to lobby view
-        $('#welcome, #login').slideToggle();
+        //$('#welcome, #login').slideToggle();
       })
     }
   }
@@ -312,15 +288,15 @@ $(window).on('load', function(){
 
     // My turn to deal
     //if (g.oheck.dealerIndex == g.game.playerId){
-    if (g.game.currentDealerId === g.game.playerId){
+    if (g.oheck.dealerIndex + 1 === g.game.playerId){
       g.oheck.message('Waiting for you to deal!');
-      $('#deal').fadeIn();
+      $('#deal').show();
     }
 
     // Waiting for another player to deal
     else {
       //g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.dealerIndex-1].name + ' to deal');
-      g.oheck.message('Waiting for ' + getPlayerName(g.game.currentDealerId) + ' to deal');
+      g.oheck.message('Waiting for ' + getPlayerName(g.oheck.dealerIndex + 1) + ' to deal');
       $('#deal').hide();
     }
   }
@@ -731,22 +707,22 @@ $(window).on('load', function(){
     createPlayers();
 
     // Create scoreboard
-    $('#show-scoreboard').click();
+//    $('#show-scoreboard').click();
     updateScoreboard();
-    setTimeout("$.modal.close()", 3000);
+//    setTimeout("$.modal.close()", 3000);
 
 
     // Create game
     // First person who joined the game bids first
     // Last person who joined the game deals first
     g.oheck.rounds = g.game.numRounds;
-    g.oheck.dealerIndex = g.game.currentDealerId;
+    g.oheck.dealerIndex = g.game.players.length - 1;
     g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
     //g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
     g.oheck.bidPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
     console.log('No rounds exist yet!');
-    console.log('Dealer: ' + g.oheck.dealerIndex);
-    console.log('Player: ' + g.oheck.currentPlayerIndex);
+    console.log('OH Dealer index (-1): ' + g.oheck.dealerIndex);
+    console.log('OH Player index (-1): ' + g.oheck.currentPlayerIndex);
     console.log('PlayerId: ' + g.game.playerId);
 
     // Need to deal
@@ -849,7 +825,7 @@ $(window).on('load', function(){
         thisUser = g.users[i];
         usersHtml += '<li class="mdl-list__item mdl-list__item--two-line">';
         usersHtml += '<span class="mdl-list__item-primary-content">';
-        usersHtml += '<span class="player-avatar player-' + thisUser.avatarId + '"></span>';
+        usersHtml += '<span class="player-avatar player-' + thisUser.id + '"></span>';
         usersHtml += '<span>' + thisUser.name + '</span>';
         usersHtml += '<span class="mdl-list__item-sub-title">' + thisUser.wins + ' wins</span>';
         usersHtml += '<span class="mdl-list__item-sub-title">' + thisUser.games + ' games</span>';

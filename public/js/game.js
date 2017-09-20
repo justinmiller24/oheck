@@ -344,6 +344,7 @@ OHeck.prototype = {
 		//TODO: update bid stats
 
 		if (this.allPlayersBid()) {
+			this.updateStats();
 			this.renderEvent('start', this.playerStartTurn);
 		}
 		else {
@@ -433,15 +434,16 @@ OHeck.prototype = {
 		}
 
 		// Set trump suit
-		this.trump = g.game.round.trump;
+		this.updateStats();
+		this.updateTrump(g.game.round.trump);
 
 		// Set position / seat arrangement
 		var pos = this.nextPlayerToDealTo;
 		var playersHands = Array();
-		for (var i = 0; i < g.game.players.length; i++) {
-			var tPlayerId = (i + pos - 1) % g.game.players.length;
+		for (var i = 0; i < this.players.length; i++) {
+			var tPlayerId = (i + pos - 1) % this.players.length;
 			//var thisHand = g.game.players[tPlayerId].hand;
-			var thisHand = g.game.players[tPlayerId].currentHand;
+			var thisHand = g.game.players[tPlayerId + 1].currentHand;
 
 			//TODO: need to account for cards played during current trick...
 
@@ -565,6 +567,14 @@ OHeck.prototype = {
 		}
 	},
 	trump: 'N',
+	updateStats: function () {
+		$('#quickStats #bid span').text(g.game.round.currentBid);
+		$('#quickStats #round span').text(g.game.currentRoundId);
+	},
+	updateTrump: function (trump) {
+		this.trump = trump;
+		$('#quickStats #trump span').text(trump);
+	},
 }
 
 function ComputerPlayer(name) {
@@ -620,7 +630,7 @@ HumanPlayer.prototype = {
 		$('#bid').css('z-index', oh.zIndexCounter + 10000).show();
 		this.game.message('Choose how many tricks you think you will take.');
 		var isDealer = (this.game.dealerIndex == g.game.playerId - 1);
-		var cannotBidIndex = (g.game.round.numTricks - g.game.round.bids);
+		var cannotBidIndex = (g.game.round.numTricks - g.game.round.currentBid);
 
 		$('#bid div').remove();
 		for (var i = 0; i <= g.game.round.numTricks; i++) {
