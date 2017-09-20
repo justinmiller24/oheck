@@ -225,10 +225,10 @@ OHeck.prototype = {
 		this.players.push(player);
 	},
 	afterDealing: function () {
-		this.message('Sorting Hand...');
 		for (var i = 0; i < this.players.length; i++) {
 			var p = this.players[i];
 			if (p.isHuman && !p.handSorted) {
+				//this.message('Sorting Hand...');
 				return this.sortHand(p, this.afterDealing);
 			}
 		}
@@ -428,8 +428,8 @@ OHeck.prototype = {
 	newDeck: function () {
 		this.deck = [];
 		if (!g.game.players[0].hand || g.game.players[0].hand == '') {
-			console.log('player 1 hand is null inside "newDeck", returning...');
-			return false;
+			console.log('player hand is null inside newDeck() function');
+			return;
 		}
 
 		// Set trump suit
@@ -440,7 +440,11 @@ OHeck.prototype = {
 		var playersHands = Array();
 		for (var i = 0; i < g.game.players.length; i++) {
 			var tPlayerId = (i + pos - 1) % g.game.players.length;
-			var thisHand = g.game.players[tPlayerId].hand;
+			//var thisHand = g.game.players[tPlayerId].hand;
+			var thisHand = g.game.players[tPlayerId].currentHand;
+
+			//TODO: need to account for cards played during current trick...
+
 			console.log('About to deal to player ID: ' + (tPlayerId + 1));
 			console.log(thisHand);
 			playersHands.push(thisHand);
@@ -497,6 +501,12 @@ OHeck.prototype = {
 	},
 	players: [],
 	playerStartTurn: function () {
+		if (this.players[this.currentPlayerIndex].isHuman){
+			this.message('It\'s your turn to play!');
+		}
+		else{
+			this.message('Waiting for ' + this.players[this.currentPlayerIndex].name + ' to play');
+		}
 		this.players[this.currentPlayerIndex].canPlay = true;
 	},
 	renderEvent: function (name, callback, eventData) {

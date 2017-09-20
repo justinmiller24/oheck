@@ -64,7 +64,7 @@
               <a class="mdl-navigation__link" href="#"><i class="material-icons">add_a_photo</i></a-->
 
               <!-- Scoreboard -->
-              <a id="show-scoreboard" class="mdl-navigation__link" href="#">
+              <a id="show-scoreboard" class="mdl-navigation__link" href="/html/scoreboard.html" rel="modal:open">
                 <i class="material-icons">insert_chart</i>
                 <div class="mdl-tooltip" data-mdl-for="show-scoreboard">Scoreboard</div>
               </a>
@@ -205,7 +205,6 @@
         		</ul>
             <div id="playersBlock"></div>
     				<div id="playersBidBlock"></div>
-    				<div id="messageBox"><p>Loading...</p></div>
     				<button id="deal" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-color--accent mdl-color-text--accent-contrast">Deal Hand</button>
     				<div id="bid"><h4>What is your bid?</h4></div>
           </div>
@@ -235,21 +234,7 @@
     <!-- DIALOGS -->
     <div id="rules-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
     <div id="create-game-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
-    <div id="scoreboard-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h">
-      <h2 class="mdl-card__title-text">Scoreboard</h2>
-      <table class="mdl-data-table mdl-js-data-table">
-        <thead>
-          <tr>
-            <th class="mdl-data-table__cell--non-numeric">Name</th>
-            <th class="mdl-data-table__cell--non-numeric">Score</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-      <div class="mdl-card__actions mdl-card--border">
-        <a class="mdl-button mdl-button--colored mdl-js-button mdl-js-ripple-effect" href="#" rel="modal:close">Close</a>
-      </div>
-    </div>
+    <div id="scoreboard-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
     <div id="settings-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
     <did id="logout-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp h"></div>
 

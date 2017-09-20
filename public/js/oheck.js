@@ -226,15 +226,6 @@ $(window).on('load', function(){
     });
   });
 
-  // Scoreboard
-  $('#show-scoreboard').click(function(){
-    updateScoreboard();
-    $('#scoreboard-dialog').modal();
-    setTimeout("$.modal.close()", 3000);
-  });
-
-
-
 
   /**
    * LOBBY FUNCTIONS
@@ -339,7 +330,7 @@ $(window).on('load', function(){
     // My turn to bid
     if (g.game.currentPlayerId === g.game.playerId){
     //if (g.oheck.currentPlayerIndex == g.game.playerId){
-      g.oheck.message('Waiting for you to bid!');
+      //g.oheck.message('Waiting for you to bid!');
       g.human.startBid();
     }
 
@@ -724,11 +715,11 @@ $(window).on('load', function(){
 
     // Seat assignment
     g.game.playerId = g.user.id;
-    showMessage('My position: ' + g.game.playerId + '/' + g.game.players.length);
+/*    showMessage('My position: ' + g.game.playerId + '/' + g.game.players.length);
     console.log('Players Array:');
     for (var i = 0; i < g.game.players.length; i++){
       console.log(g.game.players[i]);
-    }
+    }*/
 
     // Setup game board
     if (g.game.players.length > 4){
@@ -740,7 +731,10 @@ $(window).on('load', function(){
     createPlayers();
 
     // Create scoreboard
+    $('#show-scoreboard').click();
     updateScoreboard();
+    setTimeout("$.modal.close()", 3000);
+
 
     // Create game
     // First person who joined the game bids first
@@ -786,11 +780,26 @@ $(window).on('load', function(){
     }
 
     // Need to play
-    if (g.game.round.currentTrick < g.game.round.numTricks){
+    if (g.game.round.currentTrickId < g.game.round.numTricks){
 
       //TODO: Show tricks won in current round
 
-      //TODO: Show cards played in current trick
+      // Show cards played in current trick
+      var numberOfCardsPlayedInCurrentTrick = g.game.round.currentTrickPlayed.length;
+      if (numberOfCardsPlayedInCurrentTrick){
+
+        // Determine who played the first card in current trick
+        var playerId = (g.game.currentPlayerId - g.game.round.currentTrickPlayed.length + g.game.players.length) % g.game.players.length;
+        if (playerId === 0){
+          playerId = g.game.players.length;
+        }
+        // Simulate cards in current trick already played
+        for (var i = 0; i < numberOfCardsPlayedInCurrentTrick; i++){
+          var player = g.oheck.players[(playerId + i - 1) % g.oheck.players.length];
+          g.oheck.message(player.name + ' played the ' + g.game.round.currentTrickPlayed[i].longName);
+          g.oheck.playCards(player, [g.game.round.currentTrickPlayed[i]]);
+        }
+      }
 
       checkForPlaying();
       return;

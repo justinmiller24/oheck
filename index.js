@@ -58,14 +58,12 @@ var GAME_DEFAULTS = {
   round: {
     bids: 0,
     // Integer between 1 and numTricks
-    currentTrick: 0,
+    currentTrickId: 0,
     // Array of cards played
     currentTrickPlayed: [],
     currentBid: 0,
     dealerId: null,
     numTricks: 0,
-    // Deal, Bid, or Play
-    status: null,
     // C, S, H, D, or N
     trump: null
   }
@@ -193,7 +191,6 @@ io.sockets.on('connection', function(socket) {
     }
     console.log('players array:');
     console.log(game.players);
-    game.round.status = 'Deal';
 
     console.log('Game setup and ready for broadcast!');
 
@@ -219,22 +216,20 @@ io.sockets.on('connection', function(socket) {
 
     // Create new round
     game.round = {
-      // Reset current trick
-      currentTrick: 0,
-      // Reset current bid
-      currentBid: 0,
-      // Initialize on each round
-      numTricks: cardsToDeal,
       // Reset how many players have bid
       bids: 0,
+      // Reset current trick
+      currentTrickId: 0,
+      // Clear array of cards played
+      currentTrickPlayed: [],
+      // Reset current bid
+      currentBid: 0,
       // Advance dealer ID based on round
       dealerId: (game.currentRoundId + game.players.length - 1) % game.players.length,
+      // Initialize on each round
+      numTricks: cardsToDeal,
       // C, S, H, D, or N
-      trump: nextTrump,
-      // Bid or Play
-      status: 'Bid',
-      // Clear array of cards played
-      currentTrickPlayed: []
+      trump: nextTrump
     };
 
     // Set current player to person after dealer
@@ -306,10 +301,9 @@ io.sockets.on('connection', function(socket) {
     // This was the last player to bid
     //if (game.currentPlayerId === game.round.dealerId)
     if (game.round.bids == game.players.length){
-      game.round.currentTrick = 1;
+      game.round.currentTrickId = 1;
       game.round.currentTrickPlayed = [];
 //      game.round.numTricks = 10;
-      game.round.status = 'Play';
     }
 
     // Advance player
