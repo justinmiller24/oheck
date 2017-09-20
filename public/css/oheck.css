@@ -309,30 +309,30 @@ h2,
 #player-24, .player-24 {background-position: -756px 0;}
 #player-25, .player-25 {background-position: -756px 0;}
 
+#game-board.players-2 #player-position-0 {bottom: 5px; left: 50%; margin-left: -30px;}
 #game-board.players-2 #player-position-1 {top: 5px; left: 50%; margin-left: -30px;}
-#game-board.players-2 #player-position-2 {bottom: 5px; left: 50%; margin-left: -30px;}
 
+#game-board.players-3 #player-position-0 {bottom: 5px; left: 50%; margin-left: -30px;}
 #game-board.players-3 #player-position-1 {left: 5px; top: 50%; margin-top: -45px;}
 #game-board.players-3 #player-position-2 {right: 5px; top: 50%; margin-top: -45px;}
-#game-board.players-3 #player-position-3 {bottom: 5px; left: 50%; margin-left: -30px;}
 
+#game-board.players-4 #player-position-0 {bottom: 5px; left: 50%; margin-left: -30px;}
 #game-board.players-4 #player-position-1 {left: 5px; top: 50%; margin-top: -45px;}
 #game-board.players-4 #player-position-2 {top: 5px; left: 50%; margin-left: -30px;}
 #game-board.players-4 #player-position-3 {right: 5px; top: 50%; margin-top: -45px;}
-#game-board.players-4 #player-position-4 {bottom: 5px; left: 50%; margin-left: -30px;}
 
+#game-board.players-5 #player-position-0 {bottom: 5px; left: 50%; margin-left: -30px;}
 #game-board.players-5 #player-position-1 {left: 5px; top: 50%; margin-top: -45px;}
 #game-board.players-5 #player-position-2 {top: 5px; left: 30%; margin-left: -30px;}
 #game-board.players-5 #player-position-3 {top: 5px; left: 70%; margin-left: -30px;}
 #game-board.players-5 #player-position-4 {right: 5px; top: 50%; margin-top: -45px;}
-#game-board.players-5 #player-position-5 {bottom: 5px; left: 50%; margin-left: -30px;}
 
+#game-board.players-6 #player-position-0 {bottom: 5px; left: 30%; margin-left: -30px;}
 #game-board.players-6 #player-position-1 {left: 5px; top: 50%; margin-top: -45px;}
 #game-board.players-6 #player-position-2 {top: 5px; left: 30%; margin-left: -30px;}
 #game-board.players-6 #player-position-3 {top: 5px; left: 70%; margin-left: -30px;}
 #game-board.players-6 #player-position-4 {right: 5px; top: 50%; margin-top: -45px;}
 #game-board.players-6 #player-position-5 {bottom: 5px; left: 70%; margin-top: -30px;}
-#game-board.players-6 #player-position-6 {bottom: 5px; left: 30%; margin-left: -30px;}
 
 #deal {
 	display: none;

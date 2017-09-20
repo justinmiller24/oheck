@@ -3,34 +3,6 @@
  * Written by Justin Miller on 6.10.2012
  */
 
-var oh = {
-	ANIMATION_SPEED: 500,
-	CARD_PADDING: 18,
-	CARD_SIZE: {
-		width: 71,
-		height: 96
-	},
-	CARDBACK: {
-		x: 0,
-		y: -4 * 96	// -4 * this.CARD_SIZE.height
-	},
-	CONDENSE_COUNT: 6,
-	HCARDBACK: {
-		x: -8 * 96,	// -8 * this.CARD_SIZE.height
-		y: -5 * 96	// -5 * this.CARD_SIZE.height
-	},
-	HORIZONTAL_MARGIN: 70,	// PLAYER WIDTH (60) + HORIZONTAL PADDING (10)
-	NASCAR_SCORE_GAP: 2,
-	OVERLAY_MARGIN: 2,
-	PILE_POS: {
-		left: 720 * 0.5,			// this.DECK_POS.left + 1.3 * this.CARD_SIZE.width
-		top: 620 * 0.5 - 96 * 0.5	// this.DECK_POS.top
-	},
-	TAKE_TRICK_DELAY: 750,
-	VERTICAL_MARGIN: 96,	// PLAYER HEIGHT (68) + PLAYER LABEL (18) HORIZONTAL PADDING (10)
-	zIndexCounter: 1
-};
-
 
 function $A(arr) {
 	return {
@@ -319,7 +291,7 @@ OHeck.prototype = {
 		}
 
 		// Update scoreboard and trigger click to show scoreboard
-		updateScoreboard();
+		this.updateScoreboard();
 		$('#scoreboard-dialog').modal();
 		setTimeout("$.modal.close()", 3000);
 
@@ -341,7 +313,8 @@ OHeck.prototype = {
 		this.message(player.name + ' bids ' + bid);
 		$('#' + player.id + ' small').append(' (' + bid + ')');
 
-		//TODO: update bid stats
+		// Update scoreboard with current bid
+		this.updateStats();
 
 		if (this.allPlayersBid()) {
 			this.updateStats();
@@ -428,7 +401,7 @@ OHeck.prototype = {
 	},
 	newDeck: function () {
 		this.deck = [];
-		if (!g.game.players[0].hand || g.game.players[0].hand == '') {
+		if (!g.game.players[0].hand) {
 			console.log('player hand is null inside newDeck() function');
 			return;
 		}
@@ -441,13 +414,13 @@ OHeck.prototype = {
 		var pos = this.nextPlayerToDealTo;
 		var playersHands = Array();
 		for (var i = 0; i < this.players.length; i++) {
-			var tPlayerId = (i + pos - 1) % this.players.length;
-			//var thisHand = g.game.players[tPlayerId].hand;
-			var thisHand = g.game.players[tPlayerId + 1].currentHand;
+			var tPlayerId = (i + pos) % this.players.length;
+			//var thisHand = g.game.players[tPlayerId].currentHand;
+			var thisHand = g.game.players[tPlayerId].hand;
 
 			//TODO: need to account for cards played during current trick...
 
-			console.log('About to deal to player ID: ' + (tPlayerId + 1));
+			console.log('About to deal to player ID: ' + tPlayerId);
 			console.log(thisHand);
 			playersHands.push(thisHand);
 		}
@@ -567,6 +540,27 @@ OHeck.prototype = {
 		}
 	},
 	trump: 'N',
+	updateScoreboard: function () {
+    var playerScores = [];
+		for (var i = 0; i < this.players.length; i++) {
+			var player = this.players[i];
+			playerScores.push({id: i, name: player.name, score: player.score});
+		}
+
+    // Sort players by score DESC
+		playerScores.sort(function(a,b) { return parseInt(b.score) - parseInt(a.score) } );
+
+    // Create HTML
+    var scoreboardHTML = '';
+    for (var i = 0; i < playerScores.length; i++){
+      var playerSorted = playerScores[i];
+      scoreboardHTML += '<tr>';
+      scoreboardHTML += '<td class="mdl-data-table__cell--non-numeric">' + playerSorted.name + '</td>';
+      scoreboardHTML += '<td class="mdl-data-table__cell--non-numeric">' + playerSorted.score + '</td>';
+      scoreboardHTML += '</tr>';
+    }
+    $('#scoreboard-dialog table tbody').html(scoreboardHTML);
+  },
 	updateStats: function () {
 		$('#quickStats #bid span').text(g.game.round.currentBid);
 		$('#quickStats #round span').text(g.game.currentRoundId);
@@ -629,7 +623,7 @@ HumanPlayer.prototype = {
 	startBid: function () {
 		$('#bid').css('z-index', oh.zIndexCounter + 10000).show();
 		this.game.message('Choose how many tricks you think you will take.');
-		var isDealer = (this.game.dealerIndex == g.game.playerId - 1);
+		var isDealer = (this.game.dealerIndex == g.game.playerId);
 		var cannotBidIndex = (g.game.round.numTricks - g.game.round.currentBid);
 
 		$('#bid div').remove();
@@ -637,6 +631,7 @@ HumanPlayer.prototype = {
 
 			// Force dealer
 			if (isDealer && (i === cannotBidIndex)) {
+				console.log([this.game.dealerIndex, g.game.playerId]);
 				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid').click(function(e) {
 					this.message('Nice try! Anything but ' + $(this).text());
 				}).mouseover(function () {

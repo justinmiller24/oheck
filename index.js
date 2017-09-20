@@ -26,7 +26,7 @@ app.get('/', (req, res) => {
 var DEFAULT_ROOM = 'general';
 var ROOM_LIST = ['general', 'game'];
 var allClients = [];
-var users = [{}];
+var users = [];
 var game = {};
 var GAME_DEFAULTS = {
   isActive: false,
@@ -105,11 +105,10 @@ io.sockets.on('connection', function(socket) {
    */
   socket.on('userLogin', function(data){
 
-    // The first user in the "users" array is null, so no need to increment by 1 here
-    data.user.id = users.length;
-    users[data.user.id] = data.user;
+    // Set next userId
+    data.user.id = users.length + 1;
+    users.push(data.user);
     console.log('A new user joined and has been assigned user ID: ' + data.user.id);
-    console.log('The next user will have ID: ' + users.length);
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: data.user.id, users: users});
@@ -122,8 +121,8 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('userJoined', function(data){
-    users[data.user.id] = data.user;
-    console.log('User ' + users[data.user.id].name + ' with ID: ' + data.user.id + ' has returned!');
+    users[data.user.id - 1] = data.user;
+    console.log('User ' + users[data.user.id - 1].name + ' with userId: ' + data.user.id + ' has returned!');
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: data.user.id, users: users});
@@ -138,12 +137,12 @@ io.sockets.on('connection', function(socket) {
   socket.on('userLogout', function(data){
 
     // Prevent error if socket server had been restarted
-    if (users[data.userId]){
-      console.log('User ' + users[data.userId].name + ' with ID: ' + data.userId + ' has logged out');
+    if (users[data.userId - 1]){
+      console.log('User ' + users[data.userId - 1].name + ' with ID: ' + data.userId + ' has logged out');
 
       // Remove from user array
-      users.splice(data.userId, 1);
-      console.log((users.length - 1) + ' users remain online');
+      users.splice(data.userId - 1, 1);
+      console.log('There are now ' + users.length + ' users online');
 
       // Broadcast event to users
       socket.to('game').emit('userLogout', {userId: data.userId, users: users});
@@ -155,7 +154,7 @@ io.sockets.on('connection', function(socket) {
    * GAME FUNCTIONS
    */
   socket.on('startGame', function(data){
-    console.log(users[data.ownerId].name + ' started the game!');
+    console.log(users[data.ownerId - 1].name + ' started the game!');
 
     // Setup game
     // First person who joined the game bids first
@@ -164,27 +163,25 @@ io.sockets.on('connection', function(socket) {
     game.isActive = true;
     game.numRounds = parseInt(data.rounds, 10);
     game.currentRoundId = 0;
-    game.currentPlayerId = 1;
+    console.log('init current player id: 0');
+    game.currentPlayerId = -1;
     game.players = [];
     for (var i in users){
-      if (i && i != "0" && users[i] && users[i].id){
-        var playerId = users[i].id;
-        game.players.push({
-          position: playerId,
-          name: users[i].name,
-          bid: null,
-          tricksTaken: 0,
-          hand: [],
-          currentHand: [],
-          pictureHand: [],
-          score: 0
-        });
-      }
+      var user = users[i];
+      var playerId = users[i].id;
+      game.players.push({
+        position: user.id,
+        name: user.name,
+        bid: null,
+        tricksTaken: 0,
+        hand: [],
+        currentHand: [],
+        pictureHand: [],
+        score: 0
+      });
     }
-    console.log('players array:');
+    console.log('Players:');
     console.log(game.players);
-
-    console.log('Game setup and ready for broadcast!');
 
     // Broadcast event to users
     io.in('game').emit('startGame', {game: game});
@@ -215,7 +212,7 @@ io.sockets.on('connection', function(socket) {
       // Reset current bid
       currentBid: 0,
       // Advance dealer ID based on round
-      dealerId: getPlayerPosition(game.currentRoundId - 1),
+      dealerId: getPlayerPosition(game.currentRoundId + game.players.length - 2),
       // Initialize on each round
       numTricks: cardsToDeal,
       // C, S, H, D, or N
@@ -224,7 +221,7 @@ io.sockets.on('connection', function(socket) {
 
     // Set current player to person after dealer
     game.currentPlayerId = nextPlayerId(game.round.dealerId);
-    console.log('current player id now set to: ' + game.currentPlayerId);
+    console.log('current player id now set to person after dealer (' + game.round.dealerId + '): ' + game.currentPlayerId);
 
     // Create array of cards
     var cards = [];
@@ -281,7 +278,7 @@ io.sockets.on('connection', function(socket) {
     }
 
     // Update player bid
-    var player = game.players[playerId - 1];
+    var player = game.players[playerId];
     player.bid = currentBid;
     player.tricksTaken = 0;
     player.pictureHand = [];
@@ -310,6 +307,8 @@ io.sockets.on('connection', function(socket) {
   socket.on('playCard', function(data){
     var card = data.card;
     var playerId = data.playerId;
+    console.log('player ' + playerId + ' attempting to play card: ' + card);
+    console.log('currentPlayerId: ' + game.currentPlayerId);
 
     // Make sure it is user turn to play
     if (game.currentPlayerId != playerId){
@@ -319,11 +318,11 @@ io.sockets.on('connection', function(socket) {
     }
 
     // Make sure user is holding the card played
-    var cardPos = game.players[playerId - 1].currentHand.indexOf(card);
+    var cardPos = game.players[playerId].currentHand.indexOf(card);
     if (cardPos == -1){
       console.log('PlayerId ' + playerId + ' played a card they were not holding: ' + card);
       console.log(card);
-      console.log(game.players[playerId - 1].currentHand);
+      console.log(game.players[playerId].currentHand);
       return;
     }
 
@@ -331,84 +330,93 @@ io.sockets.on('connection', function(socket) {
     game.round.currentTrickPlayed.push(card);
 
     // Remove card from player hand
-    game.players[playerId - 1].currentHand.splice(cardPos, 1);
+    game.players[playerId].currentHand.splice(cardPos, 1);
 
-    // Check for last card in hand
+    // Not last card in trick
     if (game.round.currentTrickPlayed.length < game.players.length){
+      console.log('updating current player id - line 340');
       game.currentPlayerId = nextPlayerId(game.currentPlayerId);
-      return;
     }
 
-    // Update hand
-    var trickLeaderPlayerId = nextPlayerId(game.currentPlayerId);
-    var firstCard = game.round.currentTrickPlayed[0];
-    var highCardSeat = trickLeaderPlayerId;
-    var highCardSuit = firstCard.substring(0, 1);
-    var highCardVal = parseInt(firstCard.substring(1, 2), 10);
+    // Last card in trick
+    else{
 
-    for (var i = 0; i < game.round.currentTrickPlayed.length; i++){
-      var thisCard = game.round.currentTrickPlayed[i];
-      var thisCardSeat = getPlayerPosition(trickLeaderPlayerId + i - 1);
-      var thisCardSuit = thisCard.substring(0, 1);
-      var thisCardVal = parseInt(thisCard.substring(1, 2), 10);
+      // Determine winner of current trick
+      var trickLeaderPlayerId = nextPlayerId(game.currentPlayerId);
+      console.log('set trick leader player id: ' + trickLeaderPlayerId);
+      var firstCard = game.round.currentTrickPlayed[0];
+      var highCardSeat = trickLeaderPlayerId;
+      var highCardSuit = firstCard.substring(0, 1);
+      var highCardVal = parseInt(firstCard.substring(1), 10);
 
-      // Trump over no trump
-      if (thisCardSuit === game.round.trump && highCardSuit != game.round.trump){
-        highCardSeat = thisCardSeat;
-        highCardSuit = thisCardSuit;
-        highCardVal = thisCardVal;
+      for (var i = 0; i < game.round.currentTrickPlayed.length; i++){
+        var thisCard = game.round.currentTrickPlayed[i];
+        var thisCardSeat = getPlayerPosition(trickLeaderPlayerId + i);
+        var thisCardSuit = thisCard.substring(0, 1);
+        var thisCardVal = parseInt(thisCard.substring(1), 10);
+
+        // Trump over no trump
+        if (thisCardSuit === game.round.trump && highCardSuit != game.round.trump){
+          highCardSeat = thisCardSeat;
+          highCardSuit = thisCardSuit;
+          highCardVal = thisCardVal;
+        }
+
+        // Higher card in same suit
+        else if (thisCardSuit === highCardSuit && thisCardVal >= highCardVal) {
+          highCardSeat = thisCardSeat;
+          highCardSuit = thisCardSuit;
+          highCardVal = thisCardVal;
+        }
       }
 
-      // Higher card in same suit
-      else if (thisCardSuit === highCardSuit && thisCardVal >= highCardVal) {
-        highCardSeat = thisCardSeat;
-        highCardSuit = thisCardSuit;
-        highCardVal = thisCardVal;
+      // Update number of tricks taken by winning player
+      console.log('highest card from player in seat: ' + highCardSeat + ' with card: ' + highCardVal + highCardSuit);
+      game.players[highCardSeat].tricksTaken++;
+
+      // Clear current trick
+      game.round.currentTrickPlayed = [];
+
+
+      // If this is not the last trick in round, then continue
+      if (game.round.currentTrickId < game.round.numTricks){
+        game.round.currentTrickId++;
+        // Winner starts next trick
+        console.log('set current player to winner of last round: ' + highCardSeat);
+        game.currentPlayerId = highCardSeat;
+      }
+
+      else{
+
+        // Update scores
+        for (var i = 0; i < game.players.length; i++){
+          var player = game.players[i];
+          player.score += (player.tricksTaken === player.bid) ? (player.bid + 10) : player.bid;
+        }
+
+        // TODO: check for nascar
+        if (game.options.nascar && game.numRounds >= 10 && (game.currentRoundId + 3 === game.numRounds)){
+          console.log('Need to do nascar here...');
+        }
+
+        // If this is not the last round in game, then continue
+        if (game.currentRoundId < game.options.numRounds){
+          return;
+        }
+
+        // This is the last round in game
+        var winningUserId = 0;
+        var winningScore = 0;
+        for (var i = 0; i < game.players.length; i++){
+          var player = game.players[i];
+          if (player.score > winningScore){
+            winningPlayerId = player.id;
+            winningScore = player.score;
+          }
+        }
+        console.log('The winner is ' + game.players[winningPlayerId] + ' with ' + winningScore + ' points!');
       }
     }
-
-    // Update number of tricks taken by winning player
-    game.players[highCardSeat].tricksTaken++;
-
-    // Clear current trick
-    game.round.currentTrickPlayed = [];
-
-
-    // If this is not the last trick in round, then continue
-    if (game.round.currentTrickId < game.round.numTricks){
-      game.round.currentTrickId++;
-      // Winner starts next trick
-      game.currentPlayerId = highCardSeat;
-      return;
-    }
-
-    // Update scores
-    for (var i = 0; i < game.players.length; i++){
-      var player = game.players[i];
-      player.score += (player.tricksTaken === player.bid) ? (player.bid + 10) : player.bid;
-    }
-
-    // TODO: check for nascar
-    if (game.options.nascar && game.numRounds >= 10 && (game.currentRoundId + 3 === game.numRounds)){
-      console.log('Need to do nascar here...');
-    }
-
-    // If this is not the last round in game, then continue
-    if (game.currentRoundId < game.options.numRounds){
-      return;
-    }
-
-    // This is the last round in game
-    var winningUserId = 1;
-    var winningScore = 0;
-    for (var i = 0; i < game.players.length; i++){
-      var player = game.players[i];
-      if (player.score > winningScore){
-        winningPlayerId = player.id;
-        winningScore = player.score;
-      }
-    }
-    console.log('The winner is ' + game.players[winningPlayerId - 1] + ' with ' + winningScore + ' points!');
 
     // Broadcast event to users
     io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
@@ -426,12 +434,8 @@ io.sockets.on('connection', function(socket) {
 /**
  * HELPER FUNCTIONS
  */
-function getPlayerPosition(id){
-  var position = (id % game.players.length);
-/*  if (position === 0){
-    position = game.players.length;
-  }*/
-  return position;
+function getPlayerPosition(playerId){
+  return playerId % game.players.length;
 }
 function getRandomInclusive(min, max){
   min = Math.ceil(min);
@@ -440,7 +444,7 @@ function getRandomInclusive(min, max){
 }
 
 function nextPlayerId(playerId){
-  return playerId % game.players.length + 1;
+  return (playerId + 1) % game.players.length;
 }
 
 function notifyNextPlayer(){
