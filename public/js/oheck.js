@@ -420,9 +420,9 @@ $(window).on('load', function(){
     g.oheck.deal();
   }
 
-  function getPlayerName(playerId){
+/*  function getPlayerName(playerId){
     return g.game.players[playerId].name;
-  }
+  }*/
 
   function loadGameBoard(){
     g.snackbarMessage = showMessage;
@@ -607,97 +607,3 @@ $(window).on('load', function(){
   init();
 
 });
-
-
-
-/***** COPIED FROM OLD GAME *****/
-/*
-var g = {
-	timeout: {
-		user: null,
-		users: null,
-		game: null,
-		games: null
-	},
-	status: {},
-	currentRoundID: 0,
-	inLobby: true,
-	game: null,
-	human: null,
-	nascar: null,
-	cardsDealt: false,
-	roundLoading: 0,
-	waiting: false,
-	userOrder: [],
-	userPosition: 0
-};
-
-$(document).ready(function() {
-
-function updateStats() {
-
-	// Quick stats (nav bar)
-	var trumpSuits = {
-		S: "spades",
-		H: "hearts",
-		D: "diamonds",
-		C: "clubs",
-		N: ""
-	};
-	$('#round span').text(g.status.game.currentRoundID + '/' + g.status.game.rounds);
-	var bids = '-';
-	var trump = 'N';
-
-	if (g.status.round != null) {
-		if (g.status.round.bids > g.status.round.hands) {
-			var ou = '+' + (g.status.round.bids - g.status.round.hands);
-			bids = g.status.round.bids + '/' + g.status.round.hands + ' ' + '<font color="green">(' + ou + ')</font>';
-		}
-		else if (g.status.round.bids < g.status.round.hands) {
-			var ou = '-' + (g.status.round.hands - g.status.round.bids);
-			bids = g.status.round.bids + '/' + g.status.round.hands + ' ' + '<font color="red">(' + ou + ')</font>';
-		}
-		else {
-			var ou = 0;
-			bids = g.status.round.bids + '/' + g.status.round.hands;
-		}
-		trump = g.status.round.trump;
-	}
-	$('#bids span').html(bids);
-	$('#trump span').removeClass().addClass(trumpSuits[trump]);
-
-	// Update scoreboard (right sidebar)
-	var leader = g.oheck.players[0];
-	var scoreboardHTML = '';
-	for (var i=0; i<g.oheck.players.length; i++) {
-		var p = g.oheck.players[i];
-
-		// Waiting
-		var c = (g.oheck.currentPlayerIndex == i) ? ' current' : '';
-		scoreboardHTML += '<div class="row' + c + '">';
-		scoreboardHTML += '<div class="player-' + g.status.player[i+1].userID + '"></div>';
-		scoreboardHTML += '<span>' + p.name;
-
-		// Check for dealer
-		if (g.oheck.dealerIndex == i) {
-			scoreboardHTML += ' - DEALER';
-		}
-		scoreboardHTML += '<br />';
-
-		// Update player score
-		if (g.status.player[i+1].score != p.score) {
-			p.score = g.status.player[i+1].score;
-		}
-		scoreboardHTML += 'Score: ' + p.score;
-
-		scoreboardHTML += '<br />';
-		var cb = (p.bidValue < 0) ? '-' : (p.tricks.length + ' / ' + p.bidValue);
-		scoreboardHTML += 'Tricks: ' + cb + '</span></div>';
-		if (p.score > leader.score) {
-			leader = p;
-		}
-	}
-	$('#leader span').text(leader.name + ' (' + leader.score + ')');
-	$('#scoreboard').html(scoreboardHTML);
-}
-*/

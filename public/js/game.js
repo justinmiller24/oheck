@@ -251,49 +251,53 @@ OHeck.prototype = {
 				return;
 			}
 
-			// End of round
-//			this.round++;
-			this.hand = 0;
-			this.cardCount = 0;
-			this.cardsDealt = false;
-			this.pile = [];
-			this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
-			this.dealerIndex = this.nextIndex(this.dealerIndex);
-			this.nextPlayerToDealTo = this.nextIndex(this.dealerIndex);
-			this.currentPlayerIndex = this.nextIndex(this.dealerIndex);
-
-			// Update players for next round
-			for (var i = 0; i < this.players.length; i++) {
-				var p = this.players[i];
-
-				// Player made bid
-				if (p.tricks.length === p.bidValue) {
-					p.score += (10 + p.bidValue);
-				}
-				else {
-					p.score += p.bidValue;
-				}
-
-				// Clear player hand and bid
-				p.bidValue = -1;
-				p.tricks = [];
-			}
-
 			this.renderEvent('taketrick', this.afterRound, { trick: oldPile });
 		}
 	},
 	afterRound: function () {
 
-		// Nascar
+		// End of round
+//			this.round++;
+		this.hand = 0;
+		this.cardCount = 0;
+		this.cardsDealt = false;
+		this.dealtCardCount = 0;
+		this.pile = [];
+		this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
+		this.dealerIndex = this.nextIndex(this.dealerIndex);
+		this.nextPlayerToDealTo = this.nextIndex(this.dealerIndex);
+		this.currentPlayerIndex = this.nextIndex(this.dealerIndex);
+
+		// Update players for next round
+		for (var i = 0; i < this.players.length; i++) {
+			var p = this.players[i];
+
+			// Player made bid
+			if (p.tricks.length === p.bidValue) {
+				p.score += (10 + p.tricks.length);
+			}
+			else {
+				p.score += p.tricks.length;
+			}
+
+			// Clear player hand and bid
+			p.bidValue = -1;
+			p.tricks = [];
+		}
+
+/*		//TODO: Nascar
 		if (g.game.options.nascar && this.round === (this.rounds - 3) && this.rounds > 6){
 			console.log('need to do nascar!');
 			this.nascar();
-		}
+		}*/
 
 		// Update scoreboard
 		this.updateScoreboard();
 		$('#scoreboard-dialog').modal();
 		setTimeout("$.modal.close()", 10000);
+
+		// Remove cards
+		$('#game-board div.verticalTrick, #game-board div.horizontalTrick').remove();
 
 		// End of game
 		if (this.round === this.rounds){
@@ -353,7 +357,8 @@ OHeck.prototype = {
 	bid: function (player, bid) {
 		player.bidValue = bid;
 		this.message(player.name + ' bids ' + bid);
-		$('#' + player.id + ' small').append(' (' + bid + ')');
+		//$('#' + player.id + ' small').append(' (' + bid + ')');
+		$('#' + player.id + ' small').text(player.name + ' (' + bid + ')');
 
 		// Update scoreboard with current bid
 		this.updateStats();
@@ -362,9 +367,11 @@ OHeck.prototype = {
 			this.updateStats();
 			this.renderEvent('start', this.playerStartTurn);
 		}
-		else {
+/*		else {
 			this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
-		}
+		}*/
+
+		this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
 	},
 	bidPlayerIndex: 0,
 	canPlayCard: function (player, card) {
@@ -414,7 +421,7 @@ OHeck.prototype = {
 		console.log(msg);
 		g.snackbarMessage(msg, callback);
 	},
-	nascar: function() {
+/*	nascar: function() {
 		var playerScores = [];
 		for (var i=0; i<this.players.length; i++) {
 			var p = this.players[i];
@@ -440,7 +447,7 @@ OHeck.prototype = {
 		g.socket.emit('nascar');
 
 		//TODO: move backend nascar to callback so all players can update
-	},
+	},*/
 	newDeck: function () {
 		this.deck = [];
 		if (!g.game.players[0].hand) {
@@ -558,8 +565,12 @@ OHeck.prototype = {
 		};
 		player.hand.sort(function (c1, c2) {
 			var suits = {D:0,C:1,H:2,S:3};
-			//switch (g.game.round.trump) {
-			switch (this.trump) {
+
+			//TODO: Fix bug here
+//			console.log('Sorting by trump: ' + this.trump);
+//			console.log('Should sort by trump: ' + g.game.round.trump);
+			switch (g.game.round.trump) {
+//			switch (this.trump) {
 				case "D":
 					suits = {C:0,H:1,S:2,D:3}; break;
 				case "C":
@@ -604,11 +615,13 @@ OHeck.prototype = {
     $('#scoreboard-dialog table tbody').html(scoreboardHTML);
   },
 	updateStats: function () {
-		$('#quickStats #bids span').text(g.game.round.currentBid);
+		$('#quickStats #bids span').text(g.game.round.currentBid + ' / ' + g.game.round.numTricks);
 		$('#quickStats #round span').text(g.game.currentRoundId);
 	},
 	updateTrump: function (trump) {
+		console.log('Update trump to: ' + trump);
 		this.trump = trump;
+		console.log('Trump is now set to: ' + this.trump);
 		$('#quickStats #trump span').text(trump);
 	},
 }
@@ -676,11 +689,11 @@ HumanPlayer.prototype = {
 				console.log([this.game.dealerIndex, g.game.playerId]);
 				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid').click(function(e) {
 					this.game.message('Nice try! Anything but ' + $(this).text());
-				}).mouseover(function () {
+				});/*.mouseover(function () {
 					this.game.message('Anything but ' + $(this).text());
 				}).mouseout(function () {
 					this.game.message('');
-				});
+				});*/
 			}
 			else {
 				$('<div/>').text(i).appendTo('#bid').click(function(e) {

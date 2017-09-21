@@ -190,13 +190,9 @@ io.sockets.on('connection', function(socket) {
   socket.on('dealHand', function(){
     game.currentRoundId++;
 
-    if (game.currentRoundId >= game.numRounds){
-      console.log('ERROR - game is complete');
-    }
-
     // Can't deal less than 1 card or more than MAX_CARDS
     var maxCards = Math.floor(52 * game.options.decks / game.players.length);
-    var CARDS_TO_DEAL_THIS_ROUND = 10;
+    var CARDS_TO_DEAL_THIS_ROUND = 4;
     var cardsToDeal = Math.max(1, Math.min(maxCards, CARDS_TO_DEAL_THIS_ROUND));
     var trumpArray = ['D', 'C', 'H', 'S', 'N'];
     var nextTrump = game.options.noTrump ? trumpArray[4] : trumpArray[getRandomInclusive(0,3)];
@@ -394,7 +390,7 @@ io.sockets.on('connection', function(socket) {
           var player = game.players[i];
           console.log('player ' + i + ' tricks taken: ' + player.tricksTaken);
           console.log('player ' + i + ' bid: ' + player.bid);
-          player.score += (player.tricksTaken === player.bid) ? (player.bid + 10) : player.bid;
+          player.score += (player.tricksTaken === player.bid) ? (player.tricksTaken + 10) : player.tricksTaken;
         }
 
         // TODO: check for nascar
@@ -419,6 +415,10 @@ io.sockets.on('connection', function(socket) {
         }
         //console.log('The winner is player ' + winningPlayerId + ' - ' + game.players[winningPlayerId].name + ' with ' + winningScore + ' points!');
         console.log('Winning playerId: ' + winningPlayerId);
+
+        game.isActive = false;
+
+        //TODO: update wins for each player
       }
     }
 
