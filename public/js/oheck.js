@@ -163,7 +163,7 @@ $(window).on('load', function(){
   g.socket.on('dealHand', function(data){
     updateData(data);
     dealCards();
-    checkForBidding();
+    g.oheck.beforeBid();
   });
 
   g.socket.on('bid', function(data){
@@ -179,10 +179,10 @@ $(window).on('load', function(){
 
     // Need to bid
     if (g.game.round.bids < g.game.players.length){
-      checkForBidding();
+      g.oheck.beforeBid();
     }
     else{
-      checkForPlaying();
+      g.oheck.beforePlayCards();
     }
   });
 
@@ -202,7 +202,7 @@ $(window).on('load', function(){
 
     // Need to play
     if (g.game.round.numTricksTaken < g.game.round.numTricks){
-      checkForPlaying();
+      g.oheck.beforePlayCards();
     }
     else{
       checkForEndOfRound();
@@ -319,58 +319,10 @@ $(window).on('load', function(){
     else{
 
       // If user is not logged in, when they click, it should show the login dialog
-      $('#get-started-button-action').click(function(event){
-        event.preventDefault();
+      $('#get-started-button-action').click(function(e){
+        e.preventDefault();
         $('#login-dialog').modal();
-/*        $.get('/html/login.html', function(html) {
-          $(html).appendTo('body').modal();
-          $('#name').trigger('md:updateinput');
-        });*/
-//        $('#login-dialog').modal();
-
-        // Switch to lobby view
-        //$('#welcome, #login').slideToggle();
       })
-    }
-  }
-
-  function checkForDealing(){
-
-    // My turn to deal
-    if (g.oheck.dealerIndex === g.game.playerId){
-      g.oheck.message('Waiting for you to deal!');
-      $('#deal').show();
-    }
-
-    // Waiting for another player to deal
-    else {
-      //g.oheck.message('Waiting for ' + g.oheck.players[g.oheck.dealerIndex].name + ' to deal');
-      g.oheck.message('Waiting for ' + getPlayerName(g.oheck.dealerIndex) + ' to deal');
-      $('#deal').hide();
-    }
-  }
-
-  function checkForBidding(){
-
-    // My turn to bid
-    if (g.oheck.bidPlayerIndex === g.game.playerId){
-      g.human.startBid();
-    }
-    // Waiting for another player to bid
-    else{
-      g.oheck.message('Waiting for ' + getPlayerName(g.oheck.bidPlayerIndex) + ' to bid');
-    }
-  }
-
-  function checkForPlaying(){
-    console.log('check for playing...');
-
-    // My turn to play
-    if (g.oheck.currentPlayerIndex === g.game.playerId){
-      g.oheck.message('Your turn! Select a card to play');
-    }
-    else{
-      g.oheck.message('Waiting for ' + getPlayerName(g.oheck.currentPlayerIndex) + ' to play');
     }
   }
 
@@ -468,7 +420,7 @@ $(window).on('load', function(){
   }
 
   function getPlayerName(playerId){
-    return g.game.players[playerId % g.game.players.length].name;
+    return g.game.players[playerId].name;
   }
 
   function loadGameBoard(){
@@ -555,7 +507,7 @@ $(window).on('load', function(){
 
     // Need to deal
     if (!g.game.players[0].hand.length){
-      checkForDealing();
+      g.oheck.beforeDeal();
       return;
     }
 
@@ -579,7 +531,7 @@ $(window).on('load', function(){
 
     // Need to bid
     if (g.game.round.bids < g.game.players.length){
-      checkForBidding();
+      g.oheck.beforeBid();
       return;
     }
 
@@ -605,7 +557,7 @@ $(window).on('load', function(){
         }
       }
 
-      checkForPlaying();
+      g.oheck.beforePlayCards();
       return;
     }
   }
