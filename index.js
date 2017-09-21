@@ -89,7 +89,7 @@ io.sockets.on('connection', function(socket) {
   // Initialization
   socket.emit('init', {rooms: ROOM_LIST, users: users, game: game});
 
-  // Force Reload All
+/*  // Force Reload All
   socket.on('forceReloadAll', function(){
     console.log('Force Reload All');
 
@@ -97,7 +97,7 @@ io.sockets.on('connection', function(socket) {
 
     // Send data to all other clients in room except sender
     socket.to('game').emit('forceReloadAll', 'Force Reload All');
-  });
+  });*/
 
 
   /*
@@ -168,9 +168,9 @@ io.sockets.on('connection', function(socket) {
     game.players = [];
     for (var i in users){
       var user = users[i];
-      var playerId = users[i].id;
+      var playerId = user.id - 1;
       game.players.push({
-        position: user.id,
+        position: playerId,
         name: user.name,
         bid: null,
         tricksTaken: 0,
@@ -417,7 +417,8 @@ io.sockets.on('connection', function(socket) {
             winningScore = player.score;
           }
         }
-        console.log('The winner is player ' + winningPlayerId + ' - ' + game.players[winningPlayerId].name + ' with ' + winningScore + ' points!');
+        //console.log('The winner is player ' + winningPlayerId + ' - ' + game.players[winningPlayerId].name + ' with ' + winningScore + ' points!');
+        console.log('Winning playerId: ' + winningPlayerId);
       }
     }
 

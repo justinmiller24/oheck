@@ -244,12 +244,12 @@ $(window).on('load', function(){
   });
 
   // Force Reload
-  $('#force-reload').click(function(){
+/*  $('#force-reload').click(function(){
     g.socket.emit('forceReloadAll', 'Force Reload All Clients');
     showMessage('Force Reload All', function(){
       location.reload();
     });
-  });
+  });*/
 
 
   /**
@@ -401,7 +401,8 @@ $(window).on('load', function(){
       players.push(p);
 
       // Add player name and avatar
-      $('#' + p.id + ' div').addClass('player-' + (i+1));
+      //$('#' + p.id + ' div').addClass('player-' + (i+1));
+			$('#' + p.id + ' div').addClass('player-' + ((g.game.playerId + i) % g.game.players.length + 1));
       $('#' + p.id + ' small').text(thisPlayer.name);
     }
 

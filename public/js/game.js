@@ -191,7 +191,7 @@ OHeck.prototype = {
 		this.renderers['bid'] = this.makeRenderFunc('bid - @player.name bids @bid');
 	},
 	addPlayer: function (player) {
-		//player.game = this;
+		player.game = this;
 		player.pos = this.players.length;
 		this.players.push(player);
 	},
@@ -604,7 +604,7 @@ OHeck.prototype = {
     $('#scoreboard-dialog table tbody').html(scoreboardHTML);
   },
 	updateStats: function () {
-		$('#quickStats #bid span').text(g.game.round.currentBid);
+		$('#quickStats #bids span').text(g.game.round.currentBid);
 		$('#quickStats #round span').text(g.game.currentRoundId);
 	},
 	updateTrump: function (trump) {
@@ -664,8 +664,8 @@ HumanPlayer.prototype = {
 
 	startBid: function () {
 		$('#bid').css('z-index', oh.zIndexCounter + 10000).show();
-		this.message('Choose how many tricks you think you will take.');
-		var isDealer = (this.dealerIndex == g.game.playerId);
+		this.game.message('Choose how many tricks you think you will take.');
+		var isDealer = (this.game.dealerIndex == g.game.playerId);
 		var cannotBidIndex = (g.game.round.numTricks - g.game.round.currentBid);
 
 		$('#bid div').remove();
@@ -673,13 +673,13 @@ HumanPlayer.prototype = {
 
 			// Force dealer
 			if (isDealer && (i === cannotBidIndex)) {
-				console.log([this.dealerIndex, g.game.playerId]);
+				console.log([this.game.dealerIndex, g.game.playerId]);
 				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid').click(function(e) {
-					this.message('Nice try! Anything but ' + $(this).text());
+					this.game.message('Nice try! Anything but ' + $(this).text());
 				}).mouseover(function () {
-					this.message('Anything but ' + $(this).text());
+					this.game.message('Anything but ' + $(this).text());
 				}).mouseout(function () {
-					this.message('');
+					this.game.message('');
 				});
 			}
 			else {
@@ -690,7 +690,7 @@ HumanPlayer.prototype = {
 						g.socket.emit('bid', {playerId: g.game.playerId, bid: bid});
 					}
 					else {
-						this.message('You cannot bid until your turn.');
+						this.game.message('You cannot bid until your turn.');
 					}
 					$('#bid').hide();
 				});
@@ -700,13 +700,13 @@ HumanPlayer.prototype = {
 	},
 	useCard: function (card) {
 		if (this.isBidding) {
-			this.message('It\'s your turn to bid now. You can\'t play any card while you\'re bidding!');
+			this.game.message('It\'s your turn to bid now. You can\'t play any card while you\'re bidding!');
 		} else if (!this.hasCard(card)) {
-			this.message('You cannot play that card!');
+			this.game.message('You cannot play that card!');
 		} else if (!this.canPlay) {
-			this.message('It\'s not your turn to play!');
-		} else if (!this.canPlayCard(this, card)) {
-			this.message('Nice try! You must follow suit by playing a ' + this.pile[0].suitName());
+			this.game.message('It\'s not your turn to play!');
+		} else if (!this.game.canPlayCard(this, card)) {
+			this.game.message('Nice try! You must follow suit by playing a ' + this.pile[0].suitName());
 		} else {
 			g.socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
 		}

@@ -40,7 +40,7 @@
       <div id="header" class="mdl-layout__header mdl-layout__header--waterfall">
         <div class="mdl-layout__header-row">
           <span id="page-title" class="mdl-layout-title">
-            <h2>Oh Heck!</h2>
+            <h2 class="slackey">Oh Heck!</h2>
           </span>
 
           <!-- Add spacer, to align navigation to the right in desktop -->
@@ -104,82 +104,13 @@
       <div id="main" class="mdl-layout__content">
         <!--a name="top"></a-->
         <div id="welcome" class="mdl-typography--text-center">
-          <div class="welcome-slogan">Welcome to <h1>Oh Heck!</h1></div>
+          <div class="welcome-slogan">Welcome to <span class="slackey">Oh Heck!</span></div>
           <div class="welcome-sub-slogan">You made it. Now it's time to take down the Sultan.</div>
           <a id="get-started-button-action" href="#login">
             <button id="get-started-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Get Started</button>
           </a>
         </div>
         <div class="content-section">
-
-          <!-- LOGIN >
-          <div id="login" class="h mdl-tabs mdl-js-tabs mdl-js-ripple-effect">
-            <div class="mdl-tabs__tab-bar">
-              <a href="#select-name" class="mdl-tabs__tab is-active">Name</a>
-              <a href="#select-avatar" class="mdl-tabs__tab">Avatar</a>
-              <a href="#select-confirm" class="mdl-tabs__tab">Confirm</a>
-            </div>
-            <div class="mdl-tabs__panel is-active" id="select-name">
-              <form action="#select-avatar">
-                <h2>Enter Name</h2>
-                <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-                  <input class="mdl-textfield__input" type="text" pattern="[A-Z,a-z]*" id="name" autocomplete="off" />
-                  <label class="mdl-textfield__label" for="name">Name</label>
-                  <span class="mdl-textfield__error">Only alphabet and no spaces, please!</span>
-                </div>
-                <div>
-                  <button id="login-next-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect">Next</button>
-                </div>
-              </form>
-            </div>
-            <div class="mdl-tabs__panel" id="select-avatar">
-              <h2>Choose Avatar</h2>
-              <form action="#">
-                <div class="mdl-grid">
-                  <div class="mdl-card mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-shadow--2dp">
-                    <figure class="mdl-card__media">
-                      <img class="player-1" />
-                    </figure>
-                    <div class="mdl-card__title">
-                      <h1 class="mdl-card__title-text">Avatar #1</h1>
-                    </div>
-                    <div class="mdl-card__actions mdl-card--border">
-                      <div class="mdl-layout-spacer"></div>
-                      <button id="avatar-1" class="mdl-button mdl-js-button mdl-button--colored mdl-js-ripple-effect">Select</button>
-                    </div>
-                  </div>
-                  <div class="mdl-card mdl-cell mdl-cell--2-col mdl-cell--2-col-tablet mdl-shadow--2dp">
-                    <figure class="mdl-card__media">
-                      <img class="player-2" />
-                    </figure>
-                    <div class="mdl-card__title">
-                      <h1 class="mdl-card__title-text">Avatar #2</h1>
-                    </div>
-                    <div class="mdl-card__actions mdl-card--border">
-                      <div class="mdl-layout-spacer"></div>
-                      <button id="avatar-2" class="mdl-button mdl-js-button mdl-button--colored mdl-js-ripple-effect">Select</button>
-                    </div>
-                  </div>
-                </div>
-              </form>
-            </div>
-            <div class="mdl-tabs__panel" id="select-confirm">
-              <h2>Confirm</h2>
-              <div class="content-section-title mdl-typography--display-1-color-contrast">Are you ready to join?</div>
-              <ul id="show-confirm" class="mdl-list mdl-typography--text-left">
-                <li class="mdl-list__item mdl-list__item--two-line">
-                  <span class="mdl-list__item-primary-content">
-                    <i class="material-icons mdl-list__item-avatar">person</i>
-                    <span class="confirm-name"></span>
-                    <span class="confirm-avatar mdl-list__item-sub-title"></span>
-                  </span>
-              </ul>
-              <div class="mdl-typography--text-center">
-                <button id="sign-in-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Let's Go!</button>
-              </div>
-            </div>
-          </div-->
-
 
           <!-- LOBBY -->
           <div id="lobby" class="h mdl-layout__content">
@@ -191,7 +122,6 @@
               </a>
             </div>
           </div>
-
 
           <!-- GAME -->
           <div id="game-board" class="h">
@@ -220,7 +150,7 @@
       </div>
     </div>
 
-    <a href="#" id="force-reload" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-color--accent mdl-color-text--accent-contrast">Force Reload</a>
+    <!--a href="#" id="force-reload" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-color--accent mdl-color-text--accent-contrast">Force Reload</a-->
 
     <!-- SNACKBAR NOTIFICATION MESSAGE -->
     <div id="snackbar-message" class="mdl-js-snackbar mdl-snackbar">
@@ -239,7 +169,7 @@
 
     <!-- SCOREBOARD -->
     <div id="scoreboard-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp" style="display: none;">
-      <h2 class="mdl-card__title-text">Scoreboard</h2>
+      <h4 class="slackey mdl-card__title-text">Scoreboard</h4>
       <table class="mdl-data-table mdl-js-data-table">
         <thead>
           <tr>
@@ -258,7 +188,7 @@
     <!-- LOGIN -->
     <div id="login-dialog" class="dialog demo-card-wide mdl-card mdl-shadow--2dp" style="display: none;">
       <form id="sign-in-form" action="#">
-        <h2>Enter Name</h2>
+        <h4 class="slackey">Enter Name</h4>
         <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
           <input class="mdl-textfield__input" type="text" pattern="[A-Z,a-z]*" id="name" autocomplete="off" />
           <label class="mdl-textfield__label" for="name">Name</label>
