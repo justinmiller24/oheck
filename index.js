@@ -373,6 +373,7 @@ io.sockets.on('connection', function(socket) {
       // Update number of tricks taken by winning player
       console.log('highest card from player in seat: ' + highCardSeat + ' with card: ' + highCardVal + highCardSuit);
       game.players[highCardSeat].tricksTaken++;
+      console.log('playerId ' + highCardSeat + ' now has ' + game.players[highCardSeat].tricksTaken + ' tricks');
 
       // Clear current trick
       game.round.currentTrickPlayed = [];
@@ -391,6 +392,8 @@ io.sockets.on('connection', function(socket) {
         // Update scores
         for (var i = 0; i < game.players.length; i++){
           var player = game.players[i];
+          console.log('player ' + i + ' tricks taken: ' + player.tricksTaken);
+          console.log('player ' + i + ' bid: ' + player.bid);
           player.score += (player.tricksTaken === player.bid) ? (player.bid + 10) : player.bid;
         }
 
@@ -405,7 +408,7 @@ io.sockets.on('connection', function(socket) {
         }
 
         // This is the last round in game
-        var winningUserId = 0;
+        var winningPlayerId = 0;
         var winningScore = 0;
         for (var i = 0; i < game.players.length; i++){
           var player = game.players[i];
@@ -414,7 +417,7 @@ io.sockets.on('connection', function(socket) {
             winningScore = player.score;
           }
         }
-        console.log('The winner is ' + game.players[winningPlayerId] + ' with ' + winningScore + ' points!');
+        console.log('The winner is player ' + winningPlayerId + ' - ' + game.players[winningPlayerId].name + ' with ' + winningScore + ' points!');
       }
     }
 
