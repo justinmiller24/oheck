@@ -170,7 +170,7 @@ io.sockets.on('connection', function(socket) {
       var user = users[i];
       var playerId = user.id - 1;
       game.players.push({
-        position: playerId,
+        id: playerId,
         name: user.name,
         bid: null,
         tricksTaken: 0,
@@ -192,7 +192,7 @@ io.sockets.on('connection', function(socket) {
 
     // Can't deal less than 1 card or more than MAX_CARDS
     var maxCards = Math.floor(52 * game.options.decks / game.players.length);
-    var CARDS_TO_DEAL_THIS_ROUND = 4;
+    var CARDS_TO_DEAL_THIS_ROUND = 5;
     var cardsToDeal = Math.max(1, Math.min(maxCards, CARDS_TO_DEAL_THIS_ROUND));
     var trumpArray = ['D', 'C', 'H', 'S', 'N'];
     var nextTrump = game.options.noTrump ? trumpArray[4] : trumpArray[getRandomInclusive(0,3)];
@@ -208,7 +208,7 @@ io.sockets.on('connection', function(socket) {
       // Reset current bid
       currentBid: 0,
       // Advance dealer ID based on round
-      dealerId: getPlayerPosition(game.currentRoundId + game.players.length - 2),
+      dealerId: getPlayerId(game.currentRoundId + game.players.length - 2),
       // Initialize on each round
       numTricks: cardsToDeal,
       // C, S, H, D, or N
@@ -317,20 +317,22 @@ io.sockets.on('connection', function(socket) {
     var cardPos = game.players[playerId].currentHand.indexOf(card);
     if (cardPos == -1){
       console.log('PlayerId ' + playerId + ' played a card they were not holding: ' + card);
-      console.log(card);
       console.log(game.players[playerId].currentHand);
       return;
     }
 
     // Update card played
     game.round.currentTrickPlayed.push(card);
+    console.log('Current Trick Played is now:');
+    console.log(game.round.currentTrickPlayed);
 
     // Remove card from player hand
     game.players[playerId].currentHand.splice(cardPos, 1);
+    console.log('Player ' + playerId + ' hand remaining is now:');
+    console.log(game.players[playerId].currentHand);
 
     // Not last card in trick
     if (game.round.currentTrickPlayed.length < game.players.length){
-      console.log('updating current player id - line 340');
       game.currentPlayerId = nextPlayerId(game.currentPlayerId);
     }
 
@@ -347,7 +349,7 @@ io.sockets.on('connection', function(socket) {
 
       for (var i = 0; i < game.round.currentTrickPlayed.length; i++){
         var thisCard = game.round.currentTrickPlayed[i];
-        var thisCardSeat = getPlayerPosition(trickLeaderPlayerId + i);
+        var thisCardSeat = getPlayerId(trickLeaderPlayerId + i);
         var thisCardSuit = thisCard.substring(0, 1);
         var thisCardVal = parseInt(thisCard.substring(1), 10);
 
@@ -393,32 +395,32 @@ io.sockets.on('connection', function(socket) {
           player.score += (player.tricksTaken === player.bid) ? (player.tricksTaken + 10) : player.tricksTaken;
         }
 
-        // TODO: check for nascar
+/*        // TODO: check for nascar
         if (game.options.nascar && game.numRounds >= 10 && (game.currentRoundId + 3 === game.numRounds)){
           console.log('Need to do nascar here...');
-        }
+        }*/
 
-        // If this is not the last round in game, then continue
-        if (game.currentRoundId < game.options.numRounds){
-          return;
-        }
+        // This is the last round in the game
+        if (game.currentRoundId === game.numRounds){
 
-        // This is the last round in game
-        var winningPlayerId = 0;
-        var winningScore = 0;
-        for (var i = 0; i < game.players.length; i++){
-          var player = game.players[i];
-          if (player.score > winningScore){
-            winningPlayerId = player.id;
-            winningScore = player.score;
+          // This is the last round in game
+          var winningPlayerId = 0;
+          var winningScore = 0;
+          for (var i = 0; i < game.players.length; i++){
+            var player = game.players[i];
+            if (player.score > winningScore){
+              winningPlayerId = player.id;
+              winningScore = player.score;
+            }
           }
+          //console.log('The winner is player ' + winningPlayerId + ' - ' + game.players[winningPlayerId].name + ' with ' + winningScore + ' points!');
+          console.log('Winning playerId: ' + winningPlayerId);
+
+          game.isActive = false;
+
+          //TODO: update wins for each player
+
         }
-        //console.log('The winner is player ' + winningPlayerId + ' - ' + game.players[winningPlayerId].name + ' with ' + winningScore + ' points!');
-        console.log('Winning playerId: ' + winningPlayerId);
-
-        game.isActive = false;
-
-        //TODO: update wins for each player
       }
     }
 
@@ -438,7 +440,7 @@ io.sockets.on('connection', function(socket) {
 /**
  * HELPER FUNCTIONS
  */
-function getPlayerPosition(playerId){
+function getPlayerId(playerId){
   return playerId % game.players.length;
 }
 function getRandomInclusive(min, max){

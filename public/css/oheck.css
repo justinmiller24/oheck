@@ -33,9 +33,6 @@
   display: none;
 }
 
-/*.modal {
-  max-width: none;
-}*/
 .modal h2 {
   margin-bottom: 20px;
 }
@@ -43,18 +40,6 @@
   width: 100%;
   margin: 20px 0;
 }
-
-/*
-#rules-dialog.demo-card-wide.mdl-card.modal {
-  width: inherit;
-  max-width: none !important;
-}*/
-
-
-/**** DIALOG STYLES ****
-.demo-card-wide.mdl-card {
-  width: 512px;
-}*/
 
 @font-face {
   font-family: "Slackey";
@@ -65,7 +50,7 @@
 .slackey {
   font-family: "Slackey";
 }
-#force-reload {
+/*#force-reload {
   position: fixed;
   display: block;
   right: 0;
@@ -73,7 +58,7 @@
   margin-right: 30px;
   margin-bottom: 30px;
   z-index: 900;
-}
+}*/
 
 #show-welcome-dialog {
   margin-bottom: 100px;
@@ -141,11 +126,6 @@
     padding-top: 200px;
   }
 
-/*    .welcome-slogan h1 {
-      font-family: "Slackey";
-      display: inline;
-    }*/
-
     .is-small-screen .welcome-slogan h1 {
       font-size: 32px;
     }
@@ -208,7 +188,6 @@
   width: 100%;
 }
 
-
 #usersOnline .mdl-list__item-primary-content {
   height: inherit;
 }
@@ -219,7 +198,6 @@
   float: left;
   background-image: url("/img/mk.png");
   max-width: 100%;
-  /*border-radius: 50%;*/
 }
 
 /**
@@ -381,35 +359,3 @@
 	cursor: default;
 	background: #666;
 }
-
-
-/**** Mobile layout ****
-@media (max-width: 900px) {
-  #navigation-container {
-    display: none;
-  }
-
-  #page-title {
-    display: none !important;
-  }
-
-  #more-button {
-    display: none;
-  }
-
-  #lobby-main {
-    height: 350px;
-  }
-
-  .welcome-slogan {
-    font-size: 26px;
-    margin: 0 16px;
-    padding-top: 24px;
-  }
-
-  .welcome-sub-slogan {
-    font-size: 16px;
-    margin: 0 16px;
-    padding-top: 8px;
-  }
-}*/

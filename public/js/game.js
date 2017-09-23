@@ -199,7 +199,6 @@ OHeck.prototype = {
 		for (var i = 0; i < this.players.length; i++) {
 			var p = this.players[i];
 			if (p.isHuman && !p.handSorted) {
-				//this.message('Sorting Hand...');
 				return this.sortHand(p, this.afterDealing);
 			}
 		}
@@ -207,7 +206,7 @@ OHeck.prototype = {
 			var p = this.players[i];
 			p.tricks = [];
 			p.bidValue = -1;
-			webRenderer._adjustHand(p, function(){}, 50, true, this.cardCount);
+			webRenderer._adjustHand(p, function() {}, 50, true, this.cardCount);
 		}
 	},
 	afterPlayCards: function () {
@@ -217,50 +216,47 @@ OHeck.prototype = {
 			var player = this.players[this.currentPlayerIndex];
 			this.currentPlayerIndex = this.nextIndex(this.currentPlayerIndex);
 			this.playerStartTurn();
+			return;
 		}
 
 		// End of current trick
-		else {
-			var winner = 0;
-			var firstCard = this.pile[0];
-			var bestCard = firstCard;
-			var firstPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-			for (var i = 1; i < this.pile.length; i++) {
-				var card = this.pile[i];
-				if (this.trump != 'N' && bestCard.suit != this.trump && card.suit == this.trump) {
-					bestCard = card;
-					winner = i;
-				} else if (card.suit == bestCard.suit && card.rank > bestCard.rank) {
-					bestCard = card;
-					winner = i;
-				}
+		var winner = 0;
+		var firstCard = this.pile[0];
+		var bestCard = firstCard;
+		var firstPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
+		for (var i = 1; i < this.pile.length; i++) {
+			var card = this.pile[i];
+			if (this.trump != 'N' && bestCard.suit != this.trump && card.suit == this.trump) {
+				bestCard = card;
+				winner = i;
+			} else if (card.suit == bestCard.suit && card.rank > bestCard.rank) {
+				bestCard = card;
+				winner = i;
 			}
-			var winnerIndex = (firstPlayerIndex + winner) % this.players.length;
-
-			// Set next player to winner of current trick
-			this.currentPlayerIndex = winnerIndex;
-			this.players[this.currentPlayerIndex].tricks.push(this.pile.slice(0));
-			var oldPile = this.pile;
-			this.pile = [];
-			this.message(this.players[winnerIndex].name + ' wins trick #' + this.hand);
-
-			// Not end of round
-			if (this.players[0].hand.length > 0) {
-				this.hand++;
-				this.renderEvent('taketrick', this.playerStartTurn, { trick: oldPile });
-				return;
-			}
-
-			this.renderEvent('taketrick', this.afterRound, { trick: oldPile });
 		}
-	},
-	afterRound: function () {
+		var winnerIndex = (firstPlayerIndex + winner) % this.players.length;
+
+		// Set next player to winner of current trick
+		this.currentPlayerIndex = winnerIndex;
+		this.players[this.currentPlayerIndex].tricks.push(this.pile.slice(0));
+		var oldPile = this.pile;
+		this.pile = [];
+		this.message(this.players[winnerIndex].name + ' wins trick #' + this.hand);
 
 		// End of round
-//			this.round++;
+		if (this.players[0].hand.length === 0) {
+			this.renderEvent('taketrick', this.afterRound, { trick: oldPile });
+			return;
+		}
+
+		// Not end of round
+		this.hand++;
+		this.renderEvent('taketrick', this.playerStartTurn, { trick: oldPile });
+	},
+	afterRound: function () {
 		this.hand = 0;
 		this.cardCount = 0;
-		this.cardsDealt = false;
+//		this.cardsDealt = false;
 		this.dealtCardCount = 0;
 		this.pile = [];
 		this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
@@ -281,12 +277,14 @@ OHeck.prototype = {
 			}
 
 			// Clear player hand and bid
+			$('#' + p.id + ' small').text(p.name);
 			p.bidValue = -1;
 			p.tricks = [];
+			p.handSorted = false;
 		}
 
 /*		//TODO: Nascar
-		if (g.game.options.nascar && this.round === (this.rounds - 3) && this.rounds > 6){
+		if (g.game.options.nascar && this.round === (this.rounds - 3) && this.rounds > 6) {
 			console.log('need to do nascar!');
 			this.nascar();
 		}*/
@@ -300,14 +298,14 @@ OHeck.prototype = {
 		$('#game-board div.verticalTrick, #game-board div.horizontalTrick').remove();
 
 		// End of game
-		if (this.round === this.rounds){
-			this.message('Game over, thanks for playing!');
-			setTimeout("location.reload();", 5000);
+		if (this.round === this.rounds) {
+			alert('Thanks for playing!');
+			setTimeout("window.location.reload();", 15000);
 			return;
 		}
 
 		// Show deal button
-		else{
+		else {
 			this.beforeDeal();
 		}
 	},
@@ -318,8 +316,10 @@ OHeck.prototype = {
 	},
 	beforeBid: function () {
 
+		$.modal.close();
+
     // My turn to bid
-    //if (g.oheck.bidPlayerIndex === g.game.playerId){
+    //if (g.oheck.bidPlayerIndex === g.game.playerId) {
 		if (this.bidPlayerIndex === g.game.playerId) {
       g.human.startBid();
     }
@@ -331,9 +331,9 @@ OHeck.prototype = {
 	beforeDeal: function () {
 
     // My turn to deal
-    //if (g.oheck.dealerIndex === g.game.playerId){
+    //if (g.oheck.dealerIndex === g.game.playerId) {
 		if (this.dealerIndex === g.game.playerId) {
-      this.message('Waiting for you to deal!');
+      //this.message('Waiting for you to deal!');
       $('#deal').show();
     }
 
@@ -346,7 +346,7 @@ OHeck.prototype = {
 	beforePlayCards: function () {
 
     // My turn to play
-    //if (g.oheck.currentPlayerIndex === g.game.playerId){
+    //if (g.oheck.currentPlayerIndex === g.game.playerId) {
 		if (this.currentPlayerIndex === g.game.playerId) {
       this.message('Your turn! Select a card to play');
     }
@@ -357,19 +357,14 @@ OHeck.prototype = {
 	bid: function (player, bid) {
 		player.bidValue = bid;
 		this.message(player.name + ' bids ' + bid);
-		//$('#' + player.id + ' small').append(' (' + bid + ')');
 		$('#' + player.id + ' small').text(player.name + ' (' + bid + ')');
 
 		// Update scoreboard with current bid
 		this.updateStats();
 
 		if (this.allPlayersBid()) {
-			this.updateStats();
 			this.renderEvent('start', this.playerStartTurn);
 		}
-/*		else {
-			this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
-		}*/
 
 		this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
 	},
@@ -384,42 +379,60 @@ OHeck.prototype = {
 		});
 	},
 	cardCount: 0,
-	cardsDealt: false,
 	currentPlayerIndex: 0,
 	deal: function () {
 		if (!this.deck) {
-			this.message('Cannot deal... deck is empty!');
-		} else {
-			this.cardsDealt = true;
-
-			// All cards have been dealt
-			if (this.dealtCardCount == this.cardCount * this.players.length){
-				this.bidPlayerIndex = this.currentPlayerIndex;
-				this.afterDealing();
-				this.hand = 1;
-			}
-			else{
-				var card = this.deck.pop();
-				var player = this.players[this.nextPlayerToDealTo];
-				player.hand.push(card);
-				this.nextPlayerToDealTo = this.nextIndex(this.nextPlayerToDealTo);
-				this.dealtCardCount++;
-				//console.log('Deal Card to ' + player.name + ' - ' + card.shortName);
-				this.renderEvent('dealcard', this.deal, {
-					player: player,
-					cardpos: player.hand.length - 1,
-					card: card
-				});
-			}
+			console.log('Cannot deal... deck is empty!');
+			return;
 		}
+
+		// All cards have been dealt
+		if (this.dealtCardCount == this.cardCount * this.players.length) {
+			this.bidPlayerIndex = this.currentPlayerIndex;
+			this.afterDealing();
+			this.hand = 1;
+			return;
+		}
+
+		// Deal next card
+		var card = this.deck.pop();
+		var player = this.players[this.nextPlayerToDealTo];
+		player.hand.push(card);
+		this.nextPlayerToDealTo = this.nextIndex(this.nextPlayerToDealTo);
+		this.dealtCardCount++;
+		this.renderEvent('dealcard', this.deal, {
+			player: player,
+			cardpos: player.hand.length - 1,
+			card: card
+		});
+	},
+	dealCards: function () {
+		this.cardCount = g.game.round.numTricks;
+		this.round = g.game.currentRoundId;
+		this.newDeck();
+		this.deal();
 	},
 	dealerIndex: -1,
 	dealtCardCount: 0,
 	deck: null,
 	hand: 0,
-	message: function(msg, callback) {
+	// Show snackbar message
+	message: function(msg) {
 		console.log(msg);
-		g.snackbarMessage(msg, callback);
+
+    // Log on server console...
+//	g.socket.emit('snackbarMessage', msg);
+
+    document.querySelector('#snackbar-message')
+      .MaterialSnackbar.showSnackbar({
+        message: msg,
+        timeout: SNACKBAR_TIMEOUT
+    });
+/*    // Have to do the function callback through "setTimeout" function because
+    // the stupid snackbar in MDL doesn't allow a native event callback
+    if (typeof callback !== 'undefined') {
+      setTimeout(callback, SNACKBAR_TIMEOUT + 250);
+    }*/
 	},
 /*	nascar: function() {
 		var playerScores = [];
@@ -451,13 +464,12 @@ OHeck.prototype = {
 	newDeck: function () {
 		this.deck = [];
 		if (!g.game.players[0].hand) {
-			console.log('player hand is null inside newDeck() function');
 			return;
 		}
 
 		// Set trump suit
+		this.trump = g.game.round.trump;
 		this.updateStats();
-		this.updateTrump(g.game.round.trump);
 
 		// Set position / seat arrangement
 		var pos = this.nextPlayerToDealTo;
@@ -525,7 +537,7 @@ OHeck.prototype = {
 	},
 	players: [],
 	playerStartTurn: function () {
-		if (this.players[this.currentPlayerIndex].isHuman){
+		if (this.players[this.currentPlayerIndex].isHuman) {
 			this.message('It\'s your turn to play!');
 		}
 		else{
@@ -558,19 +570,12 @@ OHeck.prototype = {
 			return;
 		}
 		var diff = function (a, b) {
-			if (player.handSorted == 'ASC') {
-				return b - a;
-			}
 			return a - b;
 		};
 		player.hand.sort(function (c1, c2) {
 			var suits = {D:0,C:1,H:2,S:3};
-
-			//TODO: Fix bug here
-//			console.log('Sorting by trump: ' + this.trump);
-//			console.log('Should sort by trump: ' + g.game.round.trump);
-			switch (g.game.round.trump) {
 //			switch (this.trump) {
+			switch (g.game.round.trump) {
 				case "D":
 					suits = {C:0,H:1,S:2,D:3}; break;
 				case "C":
@@ -586,7 +591,7 @@ OHeck.prototype = {
 			}
 			return diff(suits[c1.suit], suits[c2.suit]);
 		});
-		player.handSorted = (player.handSorted == 'ASC') ? 'DESC' : 'ASC';
+		player.handSorted = true;
 		if (!dontRender) {
 			this.renderEvent('sorthand', callback ||
 			function () {});
@@ -605,7 +610,7 @@ OHeck.prototype = {
 
     // Create HTML
     var scoreboardHTML = '';
-    for (var i = 0; i < playerScores.length; i++){
+    for (var i = 0; i < playerScores.length; i++) {
       var playerSorted = playerScores[i];
       scoreboardHTML += '<tr>';
       scoreboardHTML += '<td class="mdl-data-table__cell--non-numeric">' + playerSorted.name + '</td>';
@@ -615,14 +620,9 @@ OHeck.prototype = {
     $('#scoreboard-dialog table tbody').html(scoreboardHTML);
   },
 	updateStats: function () {
+		$('#quickStats #round span').text(g.game.currentRoundId + ' / ' + g.game.numRounds);
 		$('#quickStats #bids span').text(g.game.round.currentBid + ' / ' + g.game.round.numTricks);
-		$('#quickStats #round span').text(g.game.currentRoundId);
-	},
-	updateTrump: function (trump) {
-		console.log('Update trump to: ' + trump);
-		this.trump = trump;
-		console.log('Trump is now set to: ' + this.trump);
-		$('#quickStats #trump span').text(trump);
+		$('#quickStats #trump span').text(this.trump);
 	},
 }
 
