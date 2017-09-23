@@ -3,6 +3,29 @@
  * Created by Justin Miller on 9.1.2017
  */
 
+
+/*
+
+# Tutorials
+# https://hackernoon.com/tutorial-creating-and-managing-a-node-js-server-on-aws-part-1-d67367ac5171
+# https://hackernoon.com/tutorial-creating-and-managing-a-node-js-server-on-aws-part-2-5fbdea95f8a1
+
+
+ TODO:
+ - Picture hand
+ - Game Rules
+ - Nascar
+ - Add game options for "decks", "trump", "instantBid", and "nascar"
+
+ Options:
+ Commentary by Dan
+ Jumbo cards
+ Safe mode vs broadcast misplays
+ Gray out ineligible cards during each trick
+ Trophy w/ winners name
+*/
+
+
 // Globals
 var COOKIE_NAME = 'oheck';
 
