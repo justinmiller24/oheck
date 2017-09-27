@@ -4,8 +4,8 @@ var socket = require('socket.io');
 var express = require('express');
 var http = require('http');
 var app = express();
-var server = http.createServer(app).listen(3000, function(){
-  console.log("Express server listening on port " + 3000);
+var server = http.createServer(app).listen(8080, function(){
+  console.log("Express server listening on port " + 8080);
 });
 var io = socket.listen(server);
 
