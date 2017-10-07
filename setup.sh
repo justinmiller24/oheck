@@ -10,6 +10,7 @@
 #cd /var/www
 #git clone https://github.com/justinmiller24/oheck.git
 #cd oheck
+#bash setup.sh
 
 # Install packages
 #https://www.digitalocean.com/community/tutorials/how-to-install-node-js-on-an-ubuntu-14-04-server
