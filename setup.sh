@@ -14,9 +14,9 @@
 
 # Install packages
 #https://www.digitalocean.com/community/tutorials/how-to-install-node-js-on-an-ubuntu-14-04-server
-apt-get update
-apt-get upgrade
-apt-get install nodejs npm
+apt-get update -y
+apt-get upgrade -y
+apt-get install nodejs-legacy npm -y
 npm install express socket.io forever -g
 npm install
 
