@@ -420,9 +420,6 @@ OHeck.prototype = {
 	message: function(msg) {
 		console.log(msg);
 
-    // Log on server console...
-//	g.socket.emit('snackbarMessage', msg);
-
     document.querySelector('#snackbar-message')
       .MaterialSnackbar.showSnackbar({
         message: msg,
