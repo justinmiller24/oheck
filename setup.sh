@@ -6,8 +6,6 @@
 #sudo su
 
 # Copy git library
-#mkdir /var/www
-#cd /var/www
 #git clone https://github.com/justinmiller24/oheck.git
 #cd oheck
 #bash setup.sh
