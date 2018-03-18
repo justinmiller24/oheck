@@ -359,3 +359,7 @@
 	cursor: default;
 	background: #666;
 }
+
+#footer p {
+  text-align: center;
+}
