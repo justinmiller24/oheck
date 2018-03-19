@@ -78,21 +78,20 @@ var PLAYER_POSITIONS = [
 var SNACKBAR_TIMEOUT = 1000;
 
 var g = {
+	game: {},
+	history: [],
+  oheck: {},
+  socket: null,
   user: {
     id: null,
     name: null,
     games: 0,
     wins: 0
   },
-  rooms: [],
-  users: [],
-  game: {},
-  oheck: {},
-  socket: null
+  users: []
 }
 
 
-//$(document).ready(function() {
 $(window).on('load', function() {
 
   /**
@@ -103,8 +102,7 @@ $(window).on('load', function() {
   g.socket = io();
 
   g.socket.on('init', function(data) {
-    console.log(data);
-    g.rooms = data.rooms;
+    //console.log(data);
     g.users = data.users;
     g.game = data.game;
 
@@ -118,7 +116,7 @@ $(window).on('load', function() {
 
 				// Send user to existing game
 				console.log('Game is already in progress, send user to existing game');
-		    $('#welcome, #game-board').slideToggle();
+		    $('#content-section, #welcome, #game-board').slideToggle();
 		    loadGameBoard();
       }
     }
@@ -130,12 +128,19 @@ $(window).on('load', function() {
   });
 
   g.socket.on('myUserLogin', function(data) {
+		g.user.id = data.userId;
     g.users = data.users;
-    g.user.id = data.userId;
+		g.history = data.history;
+		console.log(g.history);
     // Save to cookie
     Cookies.set(COOKIE_NAME, g.user);
     updateUsersInLobby();
   });
+
+	// Alert individual user
+	g.socket.on('showMessage', function(data) {
+		g.oheck.message(data.message);
+	});
 
   g.socket.on('userJoined', function(data) {
     g.users = data.users;
@@ -197,7 +202,6 @@ $(window).on('load', function() {
     updateData(data);
 
     // Find card in my hand
-    //var player = g.oheck.players[g.oheck.currentPlayerIndex];
     var player = g.oheck.players[data.playerId];
     for (var pos = 0; pos < player.hand.length; pos++) {
       if (player.hand[pos].shortName == data.cardShortName) {
@@ -207,13 +211,13 @@ $(window).on('load', function() {
       }
     }
 
-    // Need to play
+/*    // Need to play
     if (g.game.round.numTricksTaken < g.game.round.numTricks) {
       g.oheck.beforePlayCards();
     }
     else {
       //checkForEndOfRound();
-    }
+    }*/
 
   });
 
@@ -230,7 +234,7 @@ $(window).on('load', function() {
     g.socket.emit('userLogin', {user: g.user});
     updateUsersInLobby();
     $.modal.close();
-    $('#welcome, #lobby').slideToggle();
+    $('#content-section, #welcome, #lobby').slideToggle();
   });
 
 
@@ -264,7 +268,13 @@ $(window).on('load', function() {
   // http://api.jquery.com/delegate/
   $(document).on('click', '#start-game-button', function(e) {
     e.preventDefault();
-    g.socket.emit('startGame', {ownerId: g.user.id, rounds: $('#create-game-form #rounds').val() });
+    g.socket.emit('startGame', {
+			ownerId: g.user.id,
+			decks: parseInt($('#create-game-form input[name=decks]').val(), 10),
+			nascar: (parseInt($('#create-game-form input[name=nascar]').val(), 10) === 1),
+			rounds: parseInt($('#create-game-form select[name=rounds]').val(), 10),
+			trump: (parseInt($('#create-game-form input[name=trump]').val(), 10) === 1),
+		});
   });
 
 
@@ -291,7 +301,7 @@ $(window).on('load', function() {
         g.socket.emit('userJoined', {user: g.user});
 
         // Switch to lobby view
-        $('#welcome, #lobby').slideToggle();
+        $('#content-section, #welcome, #lobby').slideToggle();
       });
     }
     else {
@@ -386,6 +396,13 @@ $(window).on('load', function() {
     }
   }
 
+	function highlightCurrentPlayer(){
+		var playerPositionToHighlight = (g.game.players.length + g.game.currentPlayerId - g.game.playerId) % g.game.players.length;
+		console.log('Highlight current player ID: ' + g.game.currentPlayerId + ' in position ID: ' + playerPositionToHighlight);
+		$('.avatar').removeClass('active');
+		$('#player-position-' + playerPositionToHighlight).addClass('active');
+	}
+
   function loadGameBoard() {
   	g.oheck = new OHeck();
 		g.oheck.message('Loading Game!');
@@ -411,7 +428,8 @@ $(window).on('load', function() {
     // Setup start handler
     g.oheck.setEventRenderer('start', function(e) {
       $('.card').click(function() {
-        g.human.useCard(this.card);
+        //g.human.useCard(this.card);
+				g.socket.emit('playCard', {playerId: g.game.playerId, card: this.card.shortName});
       });
       e.callback();
     });
@@ -432,9 +450,8 @@ $(window).on('load', function() {
     // Setup seats and players
     g.game.playerId = g.user.id - 1;
     console.log('My position: ' + (g.game.playerId + 1) + '/' + g.game.players.length);
-    console.log('Players Array:');
+    console.log('Players:');
     for (var i = 0; i < g.game.players.length; i++) {
-      console.log('Player ' + i);
       console.log(g.game.players[i]);
     }
 
@@ -453,10 +470,9 @@ $(window).on('load', function() {
     g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
     //g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
     g.oheck.bidPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
-    console.log('No rounds exist yet!');
-    console.log('OH Dealer index (-1): ' + g.oheck.dealerIndex);
-    console.log('OH Player index (-1): ' + g.oheck.currentPlayerIndex);
-    console.log('PlayerId: ' + g.game.playerId);
+    console.log('Dealer index (-1): ' + g.oheck.dealerIndex);
+    console.log('Player index (-1): ' + g.oheck.currentPlayerIndex);
+    console.log('Player ID: ' + g.game.playerId);
 
     // Need to deal
     if (!g.game.players[0].hand.length) {
@@ -488,7 +504,7 @@ $(window).on('load', function() {
       return;
     }
 
-    // Need to play
+/*    // Need to play
     if (g.game.round.currentTrickId < g.game.round.numTricks) {
 
       //TODO: Show tricks won in current round
@@ -508,9 +524,9 @@ $(window).on('load', function() {
           console.log(player.name + ' played the ' + g.game.round.currentTrickPlayed[i].longName);
           g.oheck.playCards(player, [g.game.round.currentTrickPlayed[i]]);
         }
-      }
+      }*/
 
-      g.oheck.beforePlayCards();
+//      g.oheck.beforePlayCards();
       return;
     }
   }
@@ -519,6 +535,7 @@ $(window).on('load', function() {
     console.log(data);
     g.game = data.game;
     g.game.playerId = g.user.id - 1;
+		highlightCurrentPlayer();
   }
 
   function updateUsersInLobby() {
@@ -537,16 +554,18 @@ $(window).on('load', function() {
     }
     $('#usersOnline').html(usersHtml);
 
-    // Only show "create game" button if there are 2-6 users waiting
-    var usersOnline = $('#usersOnline li').length;
-    if (usersOnline >= 2 && usersOnline <= 6) {
-      $('#create-game-button').removeAttr('disabled', 'disabled');
-      $('#create-game-button-link').attr('href', '/html/create-game.html').attr('rel', 'modal:open');
-    }
-    else {
-      $('#create-game-button').attr('disabled', 'disabled');
-      $('#create-game-button-link').attr('href', '#').removeAttr('rel', 'modal:open').attr('onclick', 'javascript:return false;');
-    }
+    // Show "create game" button to 1st user when there are 2-6 users waiting
+		if (g.user.id === 1){
+			var usersOnline = $('#usersOnline li').length;
+	    if (usersOnline >= 2 && usersOnline <= 6) {
+	      $('#create-game-button').removeAttr('disabled', 'disabled');
+	      $('#create-game-button-link').attr('href', '/html/create-game.html').attr('rel', 'modal:open');
+	    }
+	    else {
+	      $('#create-game-button').attr('disabled', 'disabled');
+	      $('#create-game-button-link').attr('href', '#').removeAttr('rel', 'modal:open').attr('onclick', 'javascript:return false;');
+	    }
+		}
   }
 
   init();

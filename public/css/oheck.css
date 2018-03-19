@@ -64,9 +64,21 @@
   margin-bottom: 100px;
 }
 
+.is-small-screen .mdl-layout__header-row {
+  padding: 0 16px 0 32px;
+}
+
 #header {
   overflow: visible;
 }
+
+  #header .page-title {
+    font-size: 32px;
+  }
+
+  .is-small-screen #header .page-title {
+    font-size: 24px;
+  }
 
   #navigation-container {
     /* Simple hack to make the overflow happen to the left instead... */
@@ -74,7 +86,7 @@
     -webkit-order: 1;
         -ms-flex-order: 1;
             order: 1;
-    width: 500px;
+    /*width: 300px;*/
     transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
         width 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -85,7 +97,7 @@
     -webkit-justify-content: flex-end;
         -ms-flex-pack: end;
             justify-content: flex-end;
-    width: 800px;
+/*    width: 100%;*/
   }
 
 
@@ -122,12 +134,12 @@
   }
 
   .is-small-screen .welcome-slogan {
-    font-size: 36px;
-    padding-top: 200px;
+    font-size: 28px;
+    padding-top: 220px;
   }
 
     .is-small-screen .welcome-slogan h1 {
-      font-size: 32px;
+      font-size: 28px;
     }
 
   .welcome-sub-slogan {
@@ -136,25 +148,29 @@
   }
 
   .is-small-screen .welcome-sub-slogan {
-    font-size: 14px;
+    font-size: 12px;
   }
 
 #get-started-button {
   margin: 80px 0 160px;
 }
 
-.is-small-screen #get-started-button {
-  margin: 40px 0 100px;
+  .is-small-screen #get-started-button {
+    margin: 40px 0 100px;
+  }
+
+#main {
+  background: #eee;
 }
 
-.content-section {
-  padding: 40px 20px;
-  max-width: 1044px;
-  margin-left: auto;
-  margin-right: auto;
-}
+  #content-section {
+    padding: 40px 20px;
+    max-width: 1044px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 
-  .content-section .content-section-title {
+  #content-section .content-section-title {
     margin-left: 12px;
     padding-bottom: 24px;
   }
@@ -206,16 +222,12 @@
 #game-board {
   position: relative;
   height: 620px;
-  background: #134026;
+  /*background: #134026;
   border-radius: 10px;
-  opacity: 0.9;
+  opacity: 0.9;*/
 }
 
 #trump span {width: 18px; height: 30px; padding: 0;}
-#trump span.hearts {background: url("/img/suits.jpg") no-repeat 0 0; display: inline-block; float: right;}
-#trump span.spades {background: url("/img/suits.jpg") no-repeat -18px 0; display: inline-block; float: right;}
-#trump span.diamonds {background: url("/img/suits.jpg") no-repeat -36px 0; display: inline-block; float: right;}
-#trump span.clubs {background: url("/img/suits.jpg") no-repeat -54px 0; display: inline-block; float: right;}
 
 #quickStats {
 	position: absolute;
@@ -252,6 +264,9 @@
 .avatar {
 	position: absolute;
 }
+.avatar.active {
+  background: yellow;
+}
 .avatar div {
 	width: 60px;
 	height: 68px;
@@ -260,7 +275,7 @@
 .avatar small {
 	display: block;
 	text-align: center;
-	color: #fff;
+	/*color: #fff;*/
 	font-weight: bold;
 }
 
@@ -333,7 +348,7 @@
 	top: 200px;
 	color: #000;
 	text-align: center;
-	background: #EDF35A;
+	background: #2196f3;
 	border: solid 1px #000;
 	border-radius: 10px;
 }

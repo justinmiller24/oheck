@@ -319,7 +319,6 @@ OHeck.prototype = {
 		$.modal.close();
 
     // My turn to bid
-    //if (g.oheck.bidPlayerIndex === g.game.playerId) {
 		if (this.bidPlayerIndex === g.game.playerId) {
       g.human.startBid();
     }
@@ -331,9 +330,7 @@ OHeck.prototype = {
 	beforeDeal: function () {
 
     // My turn to deal
-    //if (g.oheck.dealerIndex === g.game.playerId) {
 		if (this.dealerIndex === g.game.playerId) {
-      //this.message('Waiting for you to deal!');
       $('#deal').show();
     }
 
@@ -346,7 +343,6 @@ OHeck.prototype = {
 	beforePlayCards: function () {
 
     // My turn to play
-    //if (g.oheck.currentPlayerIndex === g.game.playerId) {
 		if (this.currentPlayerIndex === g.game.playerId) {
       this.message('Your turn! Select a card to play');
     }
@@ -369,7 +365,7 @@ OHeck.prototype = {
 		this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
 	},
 	bidPlayerIndex: 0,
-	canPlayCard: function (player, card) {
+/*	canPlayCard: function (player, card) {
 		if (this.pile.length == 0) {
 			return true;
 		}
@@ -377,7 +373,7 @@ OHeck.prototype = {
 		return card.suit == trickSuit || !$A(player.hand).any(function (c) {
 			return c.suit == trickSuit;
 		});
-	},
+	},*/
 	cardCount: 0,
 	currentPlayerIndex: 0,
 	deal: function () {
@@ -617,9 +613,10 @@ OHeck.prototype = {
     $('#scoreboard-dialog table tbody').html(scoreboardHTML);
   },
 	updateStats: function () {
-		$('#quickStats #round span').text(g.game.currentRoundId + ' / ' + g.game.numRounds);
+		$('#quickStats #round span').text(g.game.currentRoundId + ' / ' + g.game.options.rounds);
 		$('#quickStats #bids span').text(g.game.round.currentBid + ' / ' + g.game.round.numTricks);
-		$('#quickStats #trump span').text(this.trump);
+		//$('#quickStats #trump span').text(this.trump);
+		$('#quickStats #trump span').text(g.game.round.trump);
 	},
 }
 
@@ -686,11 +683,7 @@ HumanPlayer.prototype = {
 				console.log([this.game.dealerIndex, g.game.playerId]);
 				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid').click(function(e) {
 					this.game.message('Nice try! Anything but ' + $(this).text());
-				});/*.mouseover(function () {
-					this.game.message('Anything but ' + $(this).text());
-				}).mouseout(function () {
-					this.game.message('');
-				});*/
+				});
 			}
 			else {
 				$('<div/>').text(i).appendTo('#bid').click(function(e) {
@@ -708,7 +701,7 @@ HumanPlayer.prototype = {
 		}
 		this.isBidding = true;
 	},
-	useCard: function (card) {
+/*	useCard: function (card) {
 		if (this.isBidding) {
 			this.game.message('It\'s your turn to bid now. You can\'t play any card while you\'re bidding!');
 		} else if (!this.hasCard(card)) {
@@ -720,7 +713,7 @@ HumanPlayer.prototype = {
 		} else {
 			g.socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
 		}
-	},
+	},*/
 
 	init: ComputerPlayer.prototype.init,
 	hasCard: ComputerPlayer.prototype.hasCard,

@@ -4,8 +4,8 @@ var socket = require('socket.io');
 var express = require('express');
 var http = require('http');
 var app = express();
-var server = http.createServer(app).listen(80, function(){
-  console.log("Express server listening on port " + 80);
+var server = http.createServer(app).listen(3000, function(){
+  console.log("Express server listening on port " + 3000);
 });
 var io = socket.listen(server);
 
@@ -28,26 +28,20 @@ var ROOM_LIST = ['general', 'game'];
 var allClients = [];
 var users = [];
 var game = {};
+var history = [];
 var GAME_DEFAULTS = {
   isActive: false,
   currentPlayerId: 0,
   currentRoundId: 0,
-  numRounds: 0,
   oheck: {},
   options: {
-    // Number of decks
-    decks: 1,
-    // Force dealer
-    forceDealer: true,
-    // Instant bidding = true
-    instantBid: false,
-    // Do nascar 3 rounds before final round
-    nascar: false,
-    // Allow hands without trump
-    // Set to true to allow "trump-less" hands
-    noTrump: false,
-    // Change number of cards each round
-    upDown: false
+    decks: 1,           // Number of decks to use
+//  forceDealer: true,  // Force dealer (total bids cannot equal total cards)
+//  instantBid: false,  // Set to "true" to force instant bidding
+    nascar: false,      // Nascar scoring = 3 rounds before final for games of 10+
+    rounds: 0,          // Number of rounds in game
+    trump: true,        // Set to "false" to allow "trump-less" hands
+//  upDown: false       // Change number of cards each round
   },
   // Array of players
   players: [],
@@ -70,8 +64,13 @@ var GAME_DEFAULTS = {
 // Listen for socket connection
 io.sockets.on('connection', function(socket) {
 
-   socket.on('disconnect', function() {
-      //console.log('User got disconnected!');
+  socket.on('disconnect', function() {
+    history.push({
+     op: 'disconnect',
+     data: {userId: allClients.indexOf(socket)}
+  });
+
+      console.log('User got disconnected!');
       var i = allClients.indexOf(socket);
       allClients.splice(i, 1);
 
@@ -87,31 +86,39 @@ io.sockets.on('connection', function(socket) {
   console.log('user connected with socket id: ' + socket.id);
 
   // Initialization
-  socket.emit('init', {rooms: ROOM_LIST, users: users, game: game});
+  socket.emit('init', {users: users, game: game});
 
-/*  // Force Reload All
+  // Force Reload All
   socket.on('forceReloadAll', function(){
+    history.push({
+      op: 'forceReloadAll'
+    });
+
     console.log('Force Reload All');
 
     //TODO: Consider wiping the users array to make users rejoin
 
     // Send data to all other clients in room except sender
     socket.to('game').emit('forceReloadAll', 'Force Reload All');
-  });*/
+  });
 
 
   /*
    * USER FUNCTIONS
    */
   socket.on('userLogin', function(data){
+    history.push({
+      op: 'userLogin',
+      data: data
+    });
 
     // Set next userId
     data.user.id = users.length + 1;
     users.push(data.user);
-    //console.log('A new user joined and has been assigned user ID: ' + data.user.id);
+    console.log('A new user joined and has been assigned user ID: ' + data.user.id);
 
     // Send data to user that just logged in
-    socket.emit('myUserLogin', {userId: data.user.id, users: users});
+    socket.emit('myUserLogin', {userId: data.user.id, users: users, history: history});
 
     // Joins the game room
     socket.join('game');
@@ -121,11 +128,16 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('userJoined', function(data){
+    history.push({
+      op: 'userJoined',
+      data: data
+    });
+
     users[data.user.id - 1] = data.user;
-    //console.log('User ' + users[data.user.id - 1].name + ' with userId: ' + data.user.id + ' has returned!');
+    console.log('User ' + users[data.user.id - 1].name + ' with userId: ' + data.user.id + ' has returned!');
 
     // Send data to user that just logged in
-    socket.emit('myUserLogin', {userId: data.user.id, users: users});
+    socket.emit('myUserLogin', {userId: data.user.id, users: users, history: history});
 
     // Join the game room
     socket.join('game');
@@ -135,14 +147,18 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('userLogout', function(data){
+    history.push({
+      op: 'userLogout',
+      data: data
+    });
 
     // Prevent error if socket server had been restarted
     if (users[data.userId - 1]){
-      //console.log('User ' + users[data.userId - 1].name + ' with ID: ' + data.userId + ' has logged out');
+      console.log('User ' + users[data.userId - 1].name + ' with ID: ' + data.userId + ' has logged out');
 
       // Remove from user array
       users.splice(data.userId - 1, 1);
-      //console.log('There are now ' + users.length + ' users online');
+      console.log('There are now ' + users.length + ' users online');
 
       // Broadcast event to users
       socket.to('game').emit('userLogout', {userId: data.userId, users: users});
@@ -154,16 +170,25 @@ io.sockets.on('connection', function(socket) {
    * GAME FUNCTIONS
    */
   socket.on('startGame', function(data){
-    //console.log(users[data.ownerId - 1].name + ' started the game!');
+    history.push({
+      op: 'startGame',
+      data: data
+    });
+
+    console.log(users[data.ownerId - 1].name + ' started the game!');
 
     // Setup game
     // First person who joined the game bids first
     // Last person who joined the game deals first
     game = GAME_DEFAULTS;
     game.isActive = true;
-    game.numRounds = parseInt(data.rounds, 10);
+    game.options = {
+      decks: data.decks,
+      nascar: data.nascar,
+      rounds: data.rounds,
+      trump: data.trump
+    }
     game.currentRoundId = 0;
-    //console.log('init current player id: 0');
     game.currentPlayerId = -1;
     game.players = [];
     for (var i in users){
@@ -176,18 +201,24 @@ io.sockets.on('connection', function(socket) {
         tricksTaken: 0,
         hand: [],
         currentHand: [],
-        pictureHand: [],
+//        pictureHand: [],
         score: 0
       });
     }
-    //console.log('Players:');
-    //console.log(game.players);
+    // Set current player ID to last player ID to start
+    game.currentPlayerId += game.players.length;
+    console.log('Game Created!');
+    console.log(game);
 
     // Broadcast event to users
     io.in('game').emit('startGame', {game: game});
   });
 
   socket.on('dealHand', function(){
+    history.push({
+      op: 'dealHand'
+    });
+
     game.currentRoundId++;
 
     // Deal as many cards as we can but no more than 12 due to space
@@ -197,30 +228,25 @@ io.sockets.on('connection', function(socket) {
     // Can't deal less than 1 card or more than MAX_CARDS
     //var CARDS_TO_DEAL_THIS_ROUND = 12;
     //var cardsToDeal = Math.max(1, Math.min(maxCards, CARDS_TO_DEAL_THIS_ROUND));
-    var trumpArray = ['D', 'C', 'H', 'S', 'N'];
-    var nextTrump = game.options.noTrump ? trumpArray[4] : trumpArray[getRandomInclusive(0,3)];
+    var trumpArray = ['D', 'C', 'H', 'S'];
+    var nextTrump = game.options.trump ? trumpArray[getRandomInclusive(0,3)] : 'N';
 
-    // Create new round
+    // Create new round and reset all variables
     game.round = {
-      // Reset how many players have bid
-      bids: 0,
-      // Reset current trick
-      currentTrickId: 0,
-      // Clear array of cards played
-      currentTrickPlayed: [],
-      // Reset current bid
-      currentBid: 0,
+      bids: 0,                  // How many players have bid
+      currentTrickId: 0,        // Current trick
+      currentTrickPlayed: [],   // Array of cards played
+      currentBid: 0,            // Current bid
       // Advance dealer ID based on round
       dealerId: getPlayerId(game.currentRoundId + game.players.length - 2),
-      // Initialize on each round
-      numTricks: cardsToDeal,
-      // C, S, H, D, or N
-      trump: nextTrump
+      numTricks: cardsToDeal,  // Initialize on each round
+      trump: nextTrump          // C, S, H, D, or N
     };
 
     // Set current player to person after dealer
     game.currentPlayerId = nextPlayerId(game.round.dealerId);
-    //console.log('current player id now set to person after dealer (' + game.round.dealerId + '): ' + game.currentPlayerId);
+    console.log('Current Dealer ID: ' + game.round.dealerId);
+    console.log('Current Player ID: ' + game.currentPlayerId);
 
     // Create array of cards
     var cards = [];
@@ -250,7 +276,7 @@ io.sockets.on('connection', function(socket) {
       player.tricksTaken = 0;
       player.hand = playerCards;
       player.currentHand = playerCards;
-      player.pictureHand = [];
+//      player.pictureHand = [];
     }
 
     // Broadcast event to users
@@ -259,6 +285,11 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('bid', function(data){
+    history.push({
+      op: 'bid',
+      data: data
+    });
+
     var playerId = data.playerId;
     var currentBid = data.bid;
     console.log('player ' + playerId + ' trying to bid ' + currentBid);
@@ -280,7 +311,7 @@ io.sockets.on('connection', function(socket) {
     var player = game.players[playerId];
     player.bid = currentBid;
     player.tricksTaken = 0;
-    player.pictureHand = [];
+//    player.pictureHand = [];
 
     // Update total bids in round
     game.round.bids++;
@@ -288,14 +319,14 @@ io.sockets.on('connection', function(socket) {
 
     // This was the last player to bid
     if (game.round.bids === game.players.length){
-      //console.log('last player to bid');
+      console.log('last player to bid');
       game.round.currentTrickId = 1;
       game.round.currentTrickPlayed = [];
     }
 
     // Advance player
     game.currentPlayerId = nextPlayerId(game.currentPlayerId);
-    //console.log('current player id: ' + game.currentPlayerId);
+    console.log('current player id: ' + game.currentPlayerId);
 
     // Broadcast event to users
     console.log(game);
@@ -304,15 +335,27 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('playCard', function(data){
+    history.push({
+      op: 'playCard',
+      data: data
+    });
+
     var card = data.card;
     var playerId = data.playerId;
-    console.log('player ' + playerId + ' attempting to play card: ' + card);
-    //console.log('currentPlayerId: ' + game.currentPlayerId);
+    console.log('PlayerId: ' + playerId + ' attempting to play card: ' + card);
+
+    // Make sure we're not bidding
+    if (game.round.currentTrickId < 0){
+      console.log('PlayerId ' + playerId + ' played while we are still bidding');
+      socket.emit('showMessage', {message: 'It is not your turn!'});
+      return;
+    }
 
     // Make sure it is user turn to play
     if (game.currentPlayerId != playerId){
       console.log('PlayerId ' + playerId + ' played out of turn');
-      //console.log('current player id is ' + game.currentPlayerId);
+      console.log('current player id is ' + game.currentPlayerId);
+      socket.emit('showMessage', {message: 'It is not your turn!'});
       return;
     }
 
@@ -320,31 +363,49 @@ io.sockets.on('connection', function(socket) {
     var cardPos = game.players[playerId].currentHand.indexOf(card);
     if (cardPos == -1){
       console.log('PlayerId ' + playerId + ' played a card they were not holding: ' + card);
-      //console.log(game.players[playerId].currentHand);
+      console.log(game.players[playerId].currentHand);
+      socket.emit('showMessage', {message: 'You played a card not in your hand!'});
       return;
+    }
+
+    // Make sure user is following suit
+    if (game.round.currentTrickPlayed.length > 0 && game.round.currentTrickPlayed[0].substring(0,1) != card.substring(0,1)){
+      var leadingCardSuit = game.round.currentTrickPlayed[0].substring(0,1);
+      // Loop through player hand to determine if they have any cards that have to follow suit
+      for (var i in game.players[playerId].currentHand){
+        if (leadingCardSuit === game.players[playerId].currentHand[i].substring(0,1)){
+          console.log('PlayerId ' + playerId + ' played a card not following suit: ' + card);
+          console.log('Leading trick played: ' + game.round.currentTrickPlayed[0]);
+          socket.emit('showMessage', {message: 'You must follow suit!'});
+          return;
+        }
+      }
     }
 
     // Update card played
     game.round.currentTrickPlayed.push(card);
-    //console.log('Current Trick Played is now:');
-    //console.log(game.round.currentTrickPlayed);
+    console.log('Current Trick Played is now:');
+    console.log(game.round.currentTrickPlayed);
 
     // Remove card from player hand
     game.players[playerId].currentHand.splice(cardPos, 1);
-    //console.log('Player ' + playerId + ' hand remaining is now:');
-    //console.log(game.players[playerId].currentHand);
+    console.log('Player ' + playerId + ' hand remaining is now:');
+    console.log(game.players[playerId].currentHand);
 
     // Not last card in trick
+    // Advance player ID and broadcast event to users
     if (game.round.currentTrickPlayed.length < game.players.length){
       game.currentPlayerId = nextPlayerId(game.currentPlayerId);
+      io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
     }
 
     // Last card in trick
+    // Determine next player ID based on who wins trick and broadcast event to users
     else{
 
       // Determine winner of current trick
       var trickLeaderPlayerId = nextPlayerId(game.currentPlayerId);
-      //console.log('set trick leader player id: ' + trickLeaderPlayerId);
+      console.log('set trick leader player id: ' + trickLeaderPlayerId);
       var firstCard = game.round.currentTrickPlayed[0];
       var highCardSeat = trickLeaderPlayerId;
       var highCardSuit = firstCard.substring(0, 1);
@@ -379,32 +440,43 @@ io.sockets.on('connection', function(socket) {
       // Clear current trick
       game.round.currentTrickPlayed = [];
 
-
       // If this is not the last trick in round, then continue
       if (game.round.currentTrickId < game.round.numTricks){
         game.round.currentTrickId++;
         // Winner starts next trick
-        //console.log('set current player to winner of last round: ' + highCardSeat);
+        console.log('set current player to winner of last round: ' + highCardSeat);
         game.currentPlayerId = highCardSeat;
+        io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
+
+        // Broadcast event to users
+//        io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
       }
 
       else{
 
+        // Broadcast event to users
+        io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
+//        io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
+
         // Update scores
         for (var i = 0; i < game.players.length; i++){
           var player = game.players[i];
-          //console.log('player ' + i + ' tricks taken: ' + player.tricksTaken);
-          //console.log('player ' + i + ' bid: ' + player.bid);
-          player.score += (player.tricksTaken === player.bid) ? (player.tricksTaken + 10) : player.tricksTaken;
+          console.log('player ' + i + ' tricks taken: ' + player.tricksTaken);
+          console.log('player ' + i + ' bid: ' + player.bid);
+          game.players[i].score += (player.tricksTaken === player.bid) ? (player.tricksTaken + 10) : player.tricksTaken;
         }
 
-/*        // TODO: check for nascar
-        if (game.options.nascar && game.numRounds >= 10 && (game.currentRoundId + 3 === game.numRounds)){
+        // Update scoreboard
+//        io.in('game').emit('updateScoreboard', {game: game});
+
+        // Check for nascar
+        if (game.options.nascar && game.options.rounds >= 10 && (game.currentRoundId + 3 === game.options.rounds)){
+          // TODO: DO NASCAR HERE
           console.log('Need to do nascar here...');
-        }*/
+        }
 
         // This is the last round in the game
-        if (game.currentRoundId === game.numRounds){
+        if (game.currentRoundId === game.options.rounds){
 
           // This is the last round in game
           var winningPlayerId = 0;
@@ -416,8 +488,8 @@ io.sockets.on('connection', function(socket) {
               winningScore = player.score;
             }
           }
-          //console.log('The winner is player ' + winningPlayerId + ' - ' + game.players[winningPlayerId].name + ' with ' + winningScore + ' points!');
-          //console.log('Winning playerId: ' + winningPlayerId);
+          console.log('The winner is player ' + winningPlayerId + ' - ' + game.players[winningPlayerId].name + ' with ' + winningScore + ' points!');
+          console.log('Winning playerId: ' + winningPlayerId);
 
           game.isActive = false;
 
@@ -427,8 +499,6 @@ io.sockets.on('connection', function(socket) {
       }
     }
 
-    // Broadcast event to users
-    io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
   });
 
 
@@ -449,9 +519,4 @@ function getRandomInclusive(min, max){
 
 function nextPlayerId(playerId){
   return (playerId + 1) % game.players.length;
-}
-
-function notifyNextPlayer(){
-  // Send data to all clients
-//  io.in('game').emit('notifyNextPlayer', {game: game, playerId: game.currentPlayerId});
 }

@@ -35,18 +35,16 @@
     <div class="mdl-layout mdl-js-layout mdl-layout--fixed-header">
 
       <!-- HEADER -->
-      <div id="header" class="mdl-layout__header mdl-layout__header--waterfall">
+      <div id="header" class="mdl-layout__header">
         <div class="mdl-layout__header-row">
-          <span id="page-title" class="mdl-layout-title">
-            <h2 class="slackey">Oh Heck!</h2>
-          </span>
+          <span class="page-title mdl-layout-title slackey">Oh Heck!</span>
 
           <!-- Add spacer, to align navigation to the right in desktop -->
           <div class="mdl-layout-spacer"></div>
 
           <!-- Navigation -->
           <div id="navigation-container">
-            <nav id="navigation" class="mdl-navigation mdl-layout--large-screen-only">
+            <nav id="navigation" class="mdl-navigation">
 
               <!-- Rules >
               <a id="show-game-rules" class="mdl-navigation__link" href="/html/rules.html" rel="modal:open">
@@ -75,22 +73,9 @@
       </div>
 
 
-      <!-- LEFT MENU -->
-      <div class="mdl-layout__drawer mdl-layout--small-screen-only">
-        <span class="mdl-layout-title">Main Menu</span>
-        <nav class="mdl-navigation">
-          <i class="sidebar-icon md-inbox"></i>
-          <!--a class="mdl-navigation__link" href="">Rules</a>
-          <a class="mdl-navigation__link" href="/html/settings.html" rel="modal:open">Settings</a-->
-          <a disabled class="mdl-navigation__link" href="/html/scoreboard.html" rel="modal:open">Scoreboard</a>
-          <a class="mdl-navigation__link" href="/html/logout.html" rel="modal:open">Logout</a>
-        </nav>
-      </div>
-
-
       <!-- MAIN CONTENT -->
       <div id="main" class="mdl-layout__content">
-        <!--a name="top"></a-->
+
         <div id="welcome" class="mdl-typography--text-center">
           <div class="welcome-slogan">Welcome to <span class="slackey">Oh Heck!</span></div>
           <div class="welcome-sub-slogan">You made it. Now it's time to take down the Sultan.</div>
@@ -98,7 +83,7 @@
             <button id="get-started-button" class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent">Get Started</button>
           </a>
         </div>
-        <div class="content-section">
+        <div id="content-section" class="h">
 
           <!-- LOBBY -->
           <div id="lobby" class="h mdl-layout__content">
@@ -121,7 +106,7 @@
             <div id="playersBlock"></div>
     				<div id="playersBidBlock"></div>
     				<button id="deal" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-color--accent mdl-color-text--accent-contrast">Deal Hand</button>
-    				<div id="bid"><h4>What is your bid?</h4></div>
+    				<div id="bid"><h6>What is your bid?</h6></div>
           </div>
 
     		</div>
@@ -170,7 +155,7 @@
       <form id="sign-in-form" action="#">
         <h4 class="slackey">Enter Name</h4>
         <div class="mdl-textfield mdl-js-textfield mdl-textfield--floating-label">
-          <input class="mdl-textfield__input" type="text" pattern="[A-Z,a-z]*" id="name" autocomplete="off" />
+          <input class="mdl-textfield__input" type="text" pattern="[A-Z,a-z]*" id="name" maxlength="6" autocomplete="off" />
           <label class="mdl-textfield__label" for="name">Name</label>
           <span class="mdl-textfield__error">Only alphabet and no spaces, please!</span>
         </div>
