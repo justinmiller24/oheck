@@ -524,11 +524,11 @@ $(window).on('load', function() {
           console.log(player.name + ' played the ' + g.game.round.currentTrickPlayed[i].longName);
           g.oheck.playCards(player, [g.game.round.currentTrickPlayed[i]]);
         }
-      }*/
+      }
 
 //      g.oheck.beforePlayCards();
       return;
-    }
+    }*/
   }
 
   function updateData(data) {
