@@ -83,7 +83,7 @@ io.sockets.on('connection', function(socket) {
 
 io.sockets.on('connection', function(socket) {
   allClients.push(socket);
-  console.log('user connected with socket id: ' + socket.id);
+  console.log('User connected with Socket ID: ' + socket.id);
 
   // Initialization
   socket.emit('init', {users: users, game: game});
@@ -134,7 +134,7 @@ io.sockets.on('connection', function(socket) {
     });
 
     users[data.user.id - 1] = data.user;
-    console.log('User ' + users[data.user.id - 1].name + ' with userId: ' + data.user.id + ' has returned!');
+    console.log('User with ID: ' + data.user.id + ' (' + users[data.user.id - 1].name + ') has returned!');
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: data.user.id, users: users, history: history});
@@ -154,7 +154,7 @@ io.sockets.on('connection', function(socket) {
 
     // Prevent error if socket server had been restarted
     if (users[data.userId - 1]){
-      console.log('User ' + users[data.userId - 1].name + ' with ID: ' + data.userId + ' has logged out');
+      console.log('User with ID: ' + data.userId + ' (' + users[data.userId - 1].name + ') has logged out');
 
       // Remove from user array
       users.splice(data.userId - 1, 1);
