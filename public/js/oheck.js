@@ -47,7 +47,7 @@ var oh = {
 		y: -5 * 96	// -5 * this.CARD_SIZE.height
 	},
 	HORIZONTAL_MARGIN: 70,	// PLAYER WIDTH (60) + HORIZONTAL PADDING (10)
-	NASCAR_SCORE_GAP: 2,
+//	NASCAR_SCORE_GAP: 2,
 	OVERLAY_MARGIN: 2,
 	PILE_POS: {
 		left: 720 * 0.5,			// this.DECK_POS.left + 1.3 * this.CARD_SIZE.width
@@ -101,6 +101,8 @@ $(window).on('load', function() {
   // Connect to Socket.IO
   g.socket = io();
 
+
+	// This event fires on socket connection
   g.socket.on('init', function(data) {
     //console.log(data);
     g.users = data.users;
@@ -110,20 +112,33 @@ $(window).on('load', function() {
     if (g.game.isActive) {
       // If user is logged in, send into existing game
       if (Cookies.getJSON(COOKIE_NAME)) {
+				console.log('Game is IN progress, send user into existing game.');
+
         // Broadcast to other users
         // This also triggers the socket joining the "game" room
         g.socket.emit('userJoined', {user: g.user});
 
 				// Send user to existing game
-				console.log('Game is already in progress, send user to existing game');
 		    $('#content-section, #welcome, #game-board').slideToggle();
 		    loadGameBoard();
       }
     }
 
-		// Send user to lobby
+		// Existing game is not in progress
     else {
-      updateUsersInLobby();
+			updateUsersInLobby();
+
+			// If user is logged in, send into lobby
+      if (Cookies.getJSON(COOKIE_NAME)) {
+				console.log('Game is NOT in progress, but user is already logged in. Send user into lobby.');
+
+				// Broadcast to other users
+        // This also triggers the socket joining the "game" room
+        g.socket.emit('userJoined', {user: g.user});
+
+        // Switch to lobby view
+        $('#content-section, #welcome, #lobby').slideToggle();
+      }
     }
   });
 
@@ -176,6 +191,11 @@ $(window).on('load', function() {
     updateData(data);
     g.oheck.dealCards();
     g.oheck.beforeBid();
+  });
+
+	g.socket.on('restartHand', function(data) {
+    console.log('Restarting Hand...');
+//		window.location.reload();
   });
 
   g.socket.on('bid', function(data) {
@@ -234,7 +254,13 @@ $(window).on('load', function() {
     g.socket.emit('userLogin', {user: g.user});
     updateUsersInLobby();
     $.modal.close();
-    $('#content-section, #welcome, #lobby').slideToggle();
+
+		// Delete login form and show logout button now that user is logged in
+		$('#login').remove();
+		$('#show-logout').show();
+
+    // Show lobby
+		$('#content-section, #welcome, #lobby').slideToggle();
   });
 
 
@@ -248,14 +274,6 @@ $(window).on('load', function() {
     Cookies.remove(COOKIE_NAME);
     location.reload();
   });
-
-  // Force Reload
-/*  $('#force-reload').click(function() {
-    g.socket.emit('forceReloadAll', 'Force Reload All Clients');
-    showMessage('Force Reload All', function() {
-      location.reload();
-    });
-  });*/
 
 
   /**
@@ -286,11 +304,13 @@ $(window).on('load', function() {
     // Check if user is already logged in
     if (Cookies.getJSON(COOKIE_NAME)) {
       g.user = Cookies.getJSON(COOKIE_NAME);
-      console.log('User is already logged in');
+      console.log('User is already logged in. Delete login form and show logout button.');
       console.log(g.user);
+			showAdminButtons();
 
       // Delete login form HTML since user is already logged in
       $('#login').remove();
+			$('#show-logout').show();
 
       // The "get started" button should take user to lobby if no game is in progress
       $('#get-started-button-action').click(function(e) {
@@ -396,6 +416,15 @@ $(window).on('load', function() {
     }
   }
 
+	// Force all clients to reload
+	// No need to call "location.reload()" here, since this is handled in a callback function
+//	function forceReloadAll(){
+//		g.socket.emit('forceReloadAll', 'Force all clients to reload...');
+//    showMessage('Force Reload All', function() {
+//      location.reload();
+//    });
+//	}
+
 	function highlightCurrentPlayer(){
 		var playerPositionToHighlight = (g.game.players.length + g.game.currentPlayerId - g.game.playerId) % g.game.players.length;
 		console.log('Highlight current player ID: ' + g.game.currentPlayerId + ' in position ID: ' + playerPositionToHighlight);
@@ -406,6 +435,12 @@ $(window).on('load', function() {
   function loadGameBoard() {
   	g.oheck = new OHeck();
 		g.oheck.message('Loading Game!');
+
+		// Show admin buttons
+		showAdminButtons();
+
+		// Show scoreboard
+		$('#show-scoreboard').show();
 
     // Setup event renderers
     for (var name in g.oheck.renderers) {
@@ -531,6 +566,26 @@ $(window).on('load', function() {
     }*/
   }
 
+	// Show "administrative" functions for first user
+	function showAdminButtons(){
+		if (g.user.id === 1 && g.user.name === 'Justin'){
+
+			// Force Reload All
+			$('#show-force-reload-all')
+				.show()
+				.click(function(e){
+					g.socket.emit('forceReloadAll', 'Force reload for all clients');
+				});
+
+			// Restart Hand
+			$('#show-restart-hand')
+				.show()
+				.click(function(e){
+					g.socket.emit('restartHand', 'Restart current hand for all users');
+				});
+		}
+	}
+
   function updateData(data) {
     console.log(data);
     g.game = data.game;
@@ -539,6 +594,8 @@ $(window).on('load', function() {
   }
 
   function updateUsersInLobby() {
+		showAdminButtons();
+
     var thisUser,
         usersHtml = '';
     for (var i in g.users) {
@@ -548,8 +605,8 @@ $(window).on('load', function() {
       usersHtml += '<span class="mdl-list__item-primary-content">';
       usersHtml += '<span class="player-avatar player-' + user.id + '"></span>';
       usersHtml += '<span>' + user.name + '</span>';
-      usersHtml += '<span class="mdl-list__item-sub-title">User #' + user.id + '</span>';
-      usersHtml += '<span class="mdl-list__item-sub-title">' + user.wins + ' wins / ' + user.games + ' games</span>';
+      usersHtml += '<span class="mdl-list__item-sub-title"> </span>';
+      usersHtml += '<span class="mdl-list__item-sub-title">User ID: ' + user.id + '</span>';
       usersHtml += '</span></li>';
     }
     $('#usersOnline').html(usersHtml);

@@ -4,8 +4,13 @@ var socket = require('socket.io');
 var express = require('express');
 var http = require('http');
 var app = express();
-var server = http.createServer(app).listen(80, function(){
-  console.log("Express server listening on port " + 80);
+// Set port to 80 for production
+// Set port to 3000 (or something else) for local development
+var port = 80;
+//var port = 3000;
+
+var server = http.createServer(app).listen(port, function(){
+  console.log("Express server listening on port " + port);
 });
 var io = socket.listen(server);
 
@@ -88,6 +93,17 @@ io.sockets.on('connection', function(socket) {
   // Initialization
   socket.emit('init', {users: users, game: game});
 
+
+  // Disconnect
+  socket.on('disconnect', function(){
+    console.log('User lost socket connection with Socket ID: ' + socket.id);
+
+    //TODO: broadcast to other users?
+    // Send update to all other clients
+    //socket.to('game').emit('socketDisconnected', socket.id);
+  });
+
+
   // Force Reload All
   socket.on('forceReloadAll', function(){
     history.push({
@@ -96,10 +112,8 @@ io.sockets.on('connection', function(socket) {
 
     console.log('Force Reload All');
 
-    //TODO: Consider wiping the users array to make users rejoin
-
-    // Send data to all other clients in room except sender
-    socket.to('game').emit('forceReloadAll', 'Force Reload All');
+    // Send data to all clients including sender
+    io.in('game').emit('forceReloadAll', 'Force Reload All');
   });
 
 
@@ -115,7 +129,12 @@ io.sockets.on('connection', function(socket) {
     // Set next userId
     data.user.id = users.length + 1;
     users.push(data.user);
-    console.log('A new user joined and has been assigned user ID: ' + data.user.id);
+    console.log('The following user has joined:');
+//    console.log('A new user joined and has been assigned user ID: ' + data.user.id);
+//    console.log('User Name: ' + users[data.user.id - 1].name);
+    console.log('User Name: ' + data.user.name);
+    console.log('User ID: ' + data.user.id);
+    console.log('Socket ID: ' + socket.id);
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: data.user.id, users: users, history: history});
@@ -134,7 +153,11 @@ io.sockets.on('connection', function(socket) {
     });
 
     users[data.user.id - 1] = data.user;
-    console.log('User with ID: ' + data.user.id + ' (' + users[data.user.id - 1].name + ') has returned!');
+    console.log('The following user has returned:');
+//    console.log('User with ID: ' + data.user.id + ' (' + users[data.user.id - 1].name + ') has returned!');
+    console.log('User Name: ' + users[data.user.id - 1].name);
+    console.log('User ID: ' + data.user.id);
+    console.log('Socket ID: ' + socket.id);
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: data.user.id, users: users, history: history});
@@ -282,6 +305,18 @@ io.sockets.on('connection', function(socket) {
     // Broadcast event to users
     console.log(game);
     io.in('game').emit('dealHand', {game: game});
+  });
+
+  // Restart Hand
+  socket.on('restartHand', function(){
+    history.push({
+      op: 'restartHand'
+    });
+
+    console.log('Restart Hand...');
+
+    // Send data to all clients including sender
+    io.in('game').emit('restartHand', 'Restart Hand');
   });
 
   socket.on('bid', function(data){
