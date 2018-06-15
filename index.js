@@ -275,8 +275,8 @@ io.sockets.on('connection', function(socket) {
 
     // Set current player to person after dealer
     game.currentPlayerId = nextPlayerId(game.round.dealerId);
-    console.log('Current Dealer ID: ' + game.round.dealerId);
-    console.log('Current Player ID: ' + game.currentPlayerId);
+    console.log('Dealer ID: ' + game.round.dealerId);
+    console.log('Player ID: ' + game.currentPlayerId);
 
     // Create array of cards
     var cards = [];
