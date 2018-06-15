@@ -98,11 +98,12 @@ $(window).on('load', function(){
 			// Send user to game if game is in progress
 			if (g.game.isActive){
 				console.log('User is logged in and game is in progress, send user to game');
-				console.log('Game in progress, send user to game');
-				loadGameBoard();
 				$('#content-section, #welcome, #game-board').slideToggle();
 
-				// Call this function AFTER loadGameBoard() has been called so that the players DIV exists
+				// Call this AFTER DOM manipulation so card positioning is correct
+				loadGameBoard();
+
+				// Call this AFTER loadGameBoard() so "players" DIV exists
 				highlightCurrentPlayer();
       }
 			// Send user to lobby if game is not in progress
@@ -155,12 +156,14 @@ $(window).on('load', function(){
   });
 
   g.socket.on('startGame', function(data){
-		$.modal.close();
 		updateData(data);
-		loadGameBoard();
+		$.modal.close();
     $('#lobby, #game-board').slideToggle();
 
-		// Call this function AFTER loadGameBoard() has been called so that the players DIV exists
+		// Call this AFTER DOM manipulation so card positioning is correct
+		loadGameBoard();
+
+		// Call this AFTER loadGameBoard() so "players" DIV exists
 		highlightCurrentPlayer();
   });
 
