@@ -105,45 +105,36 @@ $(window).on('load', function(){
 
 	// This event fires on socket connection
   g.socket.on('init', function(data){
-		console.log('init - line 108');
-    //console.log(data);
+		console.log('init event callback from server');
+//    console.log(data);
     g.users = data.users;
     g.game = data.game;
 
-    // Existing game is in progress
-    if (g.game.isActive){
-      // If user is logged in, send into existing game
-      if (Cookies.getJSON(COOKIE_NAME)){
-				console.log('Game is IN progress, send user into existing game.');
+		// Check if user is already logged in
+		if (Cookies.getJSON(COOKIE_NAME)){
 
-        // Broadcast to other users
-        // This also triggers the socket joining the "game" room
-        g.socket.emit('userJoined', {user: g.user});
+			// Broadcast to other users
+			// This also triggers the socket joining the "game" room
+			g.socket.emit('userJoined', {user: g.user});
 
-				// Send user to existing game
-		    $('#content-section, #welcome, #game-board').slideToggle();
-		    loadGameBoard();
+			// Send user to game if game is in progress
+			if (g.game.isActive){
+				console.log('User is logged in and game is in progress, send user to game');
+				console.log('Game in progress, send user to game');
+				$('#content-section, #welcome, #game-board').slideToggle();
+				loadGameBoard();
       }
-    }
-
-		// Existing game is not in progress
-    else {
-			updateUsersInLobby();
-
-			// If user is logged in, send into lobby
-      if (Cookies.getJSON(COOKIE_NAME)){
-				console.log('Game is NOT in progress, but user is already logged in. Send user into lobby.');
-
-				// Broadcast to other users
-        // This also triggers the socket joining the "game" room
-        g.socket.emit('userJoined', {user: g.user});
-
-        // Switch to lobby view
-        $('#content-section, #welcome, #lobby').slideToggle();
-      }
+			// Send user to lobby if game is not in progress
+			else{
+				console.log('User is logged in but game is not in progress, send user to lobby');
+				updateUsersInLobby();
+				$('#content-section, #welcome, #lobby').slideToggle();
+			}
     }
   });
 
+
+	// This event fires after user logs in
   g.socket.on('myUserLogin', function(data){
 		g.user.id = data.userId;
     g.users = data.users;
@@ -440,13 +431,16 @@ $(window).on('load', function(){
 
 	function highlightCurrentPlayer(){
 		var playerPositionToHighlight = (g.game.players.length + g.game.currentPlayerId - g.game.playerId) % g.game.players.length;
-		console.log('Highlight current player ID: ' + g.game.currentPlayerId + ' in position ID: ' + playerPositionToHighlight);
+		console.log('Highlight player ID: ' + g.game.currentPlayerId + ' in position ID: ' + playerPositionToHighlight);
 		$('.avatar').removeClass('active');
+		console.log('highlight player with Div ID: #player-position-' + playerPositionToHighlight);
 		$('#player-position-' + playerPositionToHighlight).addClass('active');
 	}
 
   function loadGameBoard(){
+		console.log('load game board function() called');
   	g.oheck = new OHeck();
+		console.log('new oHeck() complete');
 		g.oheck.message('Loading Game!');
 
 		// Show admin buttons
@@ -608,6 +602,7 @@ $(window).on('load', function(){
     g.game = data.game;
 		console.log('new current player id is now: ' + g.game.currentPlayerId);
     g.game.playerId = g.user.id - 1;
+		console.log('my player id: ' + g.game.playerId);
 		highlightCurrentPlayer();
   }
 

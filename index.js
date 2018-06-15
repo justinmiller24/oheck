@@ -6,8 +6,8 @@ var http = require('http');
 var app = express();
 // Set port to 80 for production
 // Set port to 3000 (or something else) for local development
-var port = 80;
-//var port = 3000;
+//var port = 80;
+var port = 3000;
 
 var server = http.createServer(app).listen(port, function(){
   console.log("Express server listening on port " + port);
