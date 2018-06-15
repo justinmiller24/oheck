@@ -567,7 +567,6 @@ OHeck.prototype = {
 		};
 		player.hand.sort(function (c1, c2) {
 			var suits = {D:0,C:1,H:2,S:3};
-//			switch (this.trump) {
 			switch (g.game.round.trump) {
 				case "D":
 					suits = {C:0,H:1,S:2,D:3}; break;
@@ -615,7 +614,6 @@ OHeck.prototype = {
 	updateStats: function () {
 		$('#quickStats #round span').text(g.game.currentRoundId + ' / ' + g.game.options.rounds);
 		$('#quickStats #bids span').text(g.game.round.currentBid + ' / ' + g.game.round.numTricks);
-		//$('#quickStats #trump span').text(this.trump);
 		$('#quickStats #trump span').text(g.game.round.trump);
 	},
 }
@@ -701,20 +699,6 @@ HumanPlayer.prototype = {
 		}
 		this.isBidding = true;
 	},
-/*	useCard: function (card) {
-		if (this.isBidding) {
-			this.game.message('It\'s your turn to bid now. You can\'t play any card while you\'re bidding!');
-		} else if (!this.hasCard(card)) {
-			this.game.message('You cannot play that card!');
-		} else if (!this.canPlay) {
-			this.game.message('It\'s not your turn to play!');
-		} else if (!this.game.canPlayCard(this, card)) {
-			this.game.message('Nice try! You must follow suit by playing a ' + this.pile[0].suitName());
-		} else {
-			g.socket.emit('playCard', {playerId: g.game.playerId, card: card.shortName});
-		}
-	},*/
-
 	init: ComputerPlayer.prototype.init,
 	hasCard: ComputerPlayer.prototype.hasCard,
 	remove: ComputerPlayer.prototype.remove
