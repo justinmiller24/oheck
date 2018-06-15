@@ -121,8 +121,11 @@ $(window).on('load', function(){
 			if (g.game.isActive){
 				console.log('User is logged in and game is in progress, send user to game');
 				console.log('Game in progress, send user to game');
-				$('#content-section, #welcome, #game-board').slideToggle();
 				loadGameBoard();
+				$('#content-section, #welcome, #game-board').slideToggle();
+
+				// Call this function AFTER loadGameBoard() has been called so that the players DIV exists
+				highlightCurrentPlayer();
       }
 			// Send user to lobby if game is not in progress
 			else{
@@ -174,10 +177,13 @@ $(window).on('load', function(){
   });
 
   g.socket.on('startGame', function(data){
-    updateData(data);
 		$.modal.close();
+		updateData(data);
+		loadGameBoard();
     $('#lobby, #game-board').slideToggle();
-    loadGameBoard();
+
+		// Call this function AFTER loadGameBoard() has been called so that the players DIV exists
+		highlightCurrentPlayer();
   });
 
   g.socket.on('dealHand', function(data){
@@ -433,14 +439,11 @@ $(window).on('load', function(){
 		var playerPositionToHighlight = (g.game.players.length + g.game.currentPlayerId - g.game.playerId) % g.game.players.length;
 		console.log('Highlight player ID: ' + g.game.currentPlayerId + ' in position ID: ' + playerPositionToHighlight);
 		$('.avatar').removeClass('active');
-		console.log('highlight player with Div ID: #player-position-' + playerPositionToHighlight);
 		$('#player-position-' + playerPositionToHighlight).addClass('active');
 	}
 
   function loadGameBoard(){
-		console.log('load game board function() called');
   	g.oheck = new OHeck();
-		console.log('new oHeck() complete');
 		g.oheck.message('Loading Game!');
 
 		// Show admin buttons
@@ -491,11 +494,11 @@ $(window).on('load', function(){
 
     // Setup seats and players
     g.game.playerId = g.user.id - 1;
-    console.log('My position: ' + (g.game.playerId + 1) + '/' + g.game.players.length);
-    console.log('Players:');
-    for (var i = 0; i < g.game.players.length; i++){
-      console.log(g.game.players[i]);
-    }
+//    console.log('My position: ' + (g.game.playerId + 1) + '/' + g.game.players.length);
+//    console.log('Players:');
+//    for (var i = 0; i < g.game.players.length; i++){
+//      console.log(g.game.players[i]);
+//    }
 
     // Create players
     createPlayers();
@@ -512,9 +515,9 @@ $(window).on('load', function(){
     g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
     //g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
     g.oheck.bidPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
-    console.log('Dealer index (-1): ' + g.oheck.dealerIndex);
-    console.log('Player index (-1): ' + g.oheck.currentPlayerIndex);
-    console.log('Player ID: ' + g.game.playerId);
+//    console.log('Dealer index (-1): ' + g.oheck.dealerIndex);
+//    console.log('Player index (-1): ' + g.oheck.currentPlayerIndex);
+//    console.log('Player ID: ' + g.game.playerId);
 
 		// Highlight current player (whoever needs to deal)
 
@@ -596,13 +599,13 @@ $(window).on('load', function(){
 	}
 
   function updateData(data){
-    console.log('Update data');
-		console.log(data);
-		console.log('previous current player id was: ' + g.game.currentPlayerId);
+//    console.log('Update data');
+//		console.log(data);
+//		console.log('previous current player id was: ' + g.game.currentPlayerId);
     g.game = data.game;
-		console.log('new current player id is now: ' + g.game.currentPlayerId);
+//		console.log('new current player id is now: ' + g.game.currentPlayerId);
     g.game.playerId = g.user.id - 1;
-		console.log('my player id: ' + g.game.playerId);
+//		console.log('my player id: ' + g.game.playerId);
 		highlightCurrentPlayer();
   }
 
