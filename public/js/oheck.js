@@ -1,29 +1,8 @@
 /*
  * OH HECK - Card Game
  * Created by Justin Miller on 9.1.2017
+ * Updated by Justin Miller on 6.15.2018
  */
-
-
-/*
-
-# Tutorials
-# https://hackernoon.com/tutorial-creating-and-managing-a-node-js-server-on-aws-part-1-d67367ac5171
-# https://hackernoon.com/tutorial-creating-and-managing-a-node-js-server-on-aws-part-2-5fbdea95f8a1
-
-
- TODO:
- - Picture hand
- - Game Rules
- - Nascar
- - Add game options for "decks", "trump", "instantBid", and "nascar"
-
- Options:
- Commentary by Dan
- Jumbo cards
- Safe mode vs broadcast misplays
- Gray out ineligible cards during each trick
- Trophy w/ winners name
-*/
 
 
 // Globals
@@ -47,7 +26,6 @@ var oh = {
 		y: -5 * 96	// -5 * this.CARD_SIZE.height
 	},
 	HORIZONTAL_MARGIN: 70,	// PLAYER WIDTH (60) + HORIZONTAL PADDING (10)
-//	NASCAR_SCORE_GAP: 2,
 	OVERLAY_MARGIN: 2,
 	PILE_POS: {
 		left: 720 * 0.5,			// this.DECK_POS.left + 1.3 * this.CARD_SIZE.width

@@ -521,8 +521,31 @@ io.sockets.on('connection', function(socket) {
 
         // Check for nascar
         if (game.options.nascar && game.options.rounds >= 10 && (game.currentRoundId + 3 === game.options.rounds)){
+          console.log('NASCAR TIME!');
+          
           // TODO: DO NASCAR HERE
-          console.log('Need to do nascar here...');
+          /*	nascar: function() {
+          		var playerScores = [];
+          		for (var i=0; i<this.players.length; i++) {
+          			var p = this.players[i];
+          			playerScores.push({id:i, score:p.score, newScore:p.score});
+          		}
+
+          		// Sort players by score
+          		playerScores.sort(function(a,b) { return parseInt(b.score) - parseInt(a.score) } );
+
+          		// Loop through players
+          		for (var i=1; i<playerScores.length; i++) {
+          			var pointsBehindNextPlayer = playerScores[i-1].score - playerScores[i].score;
+          			var newPointsBehindNextPlayer = Math.min(pointsBehindNextPlayer, oh.NASCAR_SCORE_GAP);
+
+          			// Bump player score so it is no more than "NASCAR_SCORE_GAP" points behind previous player
+          			playerScores[i].newScore = playerScores[i-1].newScore - newPointsBehindNextPlayer;
+
+          			// Save new score
+          			this.players[playerScores[i].id].score = playerScores[i].newScore;
+          		}
+          	},*/
         }
 
         // This is the last round in the game

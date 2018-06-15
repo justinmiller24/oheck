@@ -167,7 +167,7 @@ Card.prototype = {
 
 
 function OHeck() {
-	this.init();
+	this.init();ire
 }
 OHeck.prototype = {
 	makeRenderFunc: function (format) {
@@ -323,9 +323,9 @@ OHeck.prototype = {
       g.human.startBid();
     }
     // Waiting for another player to bid
-    else{
-      this.message('Waiting for ' + this.players[this.bidPlayerIndex].name + ' to bid');
-    }
+//    else{
+//      this.message('Waiting for ' + this.players[this.bidPlayerIndex].name + ' to bid');
+//    }
   },
 	beforeDeal: function () {
 
@@ -336,7 +336,7 @@ OHeck.prototype = {
 
     // Waiting for another player to deal
     else {
-      this.message('Waiting for ' + this.players[this.dealerIndex].name + ' to deal');
+//      this.message('Waiting for ' + this.players[this.dealerIndex].name + ' to deal');
       $('#deal').hide();
     }
   },
@@ -365,15 +365,6 @@ OHeck.prototype = {
 		this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
 	},
 	bidPlayerIndex: 0,
-/*	canPlayCard: function (player, card) {
-		if (this.pile.length == 0) {
-			return true;
-		}
-		var trickSuit = this.pile[0].suit;
-		return card.suit == trickSuit || !$A(player.hand).any(function (c) {
-			return c.suit == trickSuit;
-		});
-	},*/
 	cardCount: 0,
 	currentPlayerIndex: 0,
 	deal: function () {
@@ -427,33 +418,6 @@ OHeck.prototype = {
       setTimeout(callback, SNACKBAR_TIMEOUT + 250);
     }*/
 	},
-/*	nascar: function() {
-		var playerScores = [];
-		for (var i=0; i<this.players.length; i++) {
-			var p = this.players[i];
-			playerScores.push({id:i, score:p.score, newScore:p.score});
-		}
-
-		// Sort players by score
-		playerScores.sort(function(a,b) { return parseInt(b.score) - parseInt(a.score) } );
-
-		// Loop through players
-		for (var i=1; i<playerScores.length; i++) {
-			var pointsBehindNextPlayer = playerScores[i-1].score - playerScores[i].score;
-			var newPointsBehindNextPlayer = Math.min(pointsBehindNextPlayer, oh.NASCAR_SCORE_GAP);
-
-			// Bump player score so it is no more than "NASCAR_SCORE_GAP" points behind previous player
-			playerScores[i].newScore = playerScores[i-1].newScore - newPointsBehindNextPlayer;
-
-			// Save new score
-			this.players[playerScores[i].id].score = playerScores[i].newScore;
-		}
-
-		// Update scores on server
-		g.socket.emit('nascar');
-
-		//TODO: move backend nascar to callback so all players can update
-	},*/
 	newDeck: function () {
 		this.deck = [];
 		if (!g.game.players[0].hand) {
