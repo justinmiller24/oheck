@@ -4,10 +4,13 @@ var socket = require('socket.io');
 var express = require('express');
 var http = require('http');
 var app = express();
-// Set port to 80 for production
-// Set port to 3000 (or something else) for local development
-//var port = 80;
-var port = 3000;
+
+// Production
+var port = 80;
+var MAX_CARDS_TO_DEAL = 12;
+// Development
+//var port = 3000;
+//var MAX_CARDS_TO_DEAL = 3;
 
 var server = http.createServer(app).listen(port, function(){
   console.log("Express server listening on port " + port);
@@ -253,7 +256,7 @@ io.sockets.on('connection', function(socket) {
 
     // Deal as many cards as we can but no more than 12 due to space
     var maxCards = Math.floor(52 * game.options.decks / game.players.length);
-    var cardsToDeal = Math.min(maxCards, 12);
+    var cardsToDeal = Math.min(maxCards, MAX_CARDS_TO_DEAL);
 
     // Can't deal less than 1 card or more than MAX_CARDS
     //var CARDS_TO_DEAL_THIS_ROUND = 12;
@@ -522,7 +525,7 @@ io.sockets.on('connection', function(socket) {
         // Check for nascar
         if (game.options.nascar && game.options.rounds >= 10 && (game.currentRoundId + 3 === game.options.rounds)){
           console.log('NASCAR TIME!');
-          
+
           // TODO: DO NASCAR HERE
           /*	nascar: function() {
           		var playerScores = [];
