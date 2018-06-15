@@ -75,6 +75,7 @@ var PLAYER_POSITIONS = [
   ['bottomLeft', 'left', 'topLeft', 'topRight', 'right', 'bottomRight']
 ];
 
+var SHOW_ADMIN_BTNS = true;
 var SNACKBAR_TIMEOUT = 1000;
 
 var g = {
@@ -92,7 +93,7 @@ var g = {
 }
 
 
-$(window).on('load', function() {
+$(window).on('load', function(){
 
   /**
    * SOCKET.IO EVENTS
@@ -103,15 +104,16 @@ $(window).on('load', function() {
 
 
 	// This event fires on socket connection
-  g.socket.on('init', function(data) {
+  g.socket.on('init', function(data){
+		console.log('init - line 108');
     //console.log(data);
     g.users = data.users;
     g.game = data.game;
 
     // Existing game is in progress
-    if (g.game.isActive) {
+    if (g.game.isActive){
       // If user is logged in, send into existing game
-      if (Cookies.getJSON(COOKIE_NAME)) {
+      if (Cookies.getJSON(COOKIE_NAME)){
 				console.log('Game is IN progress, send user into existing game.');
 
         // Broadcast to other users
@@ -129,7 +131,7 @@ $(window).on('load', function() {
 			updateUsersInLobby();
 
 			// If user is logged in, send into lobby
-      if (Cookies.getJSON(COOKIE_NAME)) {
+      if (Cookies.getJSON(COOKIE_NAME)){
 				console.log('Game is NOT in progress, but user is already logged in. Send user into lobby.');
 
 				// Broadcast to other users
@@ -142,7 +144,7 @@ $(window).on('load', function() {
     }
   });
 
-  g.socket.on('myUserLogin', function(data) {
+  g.socket.on('myUserLogin', function(data){
 		g.user.id = data.userId;
     g.users = data.users;
 		g.history = data.history;
@@ -153,21 +155,21 @@ $(window).on('load', function() {
   });
 
 	// Alert individual user
-	g.socket.on('showMessage', function(data) {
+	g.socket.on('showMessage', function(data){
 		g.oheck.message(data.message);
 	});
 
-  g.socket.on('userJoined', function(data) {
+  g.socket.on('userJoined', function(data){
     g.users = data.users;
-    if (g.users[data.userId - 1] && g.users[data.userId - 1].name) {
+    if (g.users[data.userId - 1] && g.users[data.userId - 1].name){
       var loggedInUserName = g.users[data.userId - 1].name;
       console.log('New user ' + loggedInUserName + ' has arrived');
       updateUsersInLobby();
     }
   });
 
-  g.socket.on('userLogout', function(data) {
-    if (g.users[data.userId - 1] && g.users[data.userId - 1].name) {
+  g.socket.on('userLogout', function(data){
+    if (g.users[data.userId - 1] && g.users[data.userId - 1].name){
       var loggedOutUser = g.users[data.userId - 1].name;
       console.log(loggedOutUser + ' logged out');
     }
@@ -175,34 +177,38 @@ $(window).on('load', function() {
     updateUsersInLobby();
   });
 
-  g.socket.on('forceReloadAll', function(data) {
+  g.socket.on('forceReloadAll', function(data){
     console.log('Reloading...');
 		window.location.reload();
   });
 
-  g.socket.on('startGame', function(data) {
+  g.socket.on('startGame', function(data){
     updateData(data);
 		$.modal.close();
     $('#lobby, #game-board').slideToggle();
     loadGameBoard();
   });
 
-  g.socket.on('dealHand', function(data) {
+  g.socket.on('dealHand', function(data){
     updateData(data);
     g.oheck.dealCards();
     g.oheck.beforeBid();
   });
 
-	g.socket.on('restartHand', function(data) {
+	g.socket.on('restartHand', function(data){
     console.log('Restarting Hand...');
 //		window.location.reload();
   });
 
-  g.socket.on('bid', function(data) {
+
+	// Bid event
+	// This event is broadcast after a player bids
+	//io.in('game').emit('bid', {playerId: data.playerId, bid: currentBid, game: game});
+  g.socket.on('bid', function(data){
     updateData(data);
 
     // This was my bid
-    if (data.playerId === g.game.playerId) {
+    if (data.playerId === g.game.playerId){
       g.oheck.bid(g.human, data.bid);
     }
     else {
@@ -210,7 +216,7 @@ $(window).on('load', function() {
     }
 
     // Need to bid
-    if (g.game.round.bids < g.game.players.length) {
+    if (g.game.round.bids < g.game.players.length){
       g.oheck.beforeBid();
     }
     else {
@@ -218,21 +224,25 @@ $(window).on('load', function() {
     }
   });
 
-  g.socket.on('playCard', function(data) {
+
+	// Play Card event
+	// This event is broadcast after a player plays a card in the current trick
+	//io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
+  g.socket.on('playCard', function(data){
     updateData(data);
 
     // Find card in my hand
     var player = g.oheck.players[data.playerId];
-    for (var pos = 0; pos < player.hand.length; pos++) {
-      if (player.hand[pos].shortName == data.cardShortName) {
-        (player.name + ' played the ' + player.hand[pos].longName);
+    for (var pos = 0; pos < player.hand.length; pos++){
+      if (player.hand[pos].shortName == data.cardShortName){
+        g.oheck.message(player.name + ' played the ' + player.hand[pos].longName);
         g.oheck.playCards(player, [player.hand[pos]]);
         break;
       }
     }
 
 /*    // Need to play
-    if (g.game.round.numTricksTaken < g.game.round.numTricks) {
+    if (g.game.round.numTricksTaken < g.game.round.numTricks){
       g.oheck.beforePlayCards();
     }
     else {
@@ -242,13 +252,33 @@ $(window).on('load', function() {
   });
 
 
+	// Take Trick event
+	// This event is broadcast after the last card in a trick is played
+	// io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
+	g.socket.on('takeTrick', function(data){
+		updateData(data);
+
+		g.oheck.message('Take trick event from server');
+	});
+
+
+	// Update Scoreboard event
+	// This event is broadcast after the last trick in a round is played
+	// io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
+	g.socket.on('updateScoreboard', function(data){
+		updateData(data);
+
+		g.oheck.message('Update scoreboard event from server');
+	});
+
+
   /**
    * Lobby functions
    */
 
   // Sign in
   // Wait to save cookie until server response via "myUserLogin" socket event
-  $('#sign-in-form').submit(function(e) {
+  $('#sign-in-form').submit(function(e){
     e.preventDefault();
     g.user.name = this.name.value;
     g.socket.emit('userLogin', {user: g.user});
@@ -268,7 +298,7 @@ $(window).on('load', function() {
   // Have to use a delegated event because the button ID does not exist when document.onReady event fires initially
   // http://api.jquery.com/on/#direct-and-delegated-events
   // http://api.jquery.com/delegate/
-  $(document).on('click', '#logout-button', function(e) {
+  $(document).on('click', '#logout-button', function(e){
     e.preventDefault();
     g.socket.emit('userLogout', {userId: g.user.id});
     Cookies.remove(COOKIE_NAME);
@@ -284,7 +314,7 @@ $(window).on('load', function() {
   // Have to use a delegated event because the button ID does not exist when document.onReady event fires initially
   // http://api.jquery.com/on/#direct-and-delegated-events
   // http://api.jquery.com/delegate/
-  $(document).on('click', '#start-game-button', function(e) {
+  $(document).on('click', '#start-game-button', function(e){
     e.preventDefault();
     g.socket.emit('startGame', {
 			ownerId: g.user.id,
@@ -299,42 +329,30 @@ $(window).on('load', function() {
   /**
    * GAME FUNCTIONS
    */
-  function init() {
+  function init(){
 
     // Check if user is already logged in
-    if (Cookies.getJSON(COOKIE_NAME)) {
-      g.user = Cookies.getJSON(COOKIE_NAME);
-      console.log('User is already logged in. Delete login form and show logout button.');
-      console.log(g.user);
-			showAdminButtons();
+    if (Cookies.getJSON(COOKIE_NAME)){
 
-      // Delete login form HTML since user is already logged in
+			// If user is logged in, grab user info from cookie, delete login form, and show logout button
+      g.user = Cookies.getJSON(COOKIE_NAME);
+//      console.log('User is already logged in');
+//      console.log(g.user);
+			showAdminButtons();
       $('#login').remove();
 			$('#show-logout').show();
-
-      // The "get started" button should take user to lobby if no game is in progress
-      $('#get-started-button-action').click(function(e) {
-        e.preventDefault();
-
-        // Broadcast to other users
-        // This also triggers the socket joining the "game" room
-        g.socket.emit('userJoined', {user: g.user});
-
-        // Switch to lobby view
-        $('#content-section, #welcome, #lobby').slideToggle();
-      });
     }
     else {
 
-      // If user is not logged in, when they click, it should show the login dialog
-      $('#get-started-button-action').click(function(e) {
+      // If user is not logged in, trigger login dialog on button click
+      $('#get-started-button-action').click(function(e){
         e.preventDefault();
         $('#login-dialog').modal();
-      })
+      });
     }
   }
 
-  function createPlayers() {
+  function createPlayers(){
     var players = [],
       p = null,
       h = '',
@@ -383,15 +401,18 @@ $(window).on('load', function() {
       };
 
 
-    // Add players blocks
-    for (var i = 0; i < g.game.players.length; i++) {
-      h += '<div id="player-position-' + i + '" class="avatar"><div class="userPic"></div><small></small></div>';
+    // Add HTML blocks for each player
+    for (var i = 0; i < g.game.players.length; i++){
+      h += '<div id="player-position-' + i + '" class="avatar">';
+			h += '<div class="userPic"></div>';
+			h += '<small></small>';
+			h += '</div>';
     }
     $('#playersBlock').html(h);
 
 
     // Create players on game board
-    for (var i = 0; i < g.game.players.length; i++) {
+    for (var i = 0; i < g.game.players.length; i++){
       thisPlayer = g.game.players[(g.game.playerId + i) % g.game.players.length];
       p = (i === 0) ? new HumanPlayer(thisPlayer.name) : new ComputerPlayer(thisPlayer.name);
       p.id = 'player-position-' + i;
@@ -399,7 +420,7 @@ $(window).on('load', function() {
       p.top = PLAYER_SETUP[p.position].top;
       p.left = PLAYER_SETUP[p.position].left;
       p.align = PLAYER_SETUP[p.position].align;
-      if (i === 0) {
+      if (i === 0){
         g.human = p;
       }
       players.push(p);
@@ -410,20 +431,12 @@ $(window).on('load', function() {
     }
 
     // Do this separately because we want YOUR player to be added first (bottom of screen)
-    for (var i = 0; i < g.game.players.length; i++) {
+		// This means all players needed to be added to "players" array (above) before then can be added to the g.oheck object
+    for (var i = 0; i < g.game.players.length; i++){
       var playerId = (players.length + i - g.game.playerId) % players.length;
       g.oheck.addPlayer(players[playerId]);
     }
   }
-
-	// Force all clients to reload
-	// No need to call "location.reload()" here, since this is handled in a callback function
-//	function forceReloadAll(){
-//		g.socket.emit('forceReloadAll', 'Force all clients to reload...');
-//    showMessage('Force Reload All', function() {
-//      location.reload();
-//    });
-//	}
 
 	function highlightCurrentPlayer(){
 		var playerPositionToHighlight = (g.game.players.length + g.game.currentPlayerId - g.game.playerId) % g.game.players.length;
@@ -432,7 +445,7 @@ $(window).on('load', function() {
 		$('#player-position-' + playerPositionToHighlight).addClass('active');
 	}
 
-  function loadGameBoard() {
+  function loadGameBoard(){
   	g.oheck = new OHeck();
 		g.oheck.message('Loading Game!');
 
@@ -443,8 +456,8 @@ $(window).on('load', function() {
 		$('#show-scoreboard').show();
 
     // Setup event renderers
-    for (var name in g.oheck.renderers) {
-      g.oheck.setEventRenderer(name, function(e) {
+    for (var name in g.oheck.renderers){
+      g.oheck.setEventRenderer(name, function(e){
         e.callback();
       });
     }
@@ -455,14 +468,14 @@ $(window).on('load', function() {
 		g.oheck.setEventRenderer('taketrick', webRenderer.takeTrick);
 
     // Setup deal handler
-    $('#deal').click(function(e) {
+    $('#deal').click(function(e){
       $(this).hide();
       g.socket.emit('dealHand');
     });
 
     // Setup start handler
-    g.oheck.setEventRenderer('start', function(e) {
-      $('.card').click(function() {
+    g.oheck.setEventRenderer('start', function(e){
+      $('.card').click(function(){
         //g.human.useCard(this.card);
 				g.socket.emit('playCard', {playerId: g.game.playerId, card: this.card.shortName});
       });
@@ -472,12 +485,12 @@ $(window).on('load', function() {
     // Preload images
     var imgs = ['horizontal-trick', 'vertical-trick'];
     var img = new Image();
-    for (var i = 0; i < imgs.length; i++) {
+    for (var i = 0; i < imgs.length; i++){
       img.src = 'img/' + imgs[i] + '.png';
     }
 
 		// Setup game board
-    if (g.game.players.length > 4) {
+    if (g.game.players.length > 4){
       $('#wrapper').addClass('wide');
     }
     $('#game-board').addClass('players-' + g.game.players.length);
@@ -486,7 +499,7 @@ $(window).on('load', function() {
     g.game.playerId = g.user.id - 1;
     console.log('My position: ' + (g.game.playerId + 1) + '/' + g.game.players.length);
     console.log('Players:');
-    for (var i = 0; i < g.game.players.length; i++) {
+    for (var i = 0; i < g.game.players.length; i++){
       console.log(g.game.players[i]);
     }
 
@@ -509,8 +522,10 @@ $(window).on('load', function() {
     console.log('Player index (-1): ' + g.oheck.currentPlayerIndex);
     console.log('Player ID: ' + g.game.playerId);
 
+		// Highlight current player (whoever needs to deal)
+
     // Need to deal
-    if (!g.game.players[0].hand.length) {
+    if (!g.game.players[0].hand.length){
       g.oheck.beforeDeal();
       return;
     }
@@ -520,12 +535,12 @@ $(window).on('load', function() {
 
     // Update existing bids
     var firstPlayerToBidThisHand = g.oheck.nextIndex(g.oheck.dealerIndex);
-    for (var i = 0; i < g.game.round.bids; i++) {
+    for (var i = 0; i < g.game.round.bids; i++){
       var pos = (firstPlayerToBidThisHand + i) % g.game.players.length;
         var thisBid = g.game.players[pos].bid;
 
         // This was my bid
-        if (pos === g.game.playerId) {
+        if (pos === g.game.playerId){
           g.oheck.bid(g.human, thisBid);
         }
         else {
@@ -534,27 +549,27 @@ $(window).on('load', function() {
     }
 
     // Need to bid
-    if (g.game.round.bids < g.game.players.length) {
+    if (g.game.round.bids < g.game.players.length){
       g.oheck.beforeBid();
       return;
     }
 
 /*    // Need to play
-    if (g.game.round.currentTrickId < g.game.round.numTricks) {
+    if (g.game.round.currentTrickId < g.game.round.numTricks){
 
       //TODO: Show tricks won in current round
 
       // Show cards played in current trick
       var numberOfCardsPlayedInCurrentTrick = g.game.round.currentTrickPlayed.length;
-      if (numberOfCardsPlayedInCurrentTrick) {
+      if (numberOfCardsPlayedInCurrentTrick){
 
         // Determine who played the first card in current trick
         var playerId = (g.game.currentPlayerId - g.game.round.currentTrickPlayed.length + g.game.players.length) % g.game.players.length;
-        if (playerId === 0) {
+        if (playerId === 0){
           playerId = g.game.players.length;
         }
         // Simulate cards in current trick already played
-        for (var i = 0; i < numberOfCardsPlayedInCurrentTrick; i++) {
+        for (var i = 0; i < numberOfCardsPlayedInCurrentTrick; i++){
           var player = g.oheck.players[(playerId + i) % g.oheck.players.length];
           console.log(player.name + ' played the ' + g.game.round.currentTrickPlayed[i].longName);
           g.oheck.playCards(player, [g.game.round.currentTrickPlayed[i]]);
@@ -566,9 +581,9 @@ $(window).on('load', function() {
     }*/
   }
 
-	// Show "administrative" functions for first user
+	// Show "admin" buttons for first user
 	function showAdminButtons(){
-		if (g.user.id === 1 && g.user.name === 'Justin'){
+		if (SHOW_ADMIN_BTNS && g.user.id === 1 && g.user.name === 'Justin'){
 
 			// Force Reload All
 			$('#show-force-reload-all')
@@ -586,35 +601,38 @@ $(window).on('load', function() {
 		}
 	}
 
-  function updateData(data) {
-    console.log(data);
+  function updateData(data){
+    console.log('Update data');
+		console.log(data);
+		console.log('previous current player id was: ' + g.game.currentPlayerId);
     g.game = data.game;
+		console.log('new current player id is now: ' + g.game.currentPlayerId);
     g.game.playerId = g.user.id - 1;
 		highlightCurrentPlayer();
   }
 
-  function updateUsersInLobby() {
+  function updateUsersInLobby(){
 		showAdminButtons();
 
-    var thisUser,
-        usersHtml = '';
-    for (var i in g.users) {
+    var usersHtml = '';
+    for (var i in g.users){
       var user = g.users[i];
-      thisUser = g.users[i];
-      usersHtml += '<li class="mdl-list__item mdl-list__item--two-line">';
-      usersHtml += '<span class="mdl-list__item-primary-content">';
-      usersHtml += '<span class="player-avatar player-' + user.id + '"></span>';
-      usersHtml += '<span>' + user.name + '</span>';
-      usersHtml += '<span class="mdl-list__item-sub-title"> </span>';
-      usersHtml += '<span class="mdl-list__item-sub-title">User ID: ' + user.id + '</span>';
-      usersHtml += '</span></li>';
+			if (user !== null){
+	      usersHtml += '<li class="mdl-list__item mdl-list__item--two-line">';
+	      usersHtml += '<span class="mdl-list__item-primary-content">';
+	      usersHtml += '<span class="player-avatar player-' + user.id + '"></span>';
+	      usersHtml += '<span>' + user.name + '</span>';
+	      usersHtml += '<span class="mdl-list__item-sub-title"> </span>';
+	      usersHtml += '<span class="mdl-list__item-sub-title">User ID: ' + user.id + '</span>';
+	      usersHtml += '</span></li>';
+			}
     }
     $('#usersOnline').html(usersHtml);
 
     // Show "create game" button to 1st user when there are 2-6 users waiting
 		if (g.user.id === 1){
 			var usersOnline = $('#usersOnline li').length;
-	    if (usersOnline >= 2 && usersOnline <= 6) {
+	    if (usersOnline >= 2 && usersOnline <= 6){
 	      $('#create-game-button').removeAttr('disabled', 'disabled');
 	      $('#create-game-button-link').attr('href', '/html/create-game.html').attr('rel', 'modal:open');
 	    }

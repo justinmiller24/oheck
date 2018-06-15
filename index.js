@@ -192,6 +192,9 @@ io.sockets.on('connection', function(socket) {
   /*
    * GAME FUNCTIONS
    */
+
+  // Start Game event
+ 	// This event fires when the first player creates a new game
   socket.on('startGame', function(data){
     history.push({
       op: 'startGame',
@@ -230,6 +233,7 @@ io.sockets.on('connection', function(socket) {
     }
     // Set current player ID to last player ID to start
     game.currentPlayerId += game.players.length;
+    console.log('Current Player ID: ' + game.currentPlayerId);
     console.log('Game Created!');
     console.log(game);
 
@@ -237,6 +241,9 @@ io.sockets.on('connection', function(socket) {
     io.in('game').emit('startGame', {game: game});
   });
 
+
+  // Deal Hand event
+ 	// This event fires when the dealer presses "deal" at the beginning of each round
   socket.on('dealHand', function(){
     history.push({
       op: 'dealHand'
@@ -307,7 +314,9 @@ io.sockets.on('connection', function(socket) {
     io.in('game').emit('dealHand', {game: game});
   });
 
-  // Restart Hand
+
+  // Restart Hand event
+ 	// This event fires when the admin user presses "restart" during a round
   socket.on('restartHand', function(){
     history.push({
       op: 'restartHand'
@@ -319,6 +328,9 @@ io.sockets.on('connection', function(socket) {
     io.in('game').emit('restartHand', 'Restart Hand');
   });
 
+
+  // Bid event
+ 	// This event fires when each user submits their bid at the beginning of each round
   socket.on('bid', function(data){
     history.push({
       op: 'bid',
@@ -369,6 +381,9 @@ io.sockets.on('connection', function(socket) {
 
   });
 
+
+  // Play Card event
+ 	// This event fires when each user plays a card during each trick
   socket.on('playCard', function(data){
     history.push({
       op: 'playCard',
@@ -484,7 +499,7 @@ io.sockets.on('connection', function(socket) {
         io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
 
         // Broadcast event to users
-//        io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
+        io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
       }
 
       else{
