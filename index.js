@@ -601,11 +601,16 @@ io.sockets.on('connection', function(socket) {
       return;
     }
 
-    // Determine winning player and end game
+    // Determine winning player
     var winnerPlayerId = pScores[0].id;
     console.log('PlayerId: ' + winnerPlayerId + ' wins with score: ' + pScores[0].score);
+    socket.emit('showMessage', {message: game.players[pScores[0].id].name + ' wins!'});
+
+    // End game
     game.isActive = false;
 
+    // Broadcast event to users
+    io.in('game').emit('endGame', {playerId: winnerPlayerId});
   });
 
 });

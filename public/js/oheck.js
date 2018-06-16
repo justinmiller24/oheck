@@ -178,10 +178,19 @@ $(window).on('load', function(){
 //		window.location.reload();
   });
 
+	// Bid event
+	// This event is broadcast after the last round if there is no tie
+	// io.in('game').emit('endGame', {playerId: winnerPlayerId});
+	g.socket.on('endGame', function(data){
+    console.log('Ending Game');
+		alert(g.game.players[data.playerId].name + ' wins with ' + g.game.players[data.playerId].score + ' points!');
+		setTimeout("window.location.reload();", 15000);
+  });
+
 
 	// Bid event
 	// This event is broadcast after a player bids
-	//io.in('game').emit('bid', {playerId: data.playerId, bid: currentBid, game: game});
+	// io.in('game').emit('bid', {playerId: data.playerId, bid: currentBid, game: game});
   g.socket.on('bid', function(data){
     updateData(data);
 
