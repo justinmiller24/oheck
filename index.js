@@ -6,14 +6,12 @@ var http = require('http');
 var app = express();
 
 // Production
-//var port = 80;
-//var MAX_CARDS_TO_DEAL = 12;
-// Development
-var port = 3000;
-var MAX_CARDS_TO_DEAL = 3;
+var isProduction = __dirname == '/Users/justinmiller/Sites/oheck';
+var port = isProduction ? 3000 : 80;
 
 var server = http.createServer(app).listen(port, function(){
   console.log("Express server listening on port " + port);
+  console.log("Directory Name: " + __dirname);
 });
 var io = socket.listen(server);
 
@@ -31,13 +29,11 @@ app.get('/', function (req, res) {
 /*
  * GLOBALS
  */
-//var DEFAULT_ROOM = 'general';
-//var ROOM_LIST = ['general', 'game'];
-//var allClients = [];
-var NASCAR_SCORE_GAP = 3;
 var users = [];
 var game = {};
 var history = [];
+var MAX_CARDS_TO_DEAL = 12;
+var NASCAR_SCORE_GAP = 3;
 var GAME_DEFAULTS = {
   isActive: false,
   currentPlayerId: 0,
@@ -69,29 +65,7 @@ var GAME_DEFAULTS = {
 };
 
 
-/*
-// Listen for socket connection
 io.sockets.on('connection', function(socket) {
-
-  socket.on('disconnect', function() {
-    history.push({
-     op: 'disconnect',
-     data: {userId: allClients.indexOf(socket)}
-  });
-
-      console.log('User got disconnected!');
-      var i = allClients.indexOf(socket);
-      allClients.splice(i, 1);
-
-      // Broadcast event to users
-      //io.in(DEFAULT_ROOM).emit('userDisconnected');
-      socket.to('game').emit('userDisconnected');
-   });
-});*/
-
-
-io.sockets.on('connection', function(socket) {
-//  allClients.push(socket);
   console.log('User connected with Socket ID: ' + socket.id);
 
   // Initialization
@@ -134,8 +108,6 @@ io.sockets.on('connection', function(socket) {
     data.user.id = users.length + 1;
     users.push(data.user);
     console.log('The following user has joined:');
-//    console.log('A new user joined and has been assigned user ID: ' + data.user.id);
-//    console.log('User Name: ' + users[data.user.id - 1].name);
     console.log('User Name: ' + data.user.name);
     console.log('User ID: ' + data.user.id);
     console.log('Socket ID: ' + socket.id);
@@ -158,7 +130,6 @@ io.sockets.on('connection', function(socket) {
 
     users[data.user.id - 1] = data.user;
     console.log('The following user has returned:');
-//    console.log('User with ID: ' + data.user.id + ' (' + users[data.user.id - 1].name + ') has returned!');
     console.log('User Name: ' + users[data.user.id - 1].name);
     console.log('User ID: ' + data.user.id);
     console.log('Socket ID: ' + socket.id);
@@ -333,6 +304,7 @@ io.sockets.on('connection', function(socket) {
 
     console.log('Restart Hand...');
 
+
     // Send data to all clients including sender
     io.in('game').emit('restartHand', 'Restart Hand');
   });
@@ -348,18 +320,19 @@ io.sockets.on('connection', function(socket) {
 
     var playerId = data.playerId;
     var currentBid = data.bid;
-    console.log('player ' + playerId + ' trying to bid ' + currentBid);
+    console.log('PlayerId: ' + playerId + ' attempting to bid: ' + currentBid);
 
     // Check if round is currently in bidding status
     if (game.round.bids >= game.players.length){
-      console.log('ERROR - Player ID ' + playerId + ' tried to bid');
+      console.log('ERROR: PlayerID: ' + playerId + ' attempted to bid');
+      socket.emit('showMessage', {message: 'It is not your turn to bid!'});
       return;
     }
 
     // Check for player turn to bid
     if (game.currentPlayerId !== playerId){
-      console.log('ERROR - player ' + playerId + ' bid out of turn');
-//      io.in('game').emit('error', {msg:'Player bid out of turn'});
+      console.log('ERROR: PlayerID: ' + playerId + ' attempted to bid');
+      socket.emit('showMessage', {message: 'It is not your turn to bid!'});
       return;
     }
 
@@ -375,19 +348,15 @@ io.sockets.on('connection', function(socket) {
 
     // This was the last player to bid
     if (game.round.bids === game.players.length){
-      console.log('last player to bid');
       game.round.currentTrickId = 1;
       game.round.currentTrickPlayed = [];
     }
 
     // Advance player
     game.currentPlayerId = nextPlayerId(game.currentPlayerId);
-    console.log('current player id: ' + game.currentPlayerId);
 
     // Broadcast event to users
-    console.log(game);
     io.in('game').emit('bid', {playerId: data.playerId, bid: currentBid, game: game});
-
   });
 
 
@@ -401,10 +370,10 @@ io.sockets.on('connection', function(socket) {
 
     var card = data.card;
     var playerId = data.playerId;
-    console.log('PlayerId: ' + playerId + ' attempting to play card: ' + card);
+//    console.log('PlayerId: ' + playerId + ' attempting to play card: ' + card);
 
     // Make sure we're not bidding
-    if (game.round.currentTrickId < 0){
+    if (game.round.currentTrickId < 1){
       console.log('PlayerId ' + playerId + ' played while we are still bidding');
       socket.emit('showMessage', {message: 'It is not your turn!'});
       return;
@@ -413,7 +382,7 @@ io.sockets.on('connection', function(socket) {
     // Make sure it is user turn to play
     if (game.currentPlayerId != playerId){
       console.log('PlayerId ' + playerId + ' played out of turn');
-      console.log('current player id is ' + game.currentPlayerId);
+//      console.log('current player id is ' + game.currentPlayerId);
       socket.emit('showMessage', {message: 'It is not your turn!'});
       return;
     }
@@ -422,7 +391,7 @@ io.sockets.on('connection', function(socket) {
     var cardPos = game.players[playerId].currentHand.indexOf(card);
     if (cardPos == -1){
       console.log('PlayerId ' + playerId + ' played a card they were not holding: ' + card);
-      console.log(game.players[playerId].currentHand);
+//      console.log(game.players[playerId].currentHand);
       socket.emit('showMessage', {message: 'You played a card not in your hand!'});
       return;
     }
@@ -434,7 +403,7 @@ io.sockets.on('connection', function(socket) {
       for (var i in game.players[playerId].currentHand){
         if (leadingCardSuit === game.players[playerId].currentHand[i].substring(0,1)){
           console.log('PlayerId ' + playerId + ' played a card not following suit: ' + card);
-          console.log('Leading trick played: ' + game.round.currentTrickPlayed[0]);
+//          console.log('Leading trick played: ' + game.round.currentTrickPlayed[0]);
           socket.emit('showMessage', {message: 'You must follow suit!'});
           return;
         }
@@ -497,7 +466,7 @@ io.sockets.on('connection', function(socket) {
     }
 
     // Update number of tricks taken by winning player
-    console.log('PlayerId: ' + highCardSeat + ' wins trick with card: ' + highCardVal + highCardSuit);
+    console.log('PlayerId: ' + highCardSeat + ' wins trick with the ' + card);
     // Update number of tricks taken by trick winner
     game.players[highCardSeat].tricksTaken++;
     console.log('PlayerId: ' + highCardSeat + ' has won ' + game.players[highCardSeat].tricksTaken + ' trick(s)');
@@ -563,6 +532,7 @@ io.sockets.on('connection', function(socket) {
     io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
     io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
     io.in('game').emit('updateScoreboard', {game: game});
+    io.in('game').emit('showScoreboard');
 
 
     // Check if this is the last round in game
@@ -596,6 +566,9 @@ io.sockets.on('connection', function(socket) {
       socket.emit('showMessage', {message: 'There is a tie for the lead!'});
 
       //TODO: extend game by one more round
+      // Delete the following 2 lines when game is extended
+      game.isActive = false;
+      io.in('game').emit('endGame', {playerId: winnerPlayerId});
 
       // Nothing else to do here
       return;

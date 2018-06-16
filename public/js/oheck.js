@@ -83,7 +83,6 @@ $(window).on('load', function(){
 
 	// This event fires on socket connection
   g.socket.on('init', function(data){
-		console.log('init event callback from server');
 //    console.log(data);
     g.users = data.users;
     g.game = data.game;
@@ -129,7 +128,11 @@ $(window).on('load', function(){
 
 	// Alert individual user
 	g.socket.on('showMessage', function(data){
-		g.oheck.message(data.message);
+		document.querySelector('#snackbar-message')
+			.MaterialSnackbar.showSnackbar({
+				message: data.message,
+				timeout: SNACKBAR_TIMEOUT
+		});
 	});
 
   g.socket.on('userJoined', function(data){
@@ -159,16 +162,15 @@ $(window).on('load', function(){
 		updateData(data);
 		$.modal.close();
     $('#lobby, #game-board').slideToggle();
-
 		// Call this AFTER DOM manipulation so card positioning is correct
 		loadGameBoard();
-
 		// Call this AFTER loadGameBoard() so "players" DIV exists
 		highlightCurrentPlayer();
   });
 
   g.socket.on('dealHand', function(data){
     updateData(data);
+		updateStats();
     g.oheck.dealCards();
     g.oheck.beforeBid();
   });
@@ -178,12 +180,12 @@ $(window).on('load', function(){
 //		window.location.reload();
   });
 
-	// Bid event
+	// End game event
 	// This event is broadcast after the last round if there is no tie
 	// io.in('game').emit('endGame', {playerId: winnerPlayerId});
 	g.socket.on('endGame', function(data){
     console.log('Ending Game');
-		alert(g.game.players[data.playerId].name + ' wins with ' + g.game.players[data.playerId].score + ' points!');
+		//alert(g.game.players[data.playerId].name + ' wins with ' + g.game.players[data.playerId].score + ' points!');
 		setTimeout("window.location.reload();", 15000);
   });
 
@@ -193,6 +195,10 @@ $(window).on('load', function(){
 	// io.in('game').emit('bid', {playerId: data.playerId, bid: currentBid, game: game});
   g.socket.on('bid', function(data){
     updateData(data);
+		// Update player display bid
+		$('#' + g.oheck.players[data.playerId].id + ' small').append(' (' + data.bid + ')');
+		// Update stats board
+		updateStats();
 
     // This was my bid
     if (data.playerId === g.game.playerId){
@@ -219,7 +225,7 @@ $(window).on('load', function(){
     var player = g.oheck.players[data.playerId];
     for (var pos = 0; pos < player.hand.length; pos++){
       if (player.hand[pos].shortName == data.cardShortName){
-        g.oheck.message(player.name + ' played the ' + player.hand[pos].longName);
+//        console.log(player.name + ' played the ' + player.hand[pos].longName);
         g.oheck.playCards(player, [player.hand[pos]]);
         break;
       }
@@ -242,20 +248,30 @@ $(window).on('load', function(){
 	// io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
 	g.socket.on('takeTrick', function(data){
 		updateData(data);
-
-		g.oheck.message('Take trick event from server');
-		g.oheck.afterPlayCards;
+		console.log('Take trick event from server. This function really does nothing yet...');
+//		g.oheck.afterPlayCards;
 	});
 
 
 	// Update Scoreboard event
 	// This event is broadcast after the last trick in a round is played
-	// io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
+	// io.in('game').emit('updateScoreboard', {game: game});
 	g.socket.on('updateScoreboard', function(data){
 		updateData(data);
-
-		g.oheck.message('Update scoreboard event from server');
+		console.log('Update scoreboard');
+		updateScoreboard();
 	});
+
+
+	// Show Scoreboard event
+	// This event is broadcast after the last trick in a round is played
+	// io.in('game').emit('showScoreboard');
+	g.socket.on('showScoreboard', function(){
+		console.log('Show scoreboard');
+		$('#scoreboard-dialog').modal();
+		setTimeout("$.modal.close()", 10000);
+	});
+
 
 
   /**
@@ -437,7 +453,7 @@ $(window).on('load', function(){
 		// Show admin buttons
 		showAdminButtons();
 
-		// Show scoreboard
+		// Show scoreboard button
 		$('#show-scoreboard').show();
 
     // Setup event renderers
@@ -487,13 +503,13 @@ $(window).on('load', function(){
     createPlayers();
 
     // Create scoreboard
-    g.oheck.updateScoreboard();
+    updateScoreboard();
 
 
     // Create game
     // First person who joined the game bids first
     // Last person who joined the game deals first
-    g.oheck.rounds = g.game.numRounds;
+    //g.oheck.rounds = g.game.numRounds;
     g.oheck.dealerIndex = g.game.players.length - 1;
     g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
     //g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
@@ -583,6 +599,34 @@ $(window).on('load', function(){
     g.game.playerId = g.user.id - 1;
 		highlightCurrentPlayer();
   }
+
+	// Update scoreboard
+	function updateScoreboard(){
+		// Get player scores
+    var pScores = [];
+		for (var i = 0; i < g.game.players.length; i++){
+			pScores.push({id: i, name: g.game.players[i].name, score: g.game.players[i].score});
+		}
+    // Sort players by score DESC
+		pScores.sort(function(a,b){ return parseInt(b.score) - parseInt(a.score) } );
+    // Create HTML
+    var scoreboardHTML = '';
+    for (var i = 0; i < pScores.length; i++){
+      var pSorted = pScores[i];
+      scoreboardHTML += '<tr>';
+      scoreboardHTML += '<td class="mdl-data-table__cell--non-numeric">' + pSorted.name + '</td>';
+      scoreboardHTML += '<td class="mdl-data-table__cell--non-numeric">' + pSorted.score + '</td>';
+      scoreboardHTML += '</tr>';
+    }
+    $('#scoreboard-dialog table tbody').html(scoreboardHTML);
+	}
+
+	// Update stats board
+	function updateStats(){
+		$('#quickStats #round span').text(g.game.currentRoundId + ' / ' + g.game.options.rounds);
+		$('#quickStats #bids span').text(g.game.round.currentBid + ' / ' + g.game.round.numTricks);
+		$('#quickStats #trump span').text(g.game.round.trump);
+	}
 
   function updateUsersInLobby(){
 		showAdminButtons();

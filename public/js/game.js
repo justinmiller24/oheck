@@ -172,10 +172,6 @@ function OHeck(){
 OHeck.prototype = {
 	makeRenderFunc: function (format){
 		return function (e){
-			with(e){
-				var msg = eval(format.replace(/@(\w+(\.\w+)*)/g, "'+$1+'").replace(/(.*)/, "'$1'"));
-				this.message(msg);
-			}
 			e.game.callbackQueue.push(e);
 		};
 	},
@@ -185,7 +181,6 @@ OHeck.prototype = {
 		this.renderers['dealcard'] = this.makeRenderFunc('dealcard - @card - @player.name - hand: @player.hand');
 		this.renderers['start'] = this.makeRenderFunc('start');
 		this.renderers['play'] = this.makeRenderFunc('play - @player.name played @cards - hand: @player.hand');
-//		this.renderers['win'] = this.makeRenderFunc('win - @player.name');
 		this.renderers['sorthand'] = this.makeRenderFunc('sorthand - @player.name - @player.hand');
 		this.renderers['taketrick'] = this.makeRenderFunc('taketrick - @player.name takes the trick');
 		this.renderers['bid'] = this.makeRenderFunc('bid - @player.name bids @bid');
@@ -226,7 +221,8 @@ OHeck.prototype = {
 		var firstPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
 		for (var i = 1; i < this.pile.length; i++){
 			var card = this.pile[i];
-			if (this.trump != 'N' && bestCard.suit != this.trump && card.suit == this.trump){
+			var trump = g.game.round.trump;
+			if (trump != 'N' && bestCard.suit != trump && card.suit == trump){
 				bestCard = card;
 				winner = i;
 			} else if (card.suit == bestCard.suit && card.rank > bestCard.rank){
@@ -241,7 +237,7 @@ OHeck.prototype = {
 		this.players[this.currentPlayerIndex].tricks.push(this.pile.slice(0));
 		var oldPile = this.pile;
 		this.pile = [];
-		this.message(this.players[winnerIndex].name + ' wins trick #' + this.hand);
+//		console.log(this.players[winnerIndex].name + ' wins trick #' + this.hand);
 
 		// End of round
 		if (this.players[0].hand.length === 0){
@@ -251,13 +247,11 @@ OHeck.prototype = {
 
 		// Not end of round
 		this.hand++;
-		//this.renderEvent('taketrick', this.playerStartTurn, { trick: oldPile });
 		this.renderEvent('taketrick', function (){}, { trick: oldPile });
 	},
 	afterRound: function (){
 		this.hand = 0;
 		this.cardCount = 0;
-//		this.cardsDealt = false;
 		this.dealtCardCount = 0;
 		this.pile = [];
 		this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
@@ -269,14 +263,6 @@ OHeck.prototype = {
 		for (var i = 0; i < this.players.length; i++){
 			var p = this.players[i];
 
-			// Player made bid
-			if (p.tricks.length === p.bidValue){
-				p.score += (10 + p.tricks.length);
-			}
-			else {
-				p.score += p.tricks.length;
-			}
-
 			// Clear player hand and bid
 			$('#' + p.id + ' small').text(p.name);
 			p.bidValue = -1;
@@ -284,25 +270,8 @@ OHeck.prototype = {
 			p.handSorted = false;
 		}
 
-		// Update scoreboard
-		this.updateScoreboard();
-		$('#scoreboard-dialog').modal();
-		setTimeout("$.modal.close()", 10000);
-
 		// Remove cards
 		$('#game-board div.verticalTrick, #game-board div.horizontalTrick').remove();
-
-		// End of game
-		if (this.round === this.rounds){
-			alert('Thanks for playing!');
-			setTimeout("window.location.reload();", 15000);
-			return;
-		}
-
-/*		// Show deal button
-		else {
-			this.beforeDeal();
-		}*/
 	},
 	allPlayersBid: function (){
 		return ($A(this.players).all(function (p){
@@ -317,30 +286,11 @@ OHeck.prototype = {
 		if (this.bidPlayerIndex === g.game.playerId){
       g.human.startBid();
     }
-    // Waiting for another player to bid
-//    else{
-//      this.message('Waiting for ' + this.players[this.bidPlayerIndex].name + ' to bid');
-//    }
   },
-/*	beforeDeal: function (){
-    // Show "deal" button if it's my turn to deal, otherwise hide
-		if (this.dealerIndex === g.game.playerId){
-      $('#deal').show();
-    }
-    else {
-      $('#deal').hide();
-    }
-  },*/
 	bid: function (player, bid){
 		player.bidValue = bid;
-		this.message(player.name + ' bids ' + bid);
-		$('#' + player.id + ' small').text(player.name + ' (' + bid + ')');
-
-		// Update scoreboard with current bid
-		this.updateStats();
 
 		if (this.allPlayersBid()){
-			//this.renderEvent('start', this.playerStartTurn);
 			this.renderEvent('start', function (){});
 		}
 
@@ -378,7 +328,6 @@ OHeck.prototype = {
 	},
 	dealCards: function (){
 		this.cardCount = g.game.round.numTricks;
-		this.round = g.game.currentRoundId;
 		this.newDeck();
 		this.deal();
 	},
@@ -386,34 +335,18 @@ OHeck.prototype = {
 	dealtCardCount: 0,
 	deck: null,
 	hand: 0,
-	// Show snackbar message
-	message: function(msg){
-		console.log(msg);
-
-    document.querySelector('#snackbar-message')
-      .MaterialSnackbar.showSnackbar({
-        message: msg,
-        timeout: SNACKBAR_TIMEOUT
-    });
-	},
 	newDeck: function (){
 		this.deck = [];
 		if (!g.game.players[0].hand){
 			return;
 		}
 
-		// Set trump suit
-		this.trump = g.game.round.trump;
-		this.updateStats();
-
 		// Set position / seat arrangement
 		var pos = this.nextPlayerToDealTo;
 		var playersHands = Array();
 		for (var i = 0; i < this.players.length; i++){
 			var tPlayerId = (i + pos) % this.players.length;
-			//var thisHand = g.game.players[tPlayerId].currentHand;
 			var thisHand = g.game.players[tPlayerId].hand;
-
 //			console.log('About to deal to player ID: ' + tPlayerId);
 //			console.log(thisHand);
 			playersHands.push(thisHand);
@@ -463,21 +396,11 @@ OHeck.prototype = {
 			this.pile.push(card);
 			player.remove(card);
 		}
-//		player.canPlay = false;
 		this.renderEvent('play', this.afterPlayCards, {
 			cards: cards
 		});
 	},
 	players: [],
-//	playerStartTurn: function (){
-//		if (this.players[this.currentPlayerIndex].isHuman){
-//			this.message('It\'s your turn to play!');
-//		}
-//		else{
-//			this.message('Waiting for ' + this.players[this.currentPlayerIndex].name + ' to play');
-//		}
-//		this.players[this.currentPlayerIndex].canPlay = true;
-//	},
 	renderEvent: function (name, callback, eventData){
 		if (!eventData){
 			eventData = {};
@@ -493,8 +416,6 @@ OHeck.prototype = {
 		};
 		this.renderers[name](eventData);
 	},
-	round: 0,
-	rounds: 0,
 	setEventRenderer: function (eventName, func){
 		this.renderers[eventName] = func;
 	},
@@ -528,34 +449,7 @@ OHeck.prototype = {
 			this.renderEvent('sorthand', callback ||
 			function (){});
 		}
-	},
-	trump: 'N',
-	updateScoreboard: function (){
-    var playerScores = [];
-		for (var i = 0; i < this.players.length; i++){
-			var player = this.players[i];
-			playerScores.push({id: i, name: player.name, score: player.score});
-		}
-
-    // Sort players by score DESC
-		playerScores.sort(function(a,b){ return parseInt(b.score) - parseInt(a.score) } );
-
-    // Create HTML
-    var scoreboardHTML = '';
-    for (var i = 0; i < playerScores.length; i++){
-      var playerSorted = playerScores[i];
-      scoreboardHTML += '<tr>';
-      scoreboardHTML += '<td class="mdl-data-table__cell--non-numeric">' + playerSorted.name + '</td>';
-      scoreboardHTML += '<td class="mdl-data-table__cell--non-numeric">' + playerSorted.score + '</td>';
-      scoreboardHTML += '</tr>';
-    }
-    $('#scoreboard-dialog table tbody').html(scoreboardHTML);
-  },
-	updateStats: function (){
-		$('#quickStats #round span').text(g.game.currentRoundId + ' / ' + g.game.options.rounds);
-		$('#quickStats #bids span').text(g.game.round.currentBid + ' / ' + g.game.round.numTricks);
-		$('#quickStats #trump span').text(g.game.round.trump);
-	},
+	}
 }
 
 function ComputerPlayer(name){
@@ -566,7 +460,7 @@ ComputerPlayer.prototype = {
 	hand: null,
 	isHuman: false,
 	showCards: false,
-	score: 0,
+//	score: 0,
 	tricks: [],
 	bidValue: -1,
 	init: function (name){
@@ -603,13 +497,13 @@ HumanPlayer.prototype = {
 	hand: null,
 	isHuman: true,
 	showCards: true,
-	score: 0,
+//	score: 0,
 	tricks: [],
 	bidValue: -1,
 
 	startBid: function (){
 		$('#bid').css('z-index', oh.zIndexCounter + 10000).show();
-//		this.game.message('Choose how many tricks you think you will take.');
+//		console.log('Choose how many tricks you think you will take.');
 		var isDealer = (this.game.dealerIndex == g.game.playerId);
 		var cannotBidIndex = (g.game.round.numTricks - g.game.round.currentBid);
 
