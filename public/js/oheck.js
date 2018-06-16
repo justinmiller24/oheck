@@ -197,9 +197,6 @@ $(window).on('load', function(){
     if (g.game.round.bids < g.game.players.length){
       g.oheck.beforeBid();
     }
-    else {
-      g.oheck.beforePlayCards();
-    }
   });
 
 
@@ -218,16 +215,17 @@ $(window).on('load', function(){
         break;
       }
     }
-
-/*    // Need to play
-    if (g.game.round.numTricksTaken < g.game.round.numTricks){
-      g.oheck.beforePlayCards();
-    }
-    else {
-      //checkForEndOfRound();
-    }*/
-
   });
+
+
+	// Show Deal Button event
+	// This event is broadcast after the last card in a round is played
+	// io.in('game').emit('showDealButton', {playerId: nextDealerId});
+	g.socket.on('showDealButton', function(data){
+		if (data.playerId === g.game.playerId){
+			$('#deal').show();
+		}
+	});
 
 
 	// Take Trick event
@@ -237,6 +235,7 @@ $(window).on('load', function(){
 		updateData(data);
 
 		g.oheck.message('Take trick event from server');
+		g.oheck.afterPlayCards;
 	});
 
 
@@ -418,14 +417,13 @@ $(window).on('load', function(){
 
 	function highlightCurrentPlayer(){
 		var playerPositionToHighlight = (g.game.players.length + g.game.currentPlayerId - g.game.playerId) % g.game.players.length;
-		console.log('Highlight player ID: ' + g.game.currentPlayerId + ' in position ID: ' + playerPositionToHighlight);
+//		console.log('Highlight player ID: ' + g.game.currentPlayerId + ' in position ID: ' + playerPositionToHighlight);
 		$('.avatar').removeClass('active');
 		$('#player-position-' + playerPositionToHighlight).addClass('active');
 	}
 
   function loadGameBoard(){
   	g.oheck = new OHeck();
-		g.oheck.message('Loading Game!');
 
 		// Show admin buttons
 		showAdminButtons();
@@ -454,7 +452,6 @@ $(window).on('load', function(){
     // Setup start handler
     g.oheck.setEventRenderer('start', function(e){
       $('.card').click(function(){
-        //g.human.useCard(this.card);
 				g.socket.emit('playCard', {playerId: g.game.playerId, card: this.card.shortName});
       });
       e.callback();
@@ -475,11 +472,7 @@ $(window).on('load', function(){
 
     // Setup seats and players
     g.game.playerId = g.user.id - 1;
-//    console.log('My position: ' + (g.game.playerId + 1) + '/' + g.game.players.length);
-//    console.log('Players:');
-//    for (var i = 0; i < g.game.players.length; i++){
-//      console.log(g.game.players[i]);
-//    }
+    console.log('My position: ' + (g.game.playerId + 1) + '/' + g.game.players.length);
 
     // Create players
     createPlayers();
@@ -500,9 +493,7 @@ $(window).on('load', function(){
 //    console.log('Player index (-1): ' + g.oheck.currentPlayerIndex);
 //    console.log('Player ID: ' + g.game.playerId);
 
-		// Highlight current player (whoever needs to deal)
-
-    // Need to deal
+/*    // Need to deal
     if (!g.game.players[0].hand.length){
       g.oheck.beforeDeal();
       return;
@@ -521,6 +512,7 @@ $(window).on('load', function(){
         if (pos === g.game.playerId){
           g.oheck.bid(g.human, thisBid);
         }
+				// This was not my bid
         else {
           g.oheck.bid(g.oheck.players[pos], thisBid);
         }
@@ -532,7 +524,7 @@ $(window).on('load', function(){
       return;
     }
 
-/*    // Need to play
+    // Need to play
     if (g.game.round.currentTrickId < g.game.round.numTricks){
 
       //TODO: Show tricks won in current round
@@ -553,8 +545,6 @@ $(window).on('load', function(){
           g.oheck.playCards(player, [g.game.round.currentTrickPlayed[i]]);
         }
       }
-
-//      g.oheck.beforePlayCards();
       return;
     }*/
   }
@@ -580,13 +570,8 @@ $(window).on('load', function(){
 	}
 
   function updateData(data){
-//    console.log('Update data');
-//		console.log(data);
-//		console.log('previous current player id was: ' + g.game.currentPlayerId);
     g.game = data.game;
-//		console.log('new current player id is now: ' + g.game.currentPlayerId);
     g.game.playerId = g.user.id - 1;
-//		console.log('my player id: ' + g.game.playerId);
 		highlightCurrentPlayer();
   }
 

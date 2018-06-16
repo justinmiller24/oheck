@@ -299,10 +299,10 @@ OHeck.prototype = {
 			return;
 		}
 
-		// Show deal button
+/*		// Show deal button
 		else {
 			this.beforeDeal();
-		}
+		}*/
 	},
 	allPlayersBid: function (){
 		return ($A(this.players).all(function (p){
@@ -322,29 +322,15 @@ OHeck.prototype = {
 //      this.message('Waiting for ' + this.players[this.bidPlayerIndex].name + ' to bid');
 //    }
   },
-	beforeDeal: function (){
-
-    // My turn to deal
+/*	beforeDeal: function (){
+    // Show "deal" button if it's my turn to deal, otherwise hide
 		if (this.dealerIndex === g.game.playerId){
       $('#deal').show();
     }
-
-    // Waiting for another player to deal
     else {
-//      this.message('Waiting for ' + this.players[this.dealerIndex].name + ' to deal');
       $('#deal').hide();
     }
-  },
-	beforePlayCards: function (){
-
-    // My turn to play
-		if (this.currentPlayerIndex === g.game.playerId){
-      this.message('Your turn! Select a card to play');
-    }
-    else{
-      this.message('Waiting for ' + this.players[this.currentPlayerIndex].name + ' to play');
-    }
-  },
+  },*/
 	bid: function (player, bid){
 		player.bidValue = bid;
 		this.message(player.name + ' bids ' + bid);
@@ -409,11 +395,6 @@ OHeck.prototype = {
         message: msg,
         timeout: SNACKBAR_TIMEOUT
     });
-/*    // Have to do the function callback through "setTimeout" function because
-    // the stupid snackbar in MDL doesn't allow a native event callback
-    if (typeof callback !== 'undefined'){
-      setTimeout(callback, SNACKBAR_TIMEOUT + 250);
-    }*/
 	},
 	newDeck: function (){
 		this.deck = [];

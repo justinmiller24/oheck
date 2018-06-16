@@ -6,11 +6,11 @@ var http = require('http');
 var app = express();
 
 // Production
-var port = 80;
-var MAX_CARDS_TO_DEAL = 12;
+//var port = 80;
+//var MAX_CARDS_TO_DEAL = 12;
 // Development
-//var port = 3000;
-//var MAX_CARDS_TO_DEAL = 3;
+var port = 3000;
+var MAX_CARDS_TO_DEAL = 3;
 
 var server = http.createServer(app).listen(port, function(){
   console.log("Express server listening on port " + port);
@@ -31,9 +31,10 @@ app.get('/', function (req, res) {
 /*
  * GLOBALS
  */
-var DEFAULT_ROOM = 'general';
-var ROOM_LIST = ['general', 'game'];
-var allClients = [];
+//var DEFAULT_ROOM = 'general';
+//var ROOM_LIST = ['general', 'game'];
+//var allClients = [];
+var NASCAR_SCORE_GAP = 3;
 var users = [];
 var game = {};
 var history = [];
@@ -60,7 +61,7 @@ var GAME_DEFAULTS = {
     // Array of cards played
     currentTrickPlayed: [],
     currentBid: 0,
-    dealerId: null,
+    dealerId: -1,
     numTricks: 0,
     // C, S, H, D, or N
     trump: null
@@ -90,7 +91,7 @@ io.sockets.on('connection', function(socket) {
 
 
 io.sockets.on('connection', function(socket) {
-  allClients.push(socket);
+//  allClients.push(socket);
   console.log('User connected with Socket ID: ' + socket.id);
 
   // Initialization
@@ -218,7 +219,6 @@ io.sockets.on('connection', function(socket) {
       trump: data.trump
     }
     game.currentRoundId = 0;
-    game.currentPlayerId = -1;
     game.players = [];
     for (var i in users){
       var user = users[i];
@@ -227,21 +227,27 @@ io.sockets.on('connection', function(socket) {
         id: playerId,
         name: user.name,
         bid: null,
-        tricksTaken: 0,
-        hand: [],
         currentHand: [],
+        hand: [],
 //        pictureHand: [],
-        score: 0
+        score: 0,
+        tricksTaken: 0
       });
     }
+    // Set current dealer ID to last player ID to start
+    game.round.dealerId = game.players.length - 1;
     // Set current player ID to last player ID to start
-    game.currentPlayerId += game.players.length;
-    console.log('Current Player ID: ' + game.currentPlayerId);
+    game.currentPlayerId = game.players.length - 1;
+    console.log('Current DealerId: ' + game.currentPlayerId);
+    console.log('Current PlayerId: ' + game.currentPlayerId);
     console.log('Game Created!');
     console.log(game);
 
     // Broadcast event to users
     io.in('game').emit('startGame', {game: game});
+
+    // Show deal button to dealer ID
+    io.in('game').emit('showDealButton', {playerId: game.round.dealerId});
   });
 
 
@@ -435,148 +441,172 @@ io.sockets.on('connection', function(socket) {
       }
     }
 
+    // Player used a valid card
     // Update card played
+    console.log('PlayerId: ' + playerId + ' played a valid card: ' + card);
+
+    // Update current trick and remove card from player hand
     game.round.currentTrickPlayed.push(card);
-    console.log('Current Trick Played is now:');
-    console.log(game.round.currentTrickPlayed);
-
-    // Remove card from player hand
     game.players[playerId].currentHand.splice(cardPos, 1);
-    console.log('Player ' + playerId + ' hand remaining is now:');
-    console.log(game.players[playerId].currentHand);
+//    console.log('Player ' + playerId + ' hand remaining is now:');
+//    console.log(game.players[playerId].currentHand);
 
-    // Not last card in trick
-    // Advance player ID and broadcast event to users
+    // Check if this is the last card in trick
     if (game.round.currentTrickPlayed.length < game.players.length){
+      // Advance player ID
       game.currentPlayerId = nextPlayerId(game.currentPlayerId);
+      // Broadcast event to users
       io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
+      // Nothing else to do here
+      return;
     }
 
-    // Last card in trick
-    // Determine next player ID based on who wins trick and broadcast event to users
-    else{
+    // This is the last card in trick
+    // Determine next player ID based on winner of current trick
 
-      // Determine winner of current trick
-      var trickLeaderPlayerId = nextPlayerId(game.currentPlayerId);
-      console.log('set trick leader player id: ' + trickLeaderPlayerId);
-      var firstCard = game.round.currentTrickPlayed[0];
-      var highCardSeat = trickLeaderPlayerId;
-      var highCardSuit = firstCard.substring(0, 1);
-      var highCardVal = parseInt(firstCard.substring(1), 10);
+    // Determine winner of current trick
+    // Start with trick leader and loop through playes to determine highest card
+    var trickLeaderPlayerId = nextPlayerId(game.currentPlayerId);
 
-      for (var i = 0; i < game.round.currentTrickPlayed.length; i++){
-        var thisCard = game.round.currentTrickPlayed[i];
-        var thisCardSeat = getPlayerId(trickLeaderPlayerId + i);
-        var thisCardSuit = thisCard.substring(0, 1);
-        var thisCardVal = parseInt(thisCard.substring(1), 10);
+    // Set initial card
+    var firstCard = game.round.currentTrickPlayed[0];
+    var highCardSeat = trickLeaderPlayerId;
+    var highCardSuit = firstCard.substring(0, 1);
+    var highCardVal = parseInt(firstCard.substring(1), 10);
 
-        // Trump over no trump
-        if (thisCardSuit === game.round.trump && highCardSuit != game.round.trump){
-          highCardSeat = thisCardSeat;
-          highCardSuit = thisCardSuit;
-          highCardVal = thisCardVal;
-        }
+    // Loop through card pile
+    for (var i = 0; i < game.round.currentTrickPlayed.length; i++){
+      var thisCard = game.round.currentTrickPlayed[i];
+      var thisCardSeat = getPlayerId(trickLeaderPlayerId + i);
+      var thisCardSuit = thisCard.substring(0, 1);
+      var thisCardVal = parseInt(thisCard.substring(1), 10);
 
-        // Higher card in same suit
-        else if (thisCardSuit === highCardSuit && thisCardVal >= highCardVal) {
-          highCardSeat = thisCardSeat;
-          highCardSuit = thisCardSuit;
-          highCardVal = thisCardVal;
-        }
+      // Trump over no trump
+      if (thisCardSuit === game.round.trump && highCardSuit != game.round.trump){
+        highCardSeat = thisCardSeat;
+        highCardSuit = thisCardSuit;
+        highCardVal = thisCardVal;
       }
 
-      // Update number of tricks taken by winning player
-      console.log('highest card from player in seat: ' + highCardSeat + ' with card: ' + highCardVal + highCardSuit);
-      game.players[highCardSeat].tricksTaken++;
-      console.log('playerId ' + highCardSeat + ' now has ' + game.players[highCardSeat].tricksTaken + ' tricks');
-
-      // Clear current trick
-      game.round.currentTrickPlayed = [];
-
-      // If this is not the last trick in round, then continue
-      if (game.round.currentTrickId < game.round.numTricks){
-        game.round.currentTrickId++;
-        // Winner starts next trick
-        console.log('set current player to winner of last round: ' + highCardSeat);
-        game.currentPlayerId = highCardSeat;
-        io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
-
-        // Broadcast event to users
-        io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
-      }
-
-      else{
-
-        // Broadcast event to users
-        io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
-//        io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
-
-        // Update scores
-        for (var i = 0; i < game.players.length; i++){
-          var player = game.players[i];
-          console.log('player ' + i + ' tricks taken: ' + player.tricksTaken);
-          console.log('player ' + i + ' bid: ' + player.bid);
-          game.players[i].score += (player.tricksTaken === player.bid) ? (player.tricksTaken + 10) : player.tricksTaken;
-        }
-
-        // Update scoreboard
-//        io.in('game').emit('updateScoreboard', {game: game});
-
-        // Check for nascar
-        if (game.options.nascar && game.options.rounds >= 10 && (game.currentRoundId + 3 === game.options.rounds)){
-          console.log('NASCAR TIME!');
-
-          // TODO: DO NASCAR HERE
-          /*	nascar: function() {
-          		var playerScores = [];
-          		for (var i=0; i<this.players.length; i++) {
-          			var p = this.players[i];
-          			playerScores.push({id:i, score:p.score, newScore:p.score});
-          		}
-
-          		// Sort players by score
-          		playerScores.sort(function(a,b) { return parseInt(b.score) - parseInt(a.score) } );
-
-          		// Loop through players
-          		for (var i=1; i<playerScores.length; i++) {
-          			var pointsBehindNextPlayer = playerScores[i-1].score - playerScores[i].score;
-          			var newPointsBehindNextPlayer = Math.min(pointsBehindNextPlayer, oh.NASCAR_SCORE_GAP);
-
-          			// Bump player score so it is no more than "NASCAR_SCORE_GAP" points behind previous player
-          			playerScores[i].newScore = playerScores[i-1].newScore - newPointsBehindNextPlayer;
-
-          			// Save new score
-          			this.players[playerScores[i].id].score = playerScores[i].newScore;
-          		}
-          	},*/
-        }
-
-        // This is the last round in the game
-        if (game.currentRoundId === game.options.rounds){
-
-          // This is the last round in game
-          var winningPlayerId = 0;
-          var winningScore = 0;
-          for (var i = 0; i < game.players.length; i++){
-            var player = game.players[i];
-            if (player.score > winningScore){
-              winningPlayerId = player.id;
-              winningScore = player.score;
-            }
-          }
-          console.log('The winner is player ' + winningPlayerId + ' - ' + game.players[winningPlayerId].name + ' with ' + winningScore + ' points!');
-          console.log('Winning playerId: ' + winningPlayerId);
-
-          game.isActive = false;
-
-          //TODO: update wins for each player
-
-        }
+      // Higher card in same suit
+      else if (thisCardSuit === highCardSuit && thisCardVal >= highCardVal){
+        highCardSeat = thisCardSeat;
+        highCardSuit = thisCardSuit;
+        highCardVal = thisCardVal;
       }
     }
+
+    // Update number of tricks taken by winning player
+    console.log('PlayerId: ' + highCardSeat + ' wins trick with card: ' + highCardVal + highCardSuit);
+    // Update number of tricks taken by trick winner
+    game.players[highCardSeat].tricksTaken++;
+    console.log('PlayerId: ' + highCardSeat + ' has won ' + game.players[highCardSeat].tricksTaken + ' trick(s)');
+    // Winner starts next trick
+    game.currentPlayerId = highCardSeat;
+    // Clear current trick
+    game.round.currentTrickPlayed = [];
+
+    // Check if this is the last trick in round
+    if (game.round.currentTrickId < game.round.numTricks){
+      // Advance trick ID
+      game.round.currentTrickId++;
+      // Broadcast event to users
+      io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
+      io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
+      // Nothing else to do here
+      return;
+    }
+
+
+    // This is the last trick in round
+    // Update scores (and check for NASCAR)
+    // Determine next player ID based on deal rotation
+
+    // Update scores
+    for (var i = 0; i < game.players.length; i++){
+      var player = game.players[i];
+      console.log('PlayerId: ' + i + ' bid ' + player.bid + ' and took ' + player.tricksTaken + ' trick(s)');
+      game.players[i].score += (player.tricksTaken === player.bid) ? (player.tricksTaken + 10) : player.tricksTaken;
+    }
+
+    // Check for NASCAR
+    // Game must have at least 6 rounds
+    // NASCAR happens 3 rounds before end of game
+    if (game.options.nascar && (game.options.rounds >= 6) && (game.currentRoundId + 3 === game.options.rounds)){
+      console.log('NASCAR!');
+
+      // Get player scores
+      var pScores = [];
+      for (var i = 0; i < game.players.length; i++){
+        pScores.push({id: i, score: game.players[i].score, newScore: game.players[i].score});
+      }
+
+      // Sort players by score DESC
+      pScores.sort(function(a,b){
+        return parseInt(b.score) - parseInt(a.score)
+      });
+
+      // Adjust scores
+      console.log('PlayerId: ' + pScores[0].id + ' is the leader and score remains unchanged at ' + pScores[0].score);
+      for (var i = 1; i < pScores.length; i++){
+        // Current points behind
+        var pointsBehind = pScores[i-1].score - pScores[i].score;
+        // Bump player score so it is no more than NASCAR_SCORE_GAP points behind previous player
+        pScores[i].newScore = pScores[i-1].newScore - Math.min(pointsBehind, NASCAR_SCORE_GAP);
+        // Save new score
+        console.log('PlayerId: ' + pScores[i].id + ' score increasing from ' + pScores[i].score + ' to ' + pScores[i].newScore);
+        game.players[pScores[i].id].score = pScores[i].newScore;
+      }
+    }
+
+    // Broadcast event to users
+    io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
+    io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
+    io.in('game').emit('updateScoreboard', {game: game});
+
+
+    // Check if this is the last round in game
+    // Do not advance round ID here, instead wait until the DEAL button is pressed
+    if (game.currentRoundId < game.options.rounds){
+      // Show deal button to next dealer
+      var nextDealerId = getPlayerId(game.currentRoundId + game.players.length - 1);
+      // Broadcast event to users
+      io.in('game').emit('showDealButton', {playerId: nextDealerId});
+      // Nothing else to do here
+      return;
+    }
+
+    // This is the last round in game
+    // Determine winning player ID based on top score
+
+    // Get player scores
+    var pScores = [];
+    for (var i = 0; i < game.players.length; i++){
+      pScores.push({id: i, score: game.players[i].score});
+    }
+
+    // Sort players by score DESC
+    pScores.sort(function(a,b){
+      return parseInt(b.score) - parseInt(a.score)
+    });
+
+    // Check for tie
+    if (pScores[0].score === pScores[1].score){
+      console.log('There is a tie for the lead! We need to do one more round.');
+      socket.emit('showMessage', {message: 'There is a tie for the lead!'});
+
+      //TODO: extend game by one more round
+
+      // Nothing else to do here
+      return;
+    }
+
+    // Determine winning player and end game
+    var winnerPlayerId = pScores[0].id;
+    console.log('PlayerId: ' + winnerPlayerId + ' wins with score: ' + pScores[0].score);
+    game.isActive = false;
 
   });
-
 
 });
 
