@@ -197,10 +197,17 @@ io.sockets.on('connection', function(socket) {
 //    console.log(game);
 
     // Broadcast event to users
-    io.in('game').emit('startGame', {game: game});
+    io.in('game').emit('event', [{
+      op: 'startGame',
+      game: game
+    }]);
 
     // Show deal button to dealer ID
-    io.in('game').emit('showDealButton', {playerId: game.round.dealerId});
+    io.in('game').emit('event', [{
+      op: 'showDealButton',
+      playerId: game.round.dealerId
+    }]);
+
   });
 
 
@@ -274,7 +281,10 @@ io.sockets.on('connection', function(socket) {
 
     // Broadcast event to users
 //    console.log(game);
-    io.in('game').emit('dealHand', {game: game});
+    io.in('game').emit('event', [{
+      op: 'dealHand',
+      game: game
+    }]);
   });
 
 
@@ -289,7 +299,9 @@ io.sockets.on('connection', function(socket) {
 
 
     // Send data to all clients including sender
-    io.in('game').emit('restartHand', 'Restart Hand');
+    io.in('game').emit('event', [{
+      op: 'restartHand'
+    }]);
   });
 
 
@@ -339,7 +351,12 @@ io.sockets.on('connection', function(socket) {
     game.currentPlayerId = nextPlayerId(game.currentPlayerId);
 
     // Broadcast event to users
-    io.in('game').emit('bid', {playerId: data.playerId, bid: currentBid, game: game});
+    io.in('game').emit('event', [{
+      op: 'bid',
+      playerId: data.playerId,
+      bid: currentBid,
+      game: game
+    }]);
   });
 
 
@@ -408,7 +425,12 @@ io.sockets.on('connection', function(socket) {
       // Advance player ID
       game.currentPlayerId = nextPlayerId(game.currentPlayerId);
       // Broadcast event to users
-      io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
+      io.in('game').emit('event', [{
+        op: 'playCard',
+        playerId: data.playerId,
+        cardShortName: data.card,
+        game: game
+      }]);
       // Nothing else to do here
       return;
     }
@@ -463,8 +485,16 @@ io.sockets.on('connection', function(socket) {
       // Advance trick ID
       game.round.currentTrickId++;
       // Broadcast event to users
-      io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
-      io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
+      io.in('game').emit('event', [{
+        op: 'playCard',
+        playerId: data.playerId,
+        cardShortName: data.card,
+        game: game
+      },{
+        op: 'takeTrick',
+        playerId: highCardSeat,
+        game: game
+      }]);
       // Nothing else to do here
       return;
     }
@@ -512,10 +542,21 @@ io.sockets.on('connection', function(socket) {
     }
 
     // Broadcast event to users
-    io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
-    io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
-    io.in('game').emit('updateScoreboard', {game: game});
-    io.in('game').emit('showScoreboard');
+    io.in('game').emit('event', [{
+      op: 'playCard',
+      playerId: data.playerId,
+      cardShortName: data.card,
+      game: game
+    },{
+      op: 'takeTrick',
+      playerId: highCardSeat,
+      game: game
+    },{
+      op: 'updateScoreboard',
+      game: game
+    },{
+      op: 'showScoreboard'
+    }]);
 
 
     // Check if this is the last round in game
@@ -524,7 +565,10 @@ io.sockets.on('connection', function(socket) {
       // Show deal button to next dealer
       var nextDealerId = getPlayerId(game.currentRoundId + game.players.length - 1);
       // Broadcast event to users
-      io.in('game').emit('showDealButton', {playerId: nextDealerId});
+      io.in('game').emit('event', [{
+        op: 'showDealButton',
+        playerId: nextDealerId
+      }]);
       // Nothing else to do here
       return;
     }
@@ -551,7 +595,10 @@ io.sockets.on('connection', function(socket) {
       //TODO: extend game by one more round
       // Delete the following 2 lines when game is extended
       game.isActive = false;
-      io.in('game').emit('endGame', {playerId: winnerPlayerId});
+      io.in('game').emit('event', [{
+        op: 'endGame',
+        playerId: winnerPlayerId
+      }]);
 
       // Nothing else to do here
       return;
@@ -566,7 +613,10 @@ io.sockets.on('connection', function(socket) {
     game.isActive = false;
 
     // Broadcast event to users
-    io.in('game').emit('endGame', {playerId: winnerPlayerId});
+    io.in('game').emit('event', [{
+      op: 'endGame',
+      playerId: winnerPlayerId
+    }]);
   });
 
 });

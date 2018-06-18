@@ -8,7 +8,6 @@
 // Globals
 var COOKIE_NAME = 'oheck';
 
-
 var oh = {
 	ANIMATION_SPEED: 500,
 	CARD_PADDING: 18,
@@ -58,8 +57,9 @@ var SNACKBAR_TIMEOUT = 1000;
 
 var g = {
 	game: {},
-	history: [],
+//	history: [],
   oheck: {},
+	queue: [],
   socket: null,
   user: {
     id: null,
@@ -67,7 +67,8 @@ var g = {
     games: 0,
     wins: 0
   },
-  users: []
+  users: [],
+	waiting: false
 }
 
 
@@ -82,6 +83,7 @@ $(window).on('load', function(){
 
 
 	// This event fires on socket connection
+	// socket.emit('init', {users: users, game: game});
   g.socket.on('init', function(data){
 //    console.log(data);
     g.users = data.users;
@@ -119,8 +121,8 @@ $(window).on('load', function(){
   g.socket.on('myUserLogin', function(data){
 		g.user.id = data.userId;
     g.users = data.users;
-		g.history = data.history;
-		console.log(g.history);
+//		g.history = data.history;
+//		console.log(g.history);
     // Save to cookie
     Cookies.set(COOKIE_NAME, g.user);
     updateUsersInLobby();
@@ -135,6 +137,8 @@ $(window).on('load', function(){
 		});
 	});
 
+	// This event fires when user joins
+	// io.in('game').emit('userJoined', {userId: data.user.id, users: users});
   g.socket.on('userJoined', function(data){
     g.users = data.users;
     if (g.users[data.userId - 1] && g.users[data.userId - 1].name){
@@ -144,7 +148,9 @@ $(window).on('load', function(){
     }
   });
 
-  g.socket.on('userLogout', function(data){
+	// This event fires when user logs out
+  // socket.to('game').emit('userLogout', {userId: data.userId, users: users});
+	g.socket.on('userLogout', function(data){
     if (g.users[data.userId - 1] && g.users[data.userId - 1].name){
       var loggedOutUser = g.users[data.userId - 1].name;
       console.log(loggedOutUser + ' logged out');
@@ -153,47 +159,102 @@ $(window).on('load', function(){
     updateUsersInLobby();
   });
 
+	// This event fires when admin user forces reload
+	// io.in('game').emit('forceReloadAll', 'Force Reload All');
   g.socket.on('forceReloadAll', function(data){
     console.log('Reloading...');
 		window.location.reload();
   });
 
-  g.socket.on('startGame', function(data){
-		updateData(data);
-		$.modal.close();
-    $('#lobby, #game-board').slideToggle();
-		// Call this AFTER DOM manipulation so card positioning is correct
-		loadGameBoard();
-		// Call this AFTER loadGameBoard() so "players" DIV exists
-		highlightCurrentPlayer();
-  });
 
-  g.socket.on('dealHand', function(data){
-    updateData(data);
-		updateStats();
-    g.oheck.dealCards();
-    g.oheck.beforeBid();
-  });
+	/*
+	 * This event fires when any game event occurs
+	 * "data" is an array of one or more events to fire
+	 */
+	g.socket.on('event', function(data){
 
-	g.socket.on('restartHand', function(data){
-    console.log('Restarting Hand...');
-//		window.location.reload();
-  });
+		// Loop through one or more "op" (operation) events and add to queue
+		for (var i = 0; i < data.length; i++){
+			g.queue.push(data[i]);
+		}
 
-	// End game event
-	// This event is broadcast after the last round if there is no tie
-	// io.in('game').emit('endGame', {playerId: winnerPlayerId});
-	g.socket.on('endGame', function(data){
-    console.log('Ending Game');
-		//alert(g.game.players[data.playerId].name + ' wins with ' + g.game.players[data.playerId].score + ' points!');
-		setTimeout("window.location.reload();", 15000);
-  });
+		// Trigger next event in queue
+		nextQueueEvent();
+	});
 
+	function nextQueueEvent(){
+
+		// Exit if another event is already in progress
+		if (g.waiting){
+			console.log('Another queue event is already running');
+			return;
+		}
+
+		// Exit if queue is empty
+		if (g.queue.length === 0){
+			console.log('No more queue events exit');
+			return;
+		}
+
+		// Set waiting status
+		g.waiting = true;
+
+		// Pop next event from top of queue
+		var data = g.queue.pop();
+
+		// Trigger event
+		switch (evt.op){
+			case 'bid':
+				bid(data);
+				break;
+			case 'dealHand':
+				dealHand(data);
+				break;
+			case 'endGame':
+				endGame(data);
+				break;
+			case 'playCard':
+				playCard(data);
+				break;
+			case 'restartHand':
+				restartHand(data);
+				break;
+			case 'showDealButton':
+				showDealButton(data);
+				break;
+			case 'showScoreboard':
+				showScoreboard(data);
+				break;
+			case 'startGame':
+				startGame(data);
+				break;
+			case 'takeTrick':
+				takeTrick(data);
+				break;
+			case 'updateScoreboard':
+				updateScoreboard(data);
+				break;
+			default:
+				break;
+		}
+
+		// Complete waiting status
+		g.waiting = false;
+
+		// Run next event
+		nextQueueEvent();
+	}
+
+
+
+	/*
+	 * GAME EVENTS
+	 */
 
 	// Bid event
 	// This event is broadcast after a player bids
 	// io.in('game').emit('bid', {playerId: data.playerId, bid: currentBid, game: game});
-  g.socket.on('bid', function(data){
+	function bid(data){
     updateData(data);
 		// Update player display bid
 		$('#' + g.oheck.players[data.playerId].id + ' small').append(' (' + data.bid + ')');
@@ -212,13 +273,33 @@ $(window).on('load', function(){
     if (g.game.round.bids < g.game.players.length){
       g.oheck.beforeBid();
     }
-  });
+  }
+
+	// Deal Hand event
+	// This event fires when the dealer presses "deal" at the beginning of each round
+	// io.in('game').emit('dealHand', {game: game});
+	function dealHand(data){
+    updateData(data);
+		updateStats();
+    g.oheck.dealCards();
+    g.oheck.beforeBid();
+  }
+
+
+	// End Game event
+	// This event is broadcast after the last round if there is no tie
+	// io.in('game').emit('endGame', {playerId: winnerPlayerId});
+	function endGame(data){
+    console.log('Ending Game');
+		//alert(g.game.players[data.playerId].name + ' wins with ' + g.game.players[data.playerId].score + ' points!');
+		setTimeout("window.location.reload();", 15000);
+  }
 
 
 	// Play Card event
 	// This event is broadcast after a player plays a card in the current trick
-	//io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
-  g.socket.on('playCard', function(data){
+	// io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
+	function playCard(data){
     updateData(data);
 
     // Find card in my hand
@@ -230,47 +311,69 @@ $(window).on('load', function(){
         break;
       }
     }
-  });
+  }
+
+
+	// Restart Hand event
+ 	// This event fires when the admin user presses "restart" during a round
+	// io.in('game').emit(restartHand');
+	function restartHand(data){
+    console.log('Restarting Hand...');
+//		window.location.reload();
+  }
 
 
 	// Show Deal Button event
 	// This event is broadcast after the last card in a round is played
 	// io.in('game').emit('showDealButton', {playerId: nextDealerId});
-	g.socket.on('showDealButton', function(data){
+	function showDealButton(data){
 		if (data.playerId === g.game.playerId){
 			$('#deal').show();
 		}
-	});
-
-
-	// Take Trick event
-	// This event is broadcast after the last card in a trick is played
-	// io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
-	g.socket.on('takeTrick', function(data){
-		updateData(data);
-		console.log('Take trick event from server. This function really does nothing yet...');
-//		g.oheck.afterPlayCards;
-	});
-
-
-	// Update Scoreboard event
-	// This event is broadcast after the last trick in a round is played
-	// io.in('game').emit('updateScoreboard', {game: game});
-	g.socket.on('updateScoreboard', function(data){
-		updateData(data);
-		console.log('Update scoreboard');
-		updateScoreboard();
-	});
+	}
 
 
 	// Show Scoreboard event
 	// This event is broadcast after the last trick in a round is played
 	// io.in('game').emit('showScoreboard');
-	g.socket.on('showScoreboard', function(){
+	function showScoreboard(data){
 		console.log('Show scoreboard');
 		$('#scoreboard-dialog').modal();
 		setTimeout("$.modal.close()", 10000);
-	});
+	}
+
+
+	// Start Game event
+ 	// This event fires when the first player creates a new game
+	// io.in('game').emit('startGame', {game: game});
+	function startGame(data){
+		updateData(data);
+		$.modal.close();
+    $('#lobby, #game-board').slideToggle();
+		// Call this AFTER DOM manipulation so card positioning is correct
+		loadGameBoard();
+		// Call this AFTER loadGameBoard() so "players" DIV exists
+		highlightCurrentPlayer();
+  }
+
+	// Take Trick event
+	// This event is broadcast after the last card in a trick is played
+	// io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
+	function takeTrick(data){
+		updateData(data);
+		console.log('Take trick event from server. This function really does nothing yet...');
+//		g.oheck.afterPlayCards;
+	}
+
+
+	// Update Scoreboard event
+	// This event is broadcast after the last trick in a round is played
+	// io.in('game').emit('updateScoreboard', {game: game});
+	function updateScoreboard(data){
+		updateData(data);
+		console.log('Update scoreboard');
+		updateScoreboard();
+	}
 
 
 
@@ -307,10 +410,6 @@ $(window).on('load', function(){
     location.reload();
   });
 
-
-  /**
-   * LOBBY FUNCTIONS
-   */
 
   // Start Game
   // Have to use a delegated event because the button ID does not exist when document.onReady event fires initially
@@ -517,61 +616,6 @@ $(window).on('load', function(){
 //    console.log('Dealer index (-1): ' + g.oheck.dealerIndex);
 //    console.log('Player index (-1): ' + g.oheck.currentPlayerIndex);
 //    console.log('Player ID: ' + g.game.playerId);
-
-/*    // Need to deal
-    if (!g.game.players[0].hand.length){
-      g.oheck.beforeDeal();
-      return;
-    }
-
-    // Deal
-    g.oheck.dealCards();
-
-    // Update existing bids
-    var firstPlayerToBidThisHand = g.oheck.nextIndex(g.oheck.dealerIndex);
-    for (var i = 0; i < g.game.round.bids; i++){
-      var pos = (firstPlayerToBidThisHand + i) % g.game.players.length;
-        var thisBid = g.game.players[pos].bid;
-
-        // This was my bid
-        if (pos === g.game.playerId){
-          g.oheck.bid(g.human, thisBid);
-        }
-				// This was not my bid
-        else {
-          g.oheck.bid(g.oheck.players[pos], thisBid);
-        }
-    }
-
-    // Need to bid
-    if (g.game.round.bids < g.game.players.length){
-      g.oheck.beforeBid();
-      return;
-    }
-
-    // Need to play
-    if (g.game.round.currentTrickId < g.game.round.numTricks){
-
-      //TODO: Show tricks won in current round
-
-      // Show cards played in current trick
-      var numberOfCardsPlayedInCurrentTrick = g.game.round.currentTrickPlayed.length;
-      if (numberOfCardsPlayedInCurrentTrick){
-
-        // Determine who played the first card in current trick
-        var playerId = (g.game.currentPlayerId - g.game.round.currentTrickPlayed.length + g.game.players.length) % g.game.players.length;
-        if (playerId === 0){
-          playerId = g.game.players.length;
-        }
-        // Simulate cards in current trick already played
-        for (var i = 0; i < numberOfCardsPlayedInCurrentTrick; i++){
-          var player = g.oheck.players[(playerId + i) % g.oheck.players.length];
-          console.log(player.name + ' played the ' + g.game.round.currentTrickPlayed[i].longName);
-          g.oheck.playCards(player, [g.game.round.currentTrickPlayed[i]]);
-        }
-      }
-      return;
-    }*/
   }
 
 	// Show "admin" buttons for first user
