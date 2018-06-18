@@ -203,7 +203,7 @@ $(window).on('load', function(){
 		var data = g.queue.pop();
 
 		// Trigger event
-		switch (evt.op){
+		switch (data.op){
 			case 'bid':
 				bid(data);
 				break;
