@@ -57,7 +57,7 @@ var SNACKBAR_TIMEOUT = 1000;
 
 var g = {
 	game: {},
-//	history: [],
+	history: [],
   oheck: {},
 	queue: [],
   socket: null,
@@ -172,17 +172,26 @@ $(window).on('load', function(){
 	 * "data" is an array of one or more events to fire
 	 */
 	g.socket.on('event', function(data){
+		console.log('Received event packet from server');
 
 		// Loop through one or more "op" (operation) events and add to queue
 		for (var i = 0; i < data.length; i++){
-			g.queue.push(data[i]);
+			console.log('Received event ' + data[i].op + ' from server');
+			addQueueEvent(data[i]);
 		}
 
 		// Trigger next event in queue
-		nextQueueEvent();
+		runQueueEvent();
 	});
 
-	function nextQueueEvent(){
+	// Add event to queue
+	function addQueueEvent(evt){
+		g.history.push(evt);
+		g.queue.push(evt);
+	}
+
+	// Run event from queue
+	function runQueueEvent(){
 
 		// Exit if another event is already in progress
 		if (g.waiting){
@@ -192,7 +201,7 @@ $(window).on('load', function(){
 
 		// Exit if queue is empty
 		if (g.queue.length === 0){
-			console.log('No more queue events exit');
+			console.log('No queue events exit');
 			return;
 		}
 
@@ -213,6 +222,9 @@ $(window).on('load', function(){
 			case 'endGame':
 				endGame(data);
 				break;
+			case 'finishRound':
+				finishRound(data);
+				break;
 			case 'playCard':
 				playCard(data);
 				break;
@@ -231,9 +243,6 @@ $(window).on('load', function(){
 			case 'takeTrick':
 				takeTrick(data);
 				break;
-			case 'updateScoreboard':
-				updateScoreboard(data);
-				break;
 			default:
 				break;
 		}
@@ -242,7 +251,7 @@ $(window).on('load', function(){
 		g.waiting = false;
 
 		// Run next event
-		nextQueueEvent();
+		runQueueEvent();
 	}
 
 
@@ -296,6 +305,16 @@ $(window).on('load', function(){
   }
 
 
+	// Finish Round event
+	// This event is broadcast after the last trick in a round is played
+	// io.in('game').emit('finishRound', {game: game});
+	function finishRound(data){
+		updateData(data);
+		g.oheck.afterRound();
+		updateScoreboard();
+	}
+
+
 	// Play Card event
 	// This event is broadcast after a player plays a card in the current trick
 	// io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
@@ -307,7 +326,7 @@ $(window).on('load', function(){
     for (var pos = 0; pos < player.hand.length; pos++){
       if (player.hand[pos].shortName == data.cardShortName){
 //        console.log(player.name + ' played the ' + player.hand[pos].longName);
-        g.oheck.playCards(player, [player.hand[pos]]);
+        g.oheck.playCard(player, player.hand[pos]);
         break;
       }
     }
@@ -361,18 +380,18 @@ $(window).on('load', function(){
 	// io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
 	function takeTrick(data){
 		updateData(data);
-		console.log('Take trick event from server. This function really does nothing yet...');
-//		g.oheck.afterPlayCards;
-	}
 
+		var winnerIndex = data.playerId;
 
-	// Update Scoreboard event
-	// This event is broadcast after the last trick in a round is played
-	// io.in('game').emit('updateScoreboard', {game: game});
-	function updateScoreboard(data){
-		updateData(data);
-		console.log('Update scoreboard');
-		updateScoreboard();
+		g.oheck.currentPlayerIndex = winnerIndex;
+		g.oheck.players[g.oheck.currentPlayerIndex].tricks.push(g.oheck.pile.slice(0));
+		var oldPile = g.oheck.pile;
+		g.oheck.pile = [];
+		console.log('PlayerId ' + winnerIndex + ' wins trick #' + g.oheck.hand);
+
+		// Not end of round
+		g.oheck.hand++;
+		g.oheck.renderEvent('taketrick', function (){}, { trick: oldPile });
 	}
 
 
@@ -437,8 +456,6 @@ $(window).on('load', function(){
 
 			// If user is logged in, grab user info from cookie, delete login form, and show logout button
       g.user = Cookies.getJSON(COOKIE_NAME);
-//      console.log('User is already logged in');
-//      console.log(g.user);
 			showAdminButtons();
       $('#login').remove();
 			$('#show-logout').show();
@@ -539,9 +556,10 @@ $(window).on('load', function(){
     }
   }
 
+	// Highlight current player's turn
 	function highlightCurrentPlayer(){
+		// Determine what "positionId" playerId (g.game.currentPlayerId) is in, so we can "highlight" their turn
 		var playerPositionToHighlight = (g.game.players.length + g.game.currentPlayerId - g.game.playerId) % g.game.players.length;
-//		console.log('Highlight player ID: ' + g.game.currentPlayerId + ' in position ID: ' + playerPositionToHighlight);
 		$('.avatar').removeClass('active');
 		$('#player-position-' + playerPositionToHighlight).addClass('active');
 	}
@@ -571,14 +589,6 @@ $(window).on('load', function(){
     $('#deal').click(function(e){
       $(this).hide();
       g.socket.emit('dealHand');
-    });
-
-    // Setup start handler
-    g.oheck.setEventRenderer('start', function(e){
-      $('.card').click(function(){
-				g.socket.emit('playCard', {playerId: g.game.playerId, card: this.card.shortName});
-      });
-      e.callback();
     });
 
     // Preload images

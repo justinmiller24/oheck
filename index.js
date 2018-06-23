@@ -6,8 +6,8 @@ var http = require('http');
 var app = express();
 
 // Production
-var isProduction = __dirname == '/Users/justinmiller/Sites/oheck';
-var port = isProduction ? 3000 : 80;
+var isProduction = __dirname !== '/Users/justinmiller/Sites/oheck';
+var port = isProduction ? 80 : 3000;
 
 var server = http.createServer(app).listen(port, function(){
   console.log("Express server listening on port " + port);
@@ -31,7 +31,7 @@ app.get('/', function (req, res) {
 var users = [];
 var game = {};
 var history = [];
-var MAX_CARDS_TO_DEAL = 12;
+var MAX_CARDS_TO_DEAL = isProduction ? 12 : 3;
 var NASCAR_SCORE_GAP = 3;
 var GAME_DEFAULTS = {
   isActive: false,
@@ -552,7 +552,7 @@ io.sockets.on('connection', function(socket) {
       playerId: highCardSeat,
       game: game
     },{
-      op: 'updateScoreboard',
+      op: 'finishRound',
       game: game
     },{
       op: 'showScoreboard'

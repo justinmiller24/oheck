@@ -179,7 +179,6 @@ OHeck.prototype = {
 		this.callbackQueue = [];
 		this.renderers = {};
 		this.renderers['dealcard'] = this.makeRenderFunc('dealcard - @card - @player.name - hand: @player.hand');
-		this.renderers['start'] = this.makeRenderFunc('start');
 		this.renderers['play'] = this.makeRenderFunc('play - @player.name played @cards - hand: @player.hand');
 		this.renderers['sorthand'] = this.makeRenderFunc('sorthand - @player.name - @player.hand');
 		this.renderers['taketrick'] = this.makeRenderFunc('taketrick - @player.name takes the trick');
@@ -205,49 +204,7 @@ OHeck.prototype = {
 		}
 	},
 	afterPlayCards: function (){
-
-		// Not end of current trick, advance player turn
-		if (this.pile.length < this.players.length){
-			var player = this.players[this.currentPlayerIndex];
-			this.currentPlayerIndex = this.nextIndex(this.currentPlayerIndex);
-//			this.playerStartTurn();
-			return;
-		}
-
-		// End of current trick
-		var winner = 0;
-		var firstCard = this.pile[0];
-		var bestCard = firstCard;
-		var firstPlayerIndex = (this.currentPlayerIndex + 1) % this.players.length;
-		for (var i = 1; i < this.pile.length; i++){
-			var card = this.pile[i];
-			var trump = g.game.round.trump;
-			if (trump != 'N' && bestCard.suit != trump && card.suit == trump){
-				bestCard = card;
-				winner = i;
-			} else if (card.suit == bestCard.suit && card.rank > bestCard.rank){
-				bestCard = card;
-				winner = i;
-			}
-		}
-		var winnerIndex = (firstPlayerIndex + winner) % this.players.length;
-
-		// Set next player to winner of current trick
-		this.currentPlayerIndex = winnerIndex;
-		this.players[this.currentPlayerIndex].tricks.push(this.pile.slice(0));
-		var oldPile = this.pile;
-		this.pile = [];
-//		console.log(this.players[winnerIndex].name + ' wins trick #' + this.hand);
-
-		// End of round
-		if (this.players[0].hand.length === 0){
-			this.renderEvent('taketrick', this.afterRound, { trick: oldPile });
-			return;
-		}
-
-		// Not end of round
-		this.hand++;
-		this.renderEvent('taketrick', function (){}, { trick: oldPile });
+		this.currentPlayerIndex = this.nextIndex(this.currentPlayerIndex);
 	},
 	afterRound: function (){
 		this.hand = 0;
@@ -291,7 +248,9 @@ OHeck.prototype = {
 		player.bidValue = bid;
 
 		if (this.allPlayersBid()){
-			this.renderEvent('start', function (){});
+			$('.card').click(function(){
+				g.socket.emit('playCard', {playerId: g.game.playerId, card: this.card.shortName});
+			});
 		}
 
 		this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
@@ -390,14 +349,12 @@ OHeck.prototype = {
 	},
 	nextPlayerToDealTo: -1,
 	pile: [],
-	playCards: function (player, cards){
-		for (var i = 0; i < cards.length; i++){
-			var card = cards[i];
-			this.pile.push(card);
-			player.remove(card);
-		}
+	playCard: function (player, card){
+		this.pile.push(card);
+		player.remove(card);
 		this.renderEvent('play', this.afterPlayCards, {
-			cards: cards
+//		this.renderEvent('play', function (){}, {
+			cards: [card]
 		});
 	},
 	players: [],
@@ -460,29 +417,11 @@ ComputerPlayer.prototype = {
 	hand: null,
 	isHuman: false,
 	showCards: false,
-//	score: 0,
 	tricks: [],
 	bidValue: -1,
 	init: function (name){
 		this.name = name;
 		this.hand = [];
-	},
-	extend: function (type){
-		this.base = {};
-		for (var i in type){
-			if (this[i]){
-				this.base[i] = this[i];
-			}
-			this[i] = type[i];
-		}
-	},
-	hasCard: function (card){
-		for (var i = 0; i < this.hand.length; i++){
-			if (this.hand[i] == card){
-				return true;
-			}
-		}
-		return false;
 	},
 	remove: function (card){
 		return $A(this.hand).remove(card);
@@ -497,7 +436,6 @@ HumanPlayer.prototype = {
 	hand: null,
 	isHuman: true,
 	showCards: true,
-//	score: 0,
 	tricks: [],
 	bidValue: -1,
 
@@ -524,7 +462,6 @@ HumanPlayer.prototype = {
 		}
 	},
 	init: ComputerPlayer.prototype.init,
-	hasCard: ComputerPlayer.prototype.hasCard,
 	remove: ComputerPlayer.prototype.remove
 }
 
