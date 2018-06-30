@@ -1,7 +1,8 @@
 /*
  * OH HECK - Card Game
- * Created by Justin Miller on 9.1.2017
- * Updated by Justin Miller on 6.15.2018
+ * Originally written by Justin Miller on 6.10.2012
+ * Converted to Node.js by Justin Miller on 9.1.2017
+ * Last updated by Justin Miller on 6.29.2018
  */
 
 
@@ -85,7 +86,6 @@ $(window).on('load', function(){
 	// This event fires on socket connection
 	// socket.emit('init', {users: users, game: game});
   g.socket.on('init', function(data){
-//    console.log(data);
     g.users = data.users;
     g.game = data.game;
 
@@ -172,7 +172,7 @@ $(window).on('load', function(){
 	 * "data" is an array of one or more events to fire
 	 */
 	g.socket.on('event', function(data){
-		console.log('Received event packet from server');
+//		console.log('Received event packet from server');
 
 		// Loop through one or more "op" (operation) events and add to queue
 		for (var i = 0; i < data.length; i++){
@@ -181,6 +181,7 @@ $(window).on('load', function(){
 		}
 
 		// Trigger next event in queue
+//		console.log('Trigger next queue event from g.socket.on received');
 		runQueueEvent();
 	});
 
@@ -195,21 +196,27 @@ $(window).on('load', function(){
 
 		// Exit if another event is already in progress
 		if (g.waiting){
-			console.log('Another queue event is already running');
+//			console.log('Another queue event is already running');
 			return;
 		}
 
 		// Exit if queue is empty
 		if (g.queue.length === 0){
-			console.log('No queue events exit');
+//			console.log('No queue events exit');
 			return;
 		}
 
 		// Set waiting status
+		console.log('set g.waiting to true. g.queue length is: ' + g.queue.length);
+		var opsList = [];
+		for (var i = 0; i < g.queue.length; i++){
+			opsList.push(g.queue[i].op);
+		}
+		console.log(opsList);
 		g.waiting = true;
 
 		// Pop next event from top of queue
-		var data = g.queue.pop();
+		var data = g.queue.shift();
 
 		// Trigger event
 		switch (data.op){
@@ -237,8 +244,14 @@ $(window).on('load', function(){
 			case 'showScoreboard':
 				showScoreboard(data);
 				break;
+			case 'startBid':
+				startBid(data);
+				break;
 			case 'startGame':
 				startGame(data);
+				break;
+			case 'startPlay':
+				startPlay(data);
 				break;
 			case 'takeTrick':
 				takeTrick(data);
@@ -248,9 +261,11 @@ $(window).on('load', function(){
 		}
 
 		// Complete waiting status
+		console.log('set g.waiting to false');
 		g.waiting = false;
 
 		// Run next event
+//		console.log('Trigger next queue event from end of previous runQueueEvent()');
 		runQueueEvent();
 	}
 
@@ -269,19 +284,6 @@ $(window).on('load', function(){
 		$('#' + g.oheck.players[data.playerId].id + ' small').append(' (' + data.bid + ')');
 		// Update stats board
 		updateStats();
-
-    // This was my bid
-    if (data.playerId === g.game.playerId){
-      g.oheck.bid(g.human, data.bid);
-    }
-    else {
-      g.oheck.bid(g.oheck.players[data.playerId], data.bid);
-    }
-
-    // Need to bid
-    if (g.game.round.bids < g.game.players.length){
-      g.oheck.beforeBid();
-    }
   }
 
 	// Deal Hand event
@@ -290,8 +292,11 @@ $(window).on('load', function(){
 	function dealHand(data){
     updateData(data);
 		updateStats();
+
+		// Remove cards from previous hand
+		$('#game-board div.verticalTrick, #game-board div.horizontalTrick').remove();
+
     g.oheck.dealCards();
-    g.oheck.beforeBid();
   }
 
 
@@ -362,6 +367,34 @@ $(window).on('load', function(){
 	}
 
 
+	// Start Bid event
+ 	// This event fires before each player has to bid
+	// io.in('game').emit('startBid', {game: game});
+	function startBid(data){
+		if (data.playerId === g.game.playerId){
+
+			$('#bid').css('z-index', g.oheck.zIndexCounter + 10000).show();
+			var isDealer = (g.oheck.dealerIndex == g.game.playerId);
+			var cannotBidIndex = (g.game.round.numTricks - g.game.round.currentBid);
+
+			$('#bid div').remove();
+			for (var i = 0; i <= g.game.round.numTricks; i++){
+
+				// Force dealer
+				if (isDealer && (i === cannotBidIndex)){
+					$('<div/>').text(i).addClass('cannotBid').appendTo('#bid');
+				}
+				else {
+					$('<div/>').text(i).appendTo('#bid').click(function(e){
+						var bid = parseInt($(this).text());
+						g.socket.emit('bid', {playerId: g.game.playerId, bid: bid});
+						$('#bid').hide();
+					});
+				}
+			}
+		}
+  }
+
 	// Start Game event
  	// This event fires when the first player creates a new game
 	// io.in('game').emit('startGame', {game: game});
@@ -373,6 +406,16 @@ $(window).on('load', function(){
 		loadGameBoard();
 		// Call this AFTER loadGameBoard() so "players" DIV exists
 		highlightCurrentPlayer();
+  }
+
+	// Start Play event
+ 	// This event fires after the last person bids
+	// io.in('game').emit('startPlay', {});
+	function startPlay(data){
+		$('.card').click(function(){
+			console.log('play card clickEvent from playerId: ' + g.game.playerId);
+			g.socket.emit('playCard', {playerId: g.game.playerId, card: this.card.shortName});
+		});
   }
 
 	// Take Trick event
@@ -579,7 +622,6 @@ $(window).on('load', function(){
         e.callback();
       });
     }
-		g.oheck.setEventRenderer('bid', webRenderer.bid);
     g.oheck.setEventRenderer('dealcard', webRenderer.dealCard);
     g.oheck.setEventRenderer('play', webRenderer.play);
     g.oheck.setEventRenderer('sorthand', webRenderer.sortHand);
@@ -618,11 +660,8 @@ $(window).on('load', function(){
     // Create game
     // First person who joined the game bids first
     // Last person who joined the game deals first
-    //g.oheck.rounds = g.game.numRounds;
     g.oheck.dealerIndex = g.game.players.length - 1;
     g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
-    //g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
-    g.oheck.bidPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
 //    console.log('Dealer index (-1): ' + g.oheck.dealerIndex);
 //    console.log('Player index (-1): ' + g.oheck.currentPlayerIndex);
 //    console.log('Player ID: ' + g.game.playerId);
@@ -650,6 +689,8 @@ $(window).on('load', function(){
 
   function updateData(data){
     g.game = data.game;
+		console.log('g.game{} data updated from backend');
+		console.log(g.game);
     g.game.playerId = g.user.id - 1;
 		highlightCurrentPlayer();
   }

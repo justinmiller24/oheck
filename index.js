@@ -280,10 +280,12 @@ io.sockets.on('connection', function(socket) {
     }
 
     // Broadcast event to users
-//    console.log(game);
     io.in('game').emit('event', [{
       op: 'dealHand',
       game: game
+    },{
+      op: 'startBid',
+      playerId: nextPlayerId(game.round.dealerId)
     }]);
   });
 
@@ -341,14 +343,29 @@ io.sockets.on('connection', function(socket) {
     game.round.bids++;
     game.round.currentBid += currentBid;
 
-    // This was the last player to bid
-    if (game.round.bids === game.players.length){
-      game.round.currentTrickId = 1;
-      game.round.currentTrickPlayed = [];
-    }
-
     // Advance player
     game.currentPlayerId = nextPlayerId(game.currentPlayerId);
+
+    // Check if all players have bid
+    if (game.round.bids < game.players.length){
+
+      // Broadcast event to users
+      io.in('game').emit('event', [{
+        op: 'bid',
+        playerId: data.playerId,
+        bid: currentBid,
+        game: game
+      },{
+        op: 'startBid',
+        playerId: game.currentPlayerId
+      }]);
+      // Nothing else to do here
+      return;
+    }
+
+    // This was the last player to bid
+    game.round.currentTrickId = 1;
+    game.round.currentTrickPlayed = [];
 
     // Broadcast event to users
     io.in('game').emit('event', [{
@@ -356,6 +373,9 @@ io.sockets.on('connection', function(socket) {
       playerId: data.playerId,
       bid: currentBid,
       game: game
+    },{
+      op: 'startPlay',
+      playerId: game.currentPlayerId
     }]);
   });
 

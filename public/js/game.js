@@ -20,14 +20,14 @@ function $A(arr){
 			}
 			return false;
 		},
-		all: function (func){
+/*		all: function (func){
 			for (var i = 0; i < this.arr.length; i++){
 				if (!func.call(this.arr, this.arr[i])){
 					return false;
 				}
 			}
 			return true;
-		},
+		},*/
 		remove: function (item){
 			for (var i = 0; i < this.arr.length; i++){
 				if (this.arr[i] == item){
@@ -182,7 +182,6 @@ OHeck.prototype = {
 		this.renderers['play'] = this.makeRenderFunc('play - @player.name played @cards - hand: @player.hand');
 		this.renderers['sorthand'] = this.makeRenderFunc('sorthand - @player.name - @player.hand');
 		this.renderers['taketrick'] = this.makeRenderFunc('taketrick - @player.name takes the trick');
-		this.renderers['bid'] = this.makeRenderFunc('bid - @player.name bids @bid');
 	},
 	addPlayer: function (player){
 		player.game = this;
@@ -199,7 +198,6 @@ OHeck.prototype = {
 		for (var i = 0; i < this.players.length; i++){
 			var p = this.players[i];
 			p.tricks = [];
-			p.bidValue = -1;
 			webRenderer._adjustHand(p, function(){}, 50, true, this.cardCount);
 		}
 	},
@@ -211,7 +209,6 @@ OHeck.prototype = {
 		this.cardCount = 0;
 		this.dealtCardCount = 0;
 		this.pile = [];
-		this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
 		this.dealerIndex = this.nextIndex(this.dealerIndex);
 		this.nextPlayerToDealTo = this.nextIndex(this.dealerIndex);
 		this.currentPlayerIndex = this.nextIndex(this.dealerIndex);
@@ -222,40 +219,10 @@ OHeck.prototype = {
 
 			// Clear player hand and bid
 			$('#' + p.id + ' small').text(p.name);
-			p.bidValue = -1;
 			p.tricks = [];
 			p.handSorted = false;
 		}
-
-		// Remove cards
-		$('#game-board div.verticalTrick, #game-board div.horizontalTrick').remove();
 	},
-	allPlayersBid: function (){
-		return ($A(this.players).all(function (p){
-			return p.bidValue >= 0;
-		}));
-	},
-	beforeBid: function (){
-
-		$.modal.close();
-
-    // My turn to bid
-		if (this.bidPlayerIndex === g.game.playerId){
-      g.human.startBid();
-    }
-  },
-	bid: function (player, bid){
-		player.bidValue = bid;
-
-		if (this.allPlayersBid()){
-			$('.card').click(function(){
-				g.socket.emit('playCard', {playerId: g.game.playerId, card: this.card.shortName});
-			});
-		}
-
-		this.bidPlayerIndex = this.nextIndex(this.bidPlayerIndex);
-	},
-	bidPlayerIndex: 0,
 	cardCount: 0,
 	currentPlayerIndex: 0,
 	deal: function (){
@@ -267,7 +234,6 @@ OHeck.prototype = {
 
 		// All cards have been dealt
 		if (this.dealtCardCount == this.cardCount * this.players.length){
-			this.bidPlayerIndex = this.currentPlayerIndex;
 			this.afterDealing();
 			this.hand = 1;
 			return;
@@ -352,6 +318,8 @@ OHeck.prototype = {
 	playCard: function (player, card){
 		this.pile.push(card);
 		player.remove(card);
+		console.log('Pile length is: ' + this.pile.length);
+		console.log('Player hand length is: ' + player.hand.length);
 		this.renderEvent('play', this.afterPlayCards, {
 //		this.renderEvent('play', function (){}, {
 			cards: [card]
@@ -418,7 +386,6 @@ ComputerPlayer.prototype = {
 	isHuman: false,
 	showCards: false,
 	tricks: [],
-	bidValue: -1,
 	init: function (name){
 		this.name = name;
 		this.hand = [];
@@ -437,30 +404,6 @@ HumanPlayer.prototype = {
 	isHuman: true,
 	showCards: true,
 	tricks: [],
-	bidValue: -1,
-
-	startBid: function (){
-		$('#bid').css('z-index', oh.zIndexCounter + 10000).show();
-//		console.log('Choose how many tricks you think you will take.');
-		var isDealer = (this.game.dealerIndex == g.game.playerId);
-		var cannotBidIndex = (g.game.round.numTricks - g.game.round.currentBid);
-
-		$('#bid div').remove();
-		for (var i = 0; i <= g.game.round.numTricks; i++){
-
-			// Force dealer
-			if (isDealer && (i === cannotBidIndex)){
-				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid');
-			}
-			else {
-				$('<div/>').text(i).appendTo('#bid').click(function(e){
-					var bid = parseInt($(this).text());
-					g.socket.emit('bid', {playerId: g.game.playerId, bid: bid});
-					$('#bid').hide();
-				});
-			}
-		}
-	},
 	init: ComputerPlayer.prototype.init,
 	remove: ComputerPlayer.prototype.remove
 }
