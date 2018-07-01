@@ -54,7 +54,7 @@ var PLAYER_POSITIONS = [
 ];
 
 var SHOW_ADMIN_BTNS = true;
-var SNACKBAR_TIMEOUT = 1000;
+var SNACKBAR_TIMEOUT = 1500;
 
 var g = {
 	game: {},
@@ -84,10 +84,11 @@ $(window).on('load', function(){
 
 
 	// This event fires on socket connection
-	// socket.emit('init', {users: users, game: game});
+	// socket.emit('init', {users: users, game: game, history: history});
   g.socket.on('init', function(data){
     g.users = data.users;
     g.game = data.game;
+		g.history = data.history;
 
 		// Check if user is already logged in
 		if (Cookies.getJSON(COOKIE_NAME)){
@@ -104,8 +105,23 @@ $(window).on('load', function(){
 				// Call this AFTER DOM manipulation so card positioning is correct
 				loadGameBoard();
 
-				// Call this AFTER loadGameBoard() so "players" DIV exists
-				highlightCurrentPlayer();
+				// If user reloaded while existing game is in progress, replay game history
+				if (g.history.length > 0){
+					console.log('User reloaded during existing game. Add ' + g.history.length + ' events to queue...');
+					for (var i = 0; i < g.history.length; i++){
+						//g.queue.push(g.history[i]);
+						console.log(g.history[i].op);
+					}
+					console.log('Done adding events to queue!');
+
+					// Trigger events in queue
+					console.log('Trigger first queue after all events are added!');
+					//runQueueEvent();
+				}
+				else{
+					// Call this AFTER loadGameBoard() so "players" DIV exists
+					highlightCurrentPlayer();
+				}
       }
 			// Send user to lobby if game is not in progress
 			else{
@@ -118,11 +134,11 @@ $(window).on('load', function(){
 
 
 	// This event fires after user logs in
+	// socket.emit('myUserLogin', {userId: data.user.id, users: users});
   g.socket.on('myUserLogin', function(data){
 		g.user.id = data.userId;
     g.users = data.users;
-//		g.history = data.history;
-//		console.log(g.history);
+
     // Save to cookie
     Cookies.set(COOKIE_NAME, g.user);
     updateUsersInLobby();

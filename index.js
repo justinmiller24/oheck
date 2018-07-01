@@ -34,9 +34,9 @@ var history = [];
 var MAX_CARDS_TO_DEAL = isProduction ? 12 : 3;
 var NASCAR_SCORE_GAP = 3;
 var GAME_DEFAULTS = {
-  isActive: false,
   currentPlayerId: 0,
   currentRoundId: 0,
+  isActive: false,
   oheck: {},
   options: {
     decks: 1,           // Number of decks to use
@@ -68,7 +68,7 @@ io.sockets.on('connection', function(socket) {
   console.log('User connected with Socket ID: ' + socket.id);
 
   // Initialization
-  socket.emit('init', {users: users, game: game});
+  socket.emit('init', {users: users, game: game, history: history});
 
 
   // Disconnect
@@ -85,7 +85,7 @@ io.sockets.on('connection', function(socket) {
   socket.on('forceReloadAll', function(){
     console.log('Force Reload All');
     // Clear history
-    history = [];
+    //game.history = [];
     // Send data to all clients including sender
     io.in('game').emit('forceReloadAll', 'Force Reload All');
   });
@@ -102,7 +102,7 @@ io.sockets.on('connection', function(socket) {
     console.log({name: data.user.name, userId: data.user.id, socketId: socket.id});
 
     // Send data to user that just logged in
-    socket.emit('myUserLogin', {userId: data.user.id, users: users, history: history});
+    socket.emit('myUserLogin', {userId: data.user.id, users: users});
 
     // Joins the game room
     socket.join('game');
@@ -117,7 +117,7 @@ io.sockets.on('connection', function(socket) {
     console.log({name: users[data.user.id - 1].name, userId: data.user.id, socketId: socket.id});
 
     // Send data to user that just logged in
-    socket.emit('myUserLogin', {userId: data.user.id, users: users, history: history});
+    socket.emit('myUserLogin', {userId: data.user.id, users: users});
 
     // Join the game room
     socket.join('game');
@@ -127,10 +127,6 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('userLogout', function(data){
-    history.push({
-      op: 'userLogout',
-      data: data
-    });
 
     // Prevent error if socket server had been restarted
     if (users[data.userId - 1]){
@@ -155,10 +151,6 @@ io.sockets.on('connection', function(socket) {
   socket.on('startGame', function(data){
     console.log('Start Game!');
 //    console.log(users[data.ownerId - 1].name + ' started the game!');
-    history.push({
-      op: 'startGame',
-      data: data
-    });
 
     // Setup game
     // First person who joined the game bids first
@@ -197,17 +189,14 @@ io.sockets.on('connection', function(socket) {
 //    console.log(game);
 
     // Broadcast event to users
-    io.in('game').emit('event', [{
+    console.log('Broadcast Events');
+    broadcastEvents([{
       op: 'startGame',
       game: game
-    }]);
-
-    // Show deal button to dealer ID
-    io.in('game').emit('event', [{
+    },{
       op: 'showDealButton',
       playerId: game.round.dealerId
     }]);
-
   });
 
 
@@ -215,9 +204,6 @@ io.sockets.on('connection', function(socket) {
  	// This event fires when the dealer presses "deal" at the beginning of each round
   socket.on('dealHand', function(){
     console.log('Deal Hand!');
-    history.push({
-      op: 'dealHand'
-    });
 
     game.currentRoundId++;
 
@@ -280,7 +266,7 @@ io.sockets.on('connection', function(socket) {
     }
 
     // Broadcast event to users
-    io.in('game').emit('event', [{
+    broadcastEvents([{
       op: 'dealHand',
       game: game
     },{
@@ -293,15 +279,11 @@ io.sockets.on('connection', function(socket) {
   // Restart Hand event
  	// This event fires when the admin user presses "restart" during a round
   socket.on('restartHand', function(){
-    history.push({
-      op: 'restartHand'
-    });
-
     console.log('Restart Hand...');
 
 
     // Send data to all clients including sender
-    io.in('game').emit('event', [{
+    broadcastEvents([{
       op: 'restartHand'
     }]);
   });
@@ -310,11 +292,6 @@ io.sockets.on('connection', function(socket) {
   // Bid event
  	// This event fires when each user submits their bid at the beginning of each round
   socket.on('bid', function(data){
-    history.push({
-      op: 'bid',
-      data: data
-    });
-
     var playerId = data.playerId;
     var currentBid = data.bid;
     console.log('PlayerId: ' + playerId + ' attempting to bid: ' + currentBid);
@@ -350,7 +327,7 @@ io.sockets.on('connection', function(socket) {
     if (game.round.bids < game.players.length){
 
       // Broadcast event to users
-      io.in('game').emit('event', [{
+      broadcastEvents([{
         op: 'bid',
         playerId: data.playerId,
         bid: currentBid,
@@ -368,7 +345,7 @@ io.sockets.on('connection', function(socket) {
     game.round.currentTrickPlayed = [];
 
     // Broadcast event to users
-    io.in('game').emit('event', [{
+    broadcastEvents([{
       op: 'bid',
       playerId: data.playerId,
       bid: currentBid,
@@ -383,11 +360,6 @@ io.sockets.on('connection', function(socket) {
   // Play Card event
  	// This event fires when each user plays a card during each trick
   socket.on('playCard', function(data){
-    history.push({
-      op: 'playCard',
-      data: data
-    });
-
     var card = data.card;
     var playerId = data.playerId;
 //    console.log('PlayerId: ' + playerId + ' attempting to play card: ' + card);
@@ -445,7 +417,7 @@ io.sockets.on('connection', function(socket) {
       // Advance player ID
       game.currentPlayerId = nextPlayerId(game.currentPlayerId);
       // Broadcast event to users
-      io.in('game').emit('event', [{
+      broadcastEvents([{
         op: 'playCard',
         playerId: data.playerId,
         cardShortName: data.card,
@@ -505,7 +477,7 @@ io.sockets.on('connection', function(socket) {
       // Advance trick ID
       game.round.currentTrickId++;
       // Broadcast event to users
-      io.in('game').emit('event', [{
+      broadcastEvents([{
         op: 'playCard',
         playerId: data.playerId,
         cardShortName: data.card,
@@ -562,7 +534,7 @@ io.sockets.on('connection', function(socket) {
     }
 
     // Broadcast event to users
-    io.in('game').emit('event', [{
+    broadcastEvents([{
       op: 'playCard',
       playerId: data.playerId,
       cardShortName: data.card,
@@ -585,7 +557,7 @@ io.sockets.on('connection', function(socket) {
       // Show deal button to next dealer
       var nextDealerId = getPlayerId(game.currentRoundId + game.players.length - 1);
       // Broadcast event to users
-      io.in('game').emit('event', [{
+      broadcastEvents([{
         op: 'showDealButton',
         playerId: nextDealerId
       }]);
@@ -615,11 +587,10 @@ io.sockets.on('connection', function(socket) {
       //TODO: extend game by one more round
       // Delete the following 2 lines when game is extended
       game.isActive = false;
-      io.in('game').emit('event', [{
+      broadcastEvents([{
         op: 'endGame',
         playerId: winnerPlayerId
       }]);
-
       // Nothing else to do here
       return;
     }
@@ -633,7 +604,7 @@ io.sockets.on('connection', function(socket) {
     game.isActive = false;
 
     // Broadcast event to users
-    io.in('game').emit('event', [{
+    broadcastEvents([{
       op: 'endGame',
       playerId: winnerPlayerId
     }]);
@@ -645,6 +616,12 @@ io.sockets.on('connection', function(socket) {
 /**
  * HELPER FUNCTIONS
  */
+function broadcastEvents(arr){
+  // Add events to game history
+  history = history.concat(arr);
+  // Broadcast new events to user
+  io.in('game').emit('event', arr);
+}
 function getPlayerId(playerId){
   return playerId % game.players.length;
 }
