@@ -65,8 +65,7 @@ var g = {
   user: {
     id: null,
     name: null,
-    games: 0,
-    wins: 0
+		socketId: null
   },
   users: [],
 	waiting: false
@@ -164,12 +163,11 @@ $(window).on('load', function(){
     }
   });
 
-	// This event fires when user logs out
-  // socket.to('game').emit('userLogout', {userId: data.userId, users: users});
-	g.socket.on('userLogout', function(data){
+	// This event fires when user logs out or disconnects
+	// socket.to('game').emit('userDisconnect', {userId: userId, users: users});
+	g.socket.on('userDisconnect', function(data){
     if (g.users[data.userId - 1] && g.users[data.userId - 1].name){
-      var loggedOutUser = g.users[data.userId - 1].name;
-      console.log(loggedOutUser + ' logged out');
+      console.log(g.users[data.userId - 1].name + ' disconnected');
     }
     g.users = data.users;
     updateUsersInLobby();
@@ -242,8 +240,8 @@ $(window).on('load', function(){
 			case 'playCard':
 				playCard(data);
 				break;
-			case 'restartHand':
-				restartHand(data);
+			case 'redealHand':
+				redealHand(data);
 				break;
 			case 'showDealButton':
 				showDealButton(data);
@@ -267,12 +265,8 @@ $(window).on('load', function(){
 				break;
 		}
 
-		// Complete waiting status
-		console.log('set g.waiting to false');
+		// Ready for next event
 		g.waiting = false;
-
-		// Run next event
-//		console.log('Trigger next queue event from end of previous runQueueEvent()');
 		runQueueEvent();
 	}
 
@@ -345,11 +339,11 @@ $(window).on('load', function(){
   }
 
 
-	// Restart Hand event
- 	// This event fires when the admin user presses "restart" during a round
-	// io.in('game').emit(restartHand');
-	function restartHand(data){
-    console.log('Restarting Hand...');
+	// Redeal Hand event
+ 	// This event fires when the admin user presses "redeal" during a round
+	// io.in('game').emit(redealHand');
+	function redealHand(data){
+    console.log('Redeal Hand...');
 //		window.location.reload();
   }
 
@@ -486,13 +480,7 @@ $(window).on('load', function(){
   // http://api.jquery.com/delegate/
   $(document).on('click', '#start-game-button', function(e){
     e.preventDefault();
-    g.socket.emit('startGame', {
-			ownerId: g.user.id,
-			decks: parseInt($('#create-game-form input[name=decks]').val(), 10),
-			nascar: (parseInt($('#create-game-form input[name=nascar]').val(), 10) === 1),
-			rounds: parseInt($('#create-game-form select[name=rounds]').val(), 10),
-			trump: (parseInt($('#create-game-form input[name=trump]').val(), 10) === 1),
-		});
+    g.socket.emit('startGame');
   });
 
 
@@ -609,8 +597,10 @@ $(window).on('load', function(){
 	// Highlight current player's turn
 	function highlightCurrentPlayer(){
 		// Determine what "positionId" playerId (g.game.currentPlayerId) is in, so we can "highlight" their turn
+		console.log(g.game.players.length, g.game.currentPlayerId, g.game.playerId);
 		var playerPositionToHighlight = (g.game.players.length + g.game.currentPlayerId - g.game.playerId) % g.game.players.length;
 		$('.avatar').removeClass('active');
+		console.log('highlight player position: ' + playerPositionToHighlight);
 		$('#player-position-' + playerPositionToHighlight).addClass('active');
 	}
 
@@ -681,11 +671,11 @@ $(window).on('load', function(){
 					g.socket.emit('forceReloadAll', 'Force reload for all clients');
 				});
 
-			// Restart Hand
-			$('#show-restart-hand')
+			// Redeal Hand
+			$('#show-redeal-hand')
 				.show()
 				.click(function(e){
-					g.socket.emit('restartHand', 'Restart current hand for all users');
+					g.socket.emit('re', 'Redeal hand');
 				});
 		}
 	}
@@ -758,12 +748,12 @@ $(window).on('load', function(){
 		if (g.user.id === 1){
 			var usersOnline = $('#usersOnline li').length;
 	    if (usersOnline >= 2 && usersOnline <= 6){
-	      $('#create-game-button').removeAttr('disabled', 'disabled');
-	      $('#create-game-button-link').attr('href', '/html/create-game.html').attr('rel', 'modal:open');
+	      $('#start-game-button').removeAttr('disabled', 'disabled');
+//	      $('#start-game-button-link').attr('href', '/html/create-game.html').attr('rel', 'modal:open');
 	    }
 	    else {
-	      $('#create-game-button').attr('disabled', 'disabled');
-	      $('#create-game-button-link').attr('href', '#').removeAttr('rel', 'modal:open').attr('onclick', 'javascript:return false;');
+	      $('#start-game-button').attr('disabled', 'disabled');
+//	      $('#create-game-button-link').attr('href', '#').removeAttr('rel', 'modal:open').attr('onclick', 'javascript:return false;');
 	    }
 		}
   }
@@ -995,9 +985,7 @@ $(window).on('load', function(){
  	deal: function (){
 
  		// Cannot deal if deck is empty
- 		if (!this.deck){
- 			return;
- 		}
+ 		if (!this.deck) return;
 
  		// All cards have been dealt
  		if (this.dealtCardCount == this.cardCount * this.players.length){

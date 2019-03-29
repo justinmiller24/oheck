@@ -31,25 +31,37 @@ app.get('/', function (req, res) {
 /*
  * GLOBALS
  */
-var users = [];
 var game = {};
 var history = [];
+var users = [];
 
 
 io.sockets.on('connection', function(socket) {
-  console.log('User connected with Socket ID: ' + socket.id);
+  console.log('User connected with socketId: ' + socket.id);
 
   // Initialization
   socket.emit('init', {users: users, game: game, history: history});
 
 
   // Disconnect
+  // This event fires when internet is lost or when user reloads the page
   socket.on('disconnect', function(){
-    console.log('User lost socket connection with Socket ID: ' + socket.id);
+    var userId = util.getUserBySocketId(users, socket.id);
 
-    //TODO: broadcast to other users?
-    // Send update to all other clients
-    //socket.to('game').emit('socketDisconnected', socket.id);
+    if (users[userId - 1]){
+      console.log('UserId ' + userId + ' (' + users[userId - 1].name + ') lost connection with socketId: ' + socket.id);
+      users[userId - 1].active = false;
+    }
+    // This could happen after node server is restarted
+    else {
+      console.log('User with userId: ' + userId + ' could not be found.');
+    }
+    console.log(users);
+    console.log();
+    console.log();
+
+    // Send data to all other clients in room except sender
+    socket.to('game').emit('userDisconnect', {userId: userId, users: users});
   });
 
 
@@ -67,11 +79,13 @@ io.sockets.on('connection', function(socket) {
    * USER FUNCTIONS
    */
   socket.on('userLogin', function(data){
-    // Set next userId
-    data.user.id = users.length + 1;
+    data.user.id = users.length + 1;    // Set to next available userId
+    data.user.active = true;
+    data.user.socketId = socket.id;
     users.push(data.user);
-    console.log('The following user has joined:');
-    console.log({name: data.user.name, userId: data.user.id, socketId: socket.id});
+    console.log('UserId ' + data.user.id + ' (' + data.user.name + ') has logged in.');
+    console.log({name: data.user.name, userId: data.user.id, active: data.user.active, socketId: data.user.socketId});
+    console.log(users);
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: data.user.id, users: users});
@@ -83,10 +97,15 @@ io.sockets.on('connection', function(socket) {
     socket.to('game').emit('userJoined', {userId: data.user.id, users: users});
   });
 
+  // This event fires when internet is reestablished or after user reloads the page
   socket.on('userJoined', function(data){
+    data.user.active = true;
+    data.user.socketId = socket.id;
     users[data.user.id - 1] = data.user;
-    console.log('The following user has returned:');
-    console.log({name: users[data.user.id - 1].name, userId: data.user.id, socketId: socket.id});
+    console.log('UserId ' + data.user.id + ' (' + data.user.name + ') has returned.');
+    console.log(users);
+    console.log();
+    console.log();
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: data.user.id, users: users});
@@ -102,14 +121,14 @@ io.sockets.on('connection', function(socket) {
 
     // Prevent error if socket server had been restarted
     if (users[data.userId - 1]){
-      console.log('User with ID: ' + data.userId + ' (' + users[data.userId - 1].name + ') has logged out');
-
-      // Remove from user array
-      users.splice(data.userId - 1, 1);
-      console.log('There are now ' + users.length + ' users online');
+      users[data.userId - 1].active = false;
+      console.log('UserId: ' + data.userId + ' (' + users[data.userId - 1].name + ') logged out. There are ' + util.getNumActiveUsers(users) + ' active users online');
+      console.log(users);
+      console.log();
+      console.log();
 
       // Broadcast event to users
-      socket.to('game').emit('userLogout', {userId: data.userId, users: users});
+      socket.to('game').emit('userDisconnect', {userId: data.userId, users: users});
     }
   });
 
@@ -120,44 +139,13 @@ io.sockets.on('connection', function(socket) {
 
   // Start Game event
  	// This event fires when the first player creates a new game
-  socket.on('startGame', function(data){
-    console.log('Start Game!');
-//    console.log(users[data.ownerId - 1].name + ' started the game!');
-
-    // Setup game
-    // First person who joined the game bids first
-    // Last person who joined the game deals first
-    game = game2.getDefaults();
-    game.isActive = true;
-    game.options = {
-      decks: data.decks,
-      nascar: data.nascar,
-      rounds: data.rounds,
-      trump: data.trump
-    }
-    game.currentRoundId = 0;
-    game.players = [];
-    for (var i in users){
-      var user = users[i];
-      var playerId = user.id - 1;
-      game.players.push({
-        id: playerId,
-        name: user.name,
-        bid: null,
-        currentHand: [],
-        hand: [],
-//        pictureHand: [],
-        score: 0,
-        tricksTaken: 0
-      });
-    }
-    // Set current dealer ID to last player ID to start
-    game.round.dealerId = game.players.length - 1;
-    // Set current player ID to last player ID to start
-    game.currentPlayerId = game.players.length - 1;
+  socket.on('startGame', function(){
+    game = game2.startGame(users);
+    console.log(game);
+    console.log();
+    console.log();
 
     // Broadcast event to users
-    console.log('Broadcast Events');
     broadcastEvents([{
       op: 'startGame',
       game: game
@@ -171,63 +159,11 @@ io.sockets.on('connection', function(socket) {
   // Deal Hand event
  	// This event fires when the dealer presses "deal" at the beginning of each round
   socket.on('dealHand', function(){
-    console.log('Deal Hand!');
-
-    // Update round
-    game.currentRoundId++;
-
-    // Determine trump and cards to deal
-    var trumpArray = ['D', 'C', 'H', 'S'];
-    var nextTrump = game.options.trump ? trumpArray[util.getRandomId(0,3)] : 'N';
-    var maxCards = Math.floor(52 * game.options.decks / game.players.length);
-    var cardsToDeal = Math.min(maxCards, util.getMaxCardsToDeal());
-
-    // Create new round and reset all variables
-    game.round = {
-      bids: 0,                  // How many players have bid
-      currentTrickId: 0,        // Current trick
-      currentTrickPlayed: [],   // Array of cards played
-      currentBid: 0,            // Current bid
-      // Advance dealer ID based on round
-      dealerId: util.getPlayerId(game.currentRoundId + game.players.length - 2, game.players.length),
-      numTricks: cardsToDeal,  // Initialize on each round
-      trump: nextTrump          // C, S, H, D, or N
-    };
-
-    // Update current player
-    // Set current player to person after dealer
-    game.currentPlayerId = game.round.dealerId;
-
-    // Create array of cards
-    var cards = [];
-    for (var i = 0; i < game.options.decks; i++){
-      for (var j = 2; j <= 14; j++){
-        cards.push('H' + j);
-        cards.push('S' + j);
-        cards.push('D' + j);
-        cards.push('C' + j);
-      }
-    }
-
-    // Deal cards
-    for (var playerId = 0; playerId < game.players.length; playerId++){
-      var playerCards = [];
-      for (var i = 0; i < game.round.numTricks; i++){
-
-        // Pick a random card from remaining cards and assign to player
-        var random = util.getRandomId(0, cards.length - 1);
-        playerCards.push(cards[random]);
-        cards.splice(random, 1);
-      }
-
-      // Save player hand
-      var player = game.players[playerId];
-      player.bid = null;
-      player.tricksTaken = 0;
-      player.hand = playerCards;
-      player.currentHand = playerCards;
-//      player.pictureHand = [];
-    }
+    game.currentRoundId++
+    game = game2.dealHand(game);
+    console.log(game);
+    console.log();
+    console.log();
 
     // Broadcast event to users
     broadcastEvents([{
@@ -240,15 +176,23 @@ io.sockets.on('connection', function(socket) {
   });
 
 
-  // Restart Hand event
- 	// This event fires when the admin user presses "restart" during a round
-  socket.on('restartHand', function(){
-    console.log('Restart Hand...');
-
+  // Redeal Hand event
+ 	// This event fires when the admin user presses "redeal" during a round
+  socket.on('redealHand', function(){
+    console.log('Redeal Hand...');
+    game = game2.dealHand(game);
+    console.log(game);
+    console.log();
+    console.log();
 
     // Send data to all clients including sender
+    // Broadcast event to users
     broadcastEvents([{
-      op: 'restartHand'
+      op: 'dealHand',
+      game: game
+    },{
+      op: 'startBid',
+      playerId: util.getNextPlayerId(game.round.dealerId, game.players.length)
     }]);
   });
 
@@ -256,9 +200,11 @@ io.sockets.on('connection', function(socket) {
   // Bid event
  	// This event fires when each user submits their bid at the beginning of each round
   socket.on('bid', function(data){
+    console.log('PlayerId: ' + data.playerId + ' attempting to bid: ' + data.bid);
+//    game = game2.playerBid(socket, game, data);
     var playerId = data.playerId;
     var currentBid = data.bid;
-    console.log('PlayerId: ' + playerId + ' attempting to bid: ' + currentBid);
+
 
     // Check if round is currently in bidding status
     if (game.round.bids >= game.players.length){
@@ -270,6 +216,7 @@ io.sockets.on('connection', function(socket) {
     // Check for player turn to bid
     if (game.currentPlayerId !== playerId){
       console.log('ERROR: PlayerID: ' + playerId + ' attempted to bid');
+      console.log([game.currentPlayerId, playerId]);
       socket.emit('showMessage', {message: 'It is not your turn to bid!'});
       return;
     }
@@ -307,6 +254,11 @@ io.sockets.on('connection', function(socket) {
     // This was the last player to bid
     game.round.currentTrickId = 1;
     game.round.currentTrickPlayed = [];
+
+    //    console.log(game);
+    //    console.log();
+    //    console.log();
+
 
     // Broadcast event to users
     broadcastEvents([{
