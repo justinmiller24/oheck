@@ -16,6 +16,12 @@ exports.getNascarScoreGap = function(){
   return 3;
 };
 
+// Get next playerId (mod number of players)
+exports.getNextPlayerId = function(playerId, numPlayers){
+  //return (playerId + 1) % game.players.length;
+  return (playerId + 1) % numPlayers;
+};
+
 // Get playerId (mod number of players)
 exports.getPlayerId = function(playerId, numPlayers) {
   //return playerId % game.players.length;
@@ -29,11 +35,7 @@ exports.getRandomId = function(min, max){
   return Math.floor(Math.random() * (max - min + 1)) + min; //The maximum is inclusive and the minimum is inclusive
 };
 
-exports.getNextPlayerId = function(playerId, numPlayers){
-  //return (playerId + 1) % game.players.length;
-  return (playerId + 1) % numPlayers;
-};
-
+// Determine if environment is development or production
 exports.isProduction = function(){
   return __dirname !== '/Users/justinmiller/Sites/oheck';
 };
