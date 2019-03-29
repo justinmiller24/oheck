@@ -98,33 +98,14 @@ $(window).on('load', function(){
 
 			// Send user to game if game is in progress
 			if (g.game.isActive){
-				console.log('User is logged in and game is in progress, send user to game');
 				$('#content-section, #welcome, #game-board').slideToggle();
 
 				// Call this AFTER DOM manipulation so card positioning is correct
 				loadGameBoard();
-
-				// If user reloaded while existing game is in progress, replay game history
-				if (g.history.length > 0){
-					console.log('User reloaded during existing game. Add ' + g.history.length + ' events to queue...');
-					for (var i = 0; i < g.history.length; i++){
-						//g.queue.push(g.history[i]);
-						console.log(g.history[i].op);
-					}
-					console.log('Done adding events to queue!');
-
-					// Trigger events in queue
-					console.log('Trigger first queue after all events are added!');
-					//runQueueEvent();
-				}
-				else{
-					// Call this AFTER loadGameBoard() so "players" DIV exists
-					highlightCurrentPlayer();
-				}
+				highlightCurrentPlayer();
       }
 			// Send user to lobby if game is not in progress
 			else{
-				console.log('User is logged in but game is not in progress, send user to lobby');
 				updateUsersInLobby();
 				$('#content-section, #welcome, #lobby').slideToggle();
 			}
@@ -157,17 +138,16 @@ $(window).on('load', function(){
   g.socket.on('userJoined', function(data){
     g.users = data.users;
     if (g.users[data.userId - 1] && g.users[data.userId - 1].name){
-      var loggedInUserName = g.users[data.userId - 1].name;
-      console.log('New user ' + loggedInUserName + ' has arrived');
-      updateUsersInLobby();
+      console.log('UserId ' + data.userId + ' (' + g.users[data.userId - 1].name + ') has joined');
     }
+		updateUsersInLobby();
   });
 
 	// This event fires when user logs out or disconnects
 	// socket.to('game').emit('userDisconnect', {userId: userId, users: users});
 	g.socket.on('userDisconnect', function(data){
     if (g.users[data.userId - 1] && g.users[data.userId - 1].name){
-      console.log(g.users[data.userId - 1].name + ' disconnected');
+      console.log('UserId ' + data.userId + ' (' + g.users[data.userId - 1].name + ') disconnected');
     }
     g.users = data.users;
     updateUsersInLobby();
@@ -176,7 +156,7 @@ $(window).on('load', function(){
 	// This event fires when admin user forces reload
 	// io.in('game').emit('forceReloadAll', 'Force Reload All');
   g.socket.on('forceReloadAll', function(data){
-    console.log('Reloading...');
+    console.log('ForceReloadAll...');
 		window.location.reload();
   });
 
@@ -186,16 +166,14 @@ $(window).on('load', function(){
 	 * "data" is an array of one or more events to fire
 	 */
 	g.socket.on('event', function(data){
-//		console.log('Received event packet from server');
 
 		// Loop through one or more "op" (operation) events and add to queue
 		for (var i = 0; i < data.length; i++){
-			console.log('Received event ' + data[i].op + ' from server');
+			//console.log('Received event ' + data[i].op + ' from server');
 			addQueueEvent(data[i]);
 		}
 
 		// Trigger next event in queue
-//		console.log('Trigger next queue event from g.socket.on received');
 		runQueueEvent();
 	});
 
@@ -212,12 +190,10 @@ $(window).on('load', function(){
 		if (g.waiting || g.queue.length === 0) return;
 
 		// Set waiting status
-		console.log('set g.waiting to true. g.queue length is: ' + g.queue.length);
 		var opsList = [];
 		for (var i = 0; i < g.queue.length; i++){
 			opsList.push(g.queue[i].op);
 		}
-		console.log(opsList);
 		g.waiting = true;
 
 		// Pop next event from top of queue
@@ -239,9 +215,6 @@ $(window).on('load', function(){
 				break;
 			case 'playCard':
 				playCard(data);
-				break;
-			case 'redealHand':
-				redealHand(data);
 				break;
 			case 'showDealButton':
 				showDealButton(data);
@@ -295,7 +268,7 @@ $(window).on('load', function(){
 		updateGameStats();
 
 		// Remove cards from previous hand
-		$('#game-board div.verticalTrick, #game-board div.horizontalTrick').remove();
+		$('#game-board div.card, #game-board div.verticalTrick, #game-board div.horizontalTrick').remove();
 
     g.oheck.dealCards();
   }
@@ -305,8 +278,7 @@ $(window).on('load', function(){
 	// This event is broadcast after the last round if there is no tie
 	// io.in('game').emit('endGame', {playerId: winnerPlayerId});
 	function endGame(data){
-    console.log('Ending Game');
-		//alert(g.game.players[data.playerId].name + ' wins with ' + g.game.players[data.playerId].score + ' points!');
+    console.log('EndGame');
 		setTimeout("window.location.reload();", 15000);
   }
 
@@ -331,20 +303,10 @@ $(window).on('load', function(){
     var player = g.oheck.players[data.playerId];
     for (var pos = 0; pos < player.hand.length; pos++){
       if (player.hand[pos].shortName == data.cardShortName){
-//        console.log(player.name + ' played the ' + player.hand[pos].longName);
         g.oheck.playCard(player, player.hand[pos]);
         break;
       }
     }
-  }
-
-
-	// Redeal Hand event
- 	// This event fires when the admin user presses "redeal" during a round
-	// io.in('game').emit(redealHand');
-	function redealHand(data){
-    console.log('Redeal Hand...');
-//		window.location.reload();
   }
 
 
@@ -362,7 +324,6 @@ $(window).on('load', function(){
 	// This event is broadcast after the last trick in a round is played
 	// io.in('game').emit('showScoreboard');
 	function showScoreboard(data){
-		console.log('Show scoreboard');
 		$('#scoreboard-dialog').modal();
 		setTimeout("$.modal.close()", 10000);
 	}
@@ -414,7 +375,6 @@ $(window).on('load', function(){
 	// io.in('game').emit('startPlay', {});
 	function startPlay(data){
 		$('.card').click(function(){
-			console.log('play card clickEvent from playerId: ' + g.game.playerId);
 			g.socket.emit('playCard', {playerId: g.game.playerId, card: this.card.shortName});
 		});
   }
@@ -424,16 +384,12 @@ $(window).on('load', function(){
 	// io.in('game').emit('takeTrick', {playerId: highCardSeat, game: game});
 	function takeTrick(data){
 		updateData(data);
-
 		var winnerIndex = data.playerId;
-
 		g.oheck.currentPlayerIndex = winnerIndex;
 		g.oheck.players[g.oheck.currentPlayerIndex].tricks.push(g.oheck.pile.slice(0));
 		var oldPile = g.oheck.pile;
 		g.oheck.pile = [];
 		console.log('PlayerId ' + winnerIndex + ' wins trick #' + g.oheck.hand);
-
-		// Not end of round
 		g.oheck.hand++;
 		g.oheck.renderEvent('taketrick', function (){}, { trick: oldPile });
 	}
@@ -597,10 +553,8 @@ $(window).on('load', function(){
 	// Highlight current player's turn
 	function highlightCurrentPlayer(){
 		// Determine what "positionId" playerId (g.game.currentPlayerId) is in, so we can "highlight" their turn
-		console.log(g.game.players.length, g.game.currentPlayerId, g.game.playerId);
 		var playerPositionToHighlight = (g.game.players.length + g.game.currentPlayerId - g.game.playerId) % g.game.players.length;
 		$('.avatar').removeClass('active');
-		console.log('highlight player position: ' + playerPositionToHighlight);
 		$('#player-position-' + playerPositionToHighlight).addClass('active');
 	}
 
@@ -643,41 +597,32 @@ $(window).on('load', function(){
     g.game.playerId = g.user.id - 1;
     console.log('My position: ' + (g.game.playerId + 1) + '/' + g.game.players.length);
 
-    // Create players
-    createPlayers();
-
-    // Create scoreboard
-    updateScoreboard();
-
-
-    // Create game
-    // First person who joined the game bids first
+    // Create players, scoreboard, and game
+		// First person who joined the game bids first
     // Last person who joined the game deals first
+    createPlayers();
+    updateScoreboard();
     g.oheck.dealerIndex = g.game.players.length - 1;
     g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
-//    console.log('Dealer index (-1): ' + g.oheck.dealerIndex);
-//    console.log('Player index (-1): ' + g.oheck.currentPlayerIndex);
-//    console.log('Player ID: ' + g.game.playerId);
   }
 
 	// Show "admin" buttons for first user
 	function showAdminButtons(){
-		if (SHOW_ADMIN_BTNS && g.user.id === 1 && g.user.name === 'Justin'){
+		if (g.user.id !== 1) return;
 
-			// Force Reload All
-			$('#show-force-reload-all')
-				.show()
-				.click(function(e){
-					g.socket.emit('forceReloadAll', 'Force reload for all clients');
-				});
+		// Force Reload All
+		$('#show-force-reload-all')
+			.show()
+			.click(function(e){
+				g.socket.emit('forceReloadAll', 'Force reload for all clients');
+			});
 
-			// Redeal Hand
-			$('#show-redeal-hand')
-				.show()
-				.click(function(e){
-					g.socket.emit('re', 'Redeal hand');
-				});
-		}
+		// Redeal Hand
+		$('#show-redeal-hand')
+			.show()
+			.click(function(e){
+				g.socket.emit('redealHand', 'Redeal hand');
+			});
 	}
 
 	// Show "scoreboard" button
@@ -688,8 +633,6 @@ $(window).on('load', function(){
 	// Update game data from backend server
   function updateData(data){
     g.game = data.game;
-		console.log('g.game{} data updated from backend');
-		console.log(g.game);
     g.game.playerId = g.user.id - 1;
 		highlightCurrentPlayer();
   }
@@ -749,11 +692,9 @@ $(window).on('load', function(){
 			var usersOnline = $('#usersOnline li').length;
 	    if (usersOnline >= 2 && usersOnline <= 6){
 	      $('#start-game-button').removeAttr('disabled', 'disabled');
-//	      $('#start-game-button-link').attr('href', '/html/create-game.html').attr('rel', 'modal:open');
 	    }
 	    else {
 	      $('#start-game-button').attr('disabled', 'disabled');
-//	      $('#create-game-button-link').attr('href', '#').removeAttr('rel', 'modal:open').attr('onclick', 'javascript:return false;');
 	    }
 		}
   }
@@ -761,9 +702,6 @@ $(window).on('load', function(){
   init();
 
 });
-
-
-
 
 
 
@@ -1027,8 +965,6 @@ $(window).on('load', function(){
  		for (var i = 0; i < this.players.length; i++){
  			var tPlayerId = (i + pos) % this.players.length;
  			var thisHand = g.game.players[tPlayerId].hand;
- //			console.log('About to deal to player ID: ' + tPlayerId);
- //			console.log(thisHand);
  			playersHands.push(thisHand);
  		}
 
@@ -1073,10 +1009,7 @@ $(window).on('load', function(){
  	playCard: function (player, card){
  		this.pile.push(card);
  		player.remove(card);
- 		console.log('Pile length is: ' + this.pile.length);
- 		console.log('Player hand length is: ' + player.hand.length);
  		this.renderEvent('play', this.afterPlayCards, {
- //		this.renderEvent('play', function (){}, {
  			cards: [card]
  		});
  	},
