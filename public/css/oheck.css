@@ -49,15 +49,6 @@
 .slackey {
   font-family: "Slackey";
 }
-/*#force-reload {
-  position: fixed;
-  display: block;
-  right: 0;
-  bottom: 0;
-  margin-right: 30px;
-  margin-bottom: 30px;
-  z-index: 900;
-}*/
 
 #show-welcome-dialog {
   margin-bottom: 100px;
