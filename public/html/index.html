@@ -22,9 +22,10 @@
     <meta name="description" content="Oh Heck!">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
     <title>Oh Heck!</title>
-    <link rel="stylesheet" href="//fonts.googleapis.com/css?family=Roboto:regular,bold,italic,thin,light,bolditalic,black,medium">
-    <link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons">
-    <link rel="stylesheet" href="//code.getmdl.io/1.3.0/material.indigo-blue.min.css" />
+    <!--link rel="stylesheet" href="//fonts.googleapis.com/icon?family=Material+Icons"-->
+    <link rel="stylesheet" href="/css/material.icons.css">
+    <!--link rel="stylesheet" href="//code.getmdl.io/1.3.0/material.blue-pink.min.css" /-->
+    <link rel="stylesheet" href="/css/material.blue-pink.min.css" />
     <link rel="stylesheet" href="/css/jquery.modal.min.css">
     <link rel="stylesheet" href="/css/oheck.css">
   </head>
@@ -94,7 +95,7 @@
 
           <!-- LOBBY -->
           <div id="lobby" class="h mdl-layout__content">
-            <div class="content-section-title mdl-typography--display-1-color-contrast">Users Online</div>
+            <div class="slackey content-section-title mdl-typography--display-1-color-contrast">Users Online</div>
             <ul id="usersOnline" class="mdl-list mdl-typography--text-left"></ul>
             <div class="mdl-typography--text-center">
               <a id="start-game-button-link" href="#startGame">
@@ -105,11 +106,23 @@
 
           <!-- GAME -->
           <div id="game-board" class="h">
-            <ul id="quickStats">
-        			<li id="round">Round: <span></span></li>
-        			<li id="bids">Bids: <span></span></li>
-        			<li id="trump">Trump: <span></span></li>
-        		</ul>
+            <div id="quickStats">
+              <div class="background"></div>
+              <div class="columns">
+                <span class="column">
+                  <div id="round" class="label slackey">1/5</div>
+                  <span>round</span>
+                </span>
+                <span class="column">
+                  <div id="bids" class="label slackey">0/3</div>
+                  <span>bids</span>
+                </span>
+                <span class="column">
+                  <div id="trump" class="label slackey">H</div>
+                  <span>trump</span>
+                </span>
+              </div>
+        		</div>
             <div id="playersBlock"></div>
     				<div id="playersBidBlock"></div>
     				<button id="deal" class="mdl-button mdl-js-button mdl-js-ripple-effect mdl-color--accent mdl-color-text--accent-contrast">Deal Hand</button>

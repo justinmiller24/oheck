@@ -663,9 +663,9 @@ $(window).on('load', function(){
 
 	// Update game stats board
 	function updateGameStats(){
-		$('#quickStats #round span').text(g.game.currentRoundId + ' / ' + g.game.options.rounds);
-		$('#quickStats #bids span').text(g.game.round.currentBid + ' / ' + g.game.round.numTricks);
-		$('#quickStats #trump span').text(g.game.round.trump);
+		$('#quickStats #round').text(g.game.currentRoundId + ' / ' + g.game.options.rounds);
+		$('#quickStats #bids').text(g.game.round.currentBid + ' / ' + g.game.round.numTricks);
+		$('#quickStats #trump').text(g.game.round.trump);
 	}
 
 	// Update users in lobby
@@ -790,10 +790,6 @@ $(window).on('load', function(){
  	moveToFront: function (){
  		this.guiCard.style.zIndex = oh.zIndexCounter++;
  	},
- /*	rankName: function (){
- 		var names = [null, null, 'a two', 'a three', 'a four', 'a five', 'a six', 'a seven', 'an eight', 'a nine', 'a ten', 'a jack', 'a queen', 'a king', 'an ace'];
- 		return names[this.rank];
- 	},*/
  	rotate: function (angle){
  		$(this.guiCard)
  			.css('-webkit-transform', 'rotate(' + angle + 'deg)')
