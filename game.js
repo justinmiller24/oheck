@@ -154,14 +154,14 @@ module.exports = {
 
   playerBid: function(socket, game, data){
     // Update player bid
-    var player = game.players[playerId];
-    player.bid = currentBid;
+    var player = game.players[data.playerId];
+    player.bid = data.bid;
     player.tricksTaken = 0;
 //    player.pictureHand = [];
 
     // Update total bids in round
     game.round.bids++;
-    game.round.currentBid += currentBid;
+    game.round.currentBid += data.bid;
 
     // Advance player
     game.currentPlayerId = util.getNextPlayerId(game.currentPlayerId, game.players.length);
@@ -171,7 +171,7 @@ module.exports = {
 
 
   // User played valid card
-  playCard: function(io, game, data){
+  playCard: function(io, game, users, data){
 
     // Update current trick and remove card from player hand
     game.round.currentTrickPlayed.push(data.card);
@@ -193,7 +193,7 @@ module.exports = {
     if (game.round.currentTrickPlayed.length < game.players.length) return game;
 
     // Determine next playerId based on winner of current trick
-    var winningTrickPlayerId = util.getWinningTrickPlayerId(io, game);
+    var winningTrickPlayerId = util.getWinningTrickPlayerId(game);
 
     // Update number of tricks taken by winning player
     game.players[winningTrickPlayerId].tricksTaken++;
@@ -222,6 +222,7 @@ module.exports = {
 
     // This is the last trick in round
     // Update scores
+    console.log('End of round, update scores');
     for (var i = 0; i < game.players.length; i++){
 
       // All players gets points for the number of tricks they take
@@ -231,7 +232,7 @@ module.exports = {
       if (game.players[i].tricksTaken === game.players[i].bid){
         game.players[i].score += 10;
       }
-//      console.log({playerId: i, bid: game.players[i].bid, tricks: game.players[i].tricksTaken, score: game.players[i].score});
+      console.log({playerId: i, bid: game.players[i].bid, tricks: game.players[i].tricksTaken, score: game.players[i].score});
     }
 
     // Check if NASCAR is enabled, game has at least 6 rounds, and we are 3 rounds from the end
@@ -257,10 +258,9 @@ module.exports = {
       // Show deal button to next dealer
       var nextDealerId = util.getPlayerId(game.currentRoundId + game.players.length - 1, game.players.length);
 
-      // Broadcast event to users
-      util.broadcastEvents(io, [{
-        op: 'showDealButton',
-        playerId: nextDealerId
+      // Send "showDealButton" event to dealer only
+      io.to(users[nextDealerId].socketId).emit('event', [{
+        op: 'showDealButton'
       }]);
 
       return game;

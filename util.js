@@ -2,11 +2,9 @@
 /**
  * UTIL FUNCTIONS
  */
-
-var _history = [];
-
-
 module.exports = {
+
+  _history: [],
 
   // Broadcast events to users
   broadcastEvents: function(io, arr){
@@ -19,7 +17,7 @@ module.exports = {
   // Get maximum number of cards to deal
   // Deal as many cards as we can but no more than 12 due to space
   getMaxCardsToDeal: function(){
-    return this.isProduction() ? 12 : 6;
+    return this.isProduction() ? 12 : 3;
   },
 
   // Get next playerId (mod number of players)
@@ -66,7 +64,7 @@ module.exports = {
     // Start with trick leader and loop through playes to determine highest card
     for (var i = 0; i < game.round.currentTrickPlayed.length; i++){
       var thisCard = game.round.currentTrickPlayed[i];
-      var thisCardSeat = util.getPlayerId(game.currentPlayerId + i, game.players.length);
+      var thisCardSeat = this.getPlayerId(game.currentPlayerId + i, game.players.length);
       var thisCardSuit = thisCard.substring(0, 1);
       var thisCardVal = parseInt(thisCard.substring(1), 10);
 
@@ -85,12 +83,9 @@ module.exports = {
       }
     }
 
-    console.log('PlayerId: ' + highCardSeat + ' wins trick with the ' + highCardSuit + highCardVal + ' and has taken ' + game.players[highCardSeat].tricksTaken + ' trick(s)');
+    console.log('PlayerId: ' + highCardSeat + ' wins trick with the ' + highCardSuit + highCardVal + ' and has taken ' + (game.players[highCardSeat].tricksTaken + 1) + ' trick(s)');
     return highCardSeat;
   },
-
-  // Game history
-  history: this._history;
 
   // Determine if environment is development or production
   isProduction: function(){

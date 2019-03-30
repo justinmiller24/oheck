@@ -39,7 +39,7 @@ io.sockets.on('connection', function(socket) {
   console.log('User connected with socketId: ' + socket.id);
 
   // Initialization
-  socket.emit('init', {users: users, game: game, history: util.history});
+  socket.emit('init', {users: users, game: game, history: util._history});
 
 
   // Disconnect
@@ -51,7 +51,7 @@ io.sockets.on('connection', function(socket) {
       console.log('UserId ' + userId + ' (' + users[userId - 1].name + ') lost connection with socketId: ' + socket.id);
       users[userId - 1].active = false;
     }
-    // This could happen after node server is restarted
+    // This could happen after server is restarted
     else {
       console.log('User with userId: ' + userId + ' could not be found.');
     }
@@ -68,7 +68,7 @@ io.sockets.on('connection', function(socket) {
   socket.on('forceReloadAll', function(){
     console.log('Force Reload All');
     // Clear history
-    //util.history = [];
+    util._history = [];
     // Send data to all clients including sender
     io.in('game').emit('forceReloadAll', 'Force Reload All');
   });
@@ -148,9 +148,12 @@ io.sockets.on('connection', function(socket) {
     util.broadcastEvents(io, [{
       op: 'startGame',
       game: game
-    },{
-      op: 'showDealButton',
-      playerId: game.round.dealerId
+    }]);
+
+    // Send "showDealButton" event to dealer only
+    //console.log('Dealer socketId is: ' + users[game.round.dealerId].socketId);
+    io.to(users[game.round.dealerId].socketId).emit('event', [{
+      op: 'showDealButton'
     }]);
   });
 
@@ -165,26 +168,6 @@ io.sockets.on('connection', function(socket) {
     console.log();
 
     // Broadcast event to users
-    util.broadcastEvents(io, [{
-      op: 'dealHand',
-      game: game
-    },{
-      op: 'startBid',
-      playerId: util.getNextPlayerId(game.round.dealerId, game.players.length)
-    }]);
-  });
-
-
-  // Redeal Hand event
- 	// This event fires when the admin user presses "redeal" during a round
-  socket.on('redealHand', function(){
-    console.log('Redeal Hand...');
-    game = game2.dealHand(game);
-    console.log(game);
-    console.log();
-    console.log();
-
-    // Send data to all clients including sender
     util.broadcastEvents(io, [{
       op: 'dealHand',
       game: game
@@ -294,7 +277,7 @@ io.sockets.on('connection', function(socket) {
 
     // Play Card event
     console.log('PlayerId: ' + data.playerId + ' played valid card: ' + data.card);
-    game = game2.playCard(io, game, data);
+    game = game2.playCard(io, game, users, data);
     console.log(game);
     console.log();
     console.log();
