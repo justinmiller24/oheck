@@ -218,23 +218,40 @@
 }
 
 #quickStats {
-  width: 210px;
-  height: 80px;
+  width: 180px;
+  height: 78px;
   background: #222;
 	border-radius: 10px;
+  padding: 0 15px;
 }
 #quickStats .column {
   float: left;
-  width: 70px;
+  width: 60px;
   margin: 15px 0;
   color: #fff;
   text-align: center;
 }
 #quickStats .label {
   font-weight: bold;
-  margin-bottom: 10px;
   font-size: 20px;
+  margin-bottom: 8px;
 }
+#quickStats #trump {
+  background: url("/img/suits.png") no-repeat 30px 0;
+  background-size: 180%;
+  height: 28px;
+  width: 28px;
+  overflow: hidden;
+  margin: 0 auto;
+}
+/* Spades */
+#quickStats #trump.suit-S {background-position: 2px -2px;}
+/* Hearts */
+#quickStats #trump.suit-H {background-position: -25px -2px;}
+/* Diamonds */
+#quickStats #trump.suit-D {background-position: 2px -31px;}
+/* Clubs */
+#quickStats #trump.suit-C {background-position: -25px -30px;}
 
 .card {
 	width: 71px;
@@ -346,25 +363,33 @@
 	border: solid 1px #000;
 	border-radius: 10px;
 }
+#bid h6 {
+  font-size: 24px;
+  margin: 10px 0;
+}
 #bid div {
 	display: inline-block;
-	background: #fff;
-	border: solid 1px #000;
-	color: #000;
+	background: #222;
+	border: solid 1px #fff;
+	color: #fff;
 	width: 24px;
-	height: 32px;
-	line-height: 32px;
-	text-align: center;
 	border-radius: 5px;
-	margin: 3px;
 	font-size: 16px;
+  padding: 3px;
+  margin: 3px;
+  -webkit-transition: all 0.25s ease;
+  -moz-transition: all 0.25s ease;
+  -o-transition: all 0.25s ease;
+  transition: all 0.25s ease;
 }
 #bid div:hover {
 	cursor: pointer;
-	background: #ccc;
+	background: #fff;
+  color: #222;
 }
 #bid .cannotBid,
 #bid .cannotBid:hover {
 	cursor: default;
-	background: #666;
+	background: #ccc;
+  color:#000;
 }
