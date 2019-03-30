@@ -45,7 +45,7 @@ io.sockets.on('connection', function(socket) {
   // Disconnect
   // This event fires when internet is lost or when user reloads the page
   socket.on('disconnect', function(){
-    var userId = util.getUserBySocketId(users, socket.id);
+    var userId = util.getUserIdFromSocketId(users, socket.id);
 
     if (users[userId - 1]){
       console.log('UserId ' + userId + ' (' + users[userId - 1].name + ') lost connection with socketId: ' + socket.id);
@@ -85,6 +85,8 @@ io.sockets.on('connection', function(socket) {
     console.log('UserId ' + data.user.id + ' (' + data.user.name + ') has logged in.');
     console.log({name: data.user.name, userId: data.user.id, active: data.user.active, socketId: data.user.socketId});
     console.log(users);
+    console.log();
+    console.log();
 
     // Send data to user that just logged in
     socket.emit('myUserLogin', {userId: data.user.id, users: users});
@@ -151,7 +153,6 @@ io.sockets.on('connection', function(socket) {
     }]);
 
     // Send "showDealButton" event to dealer only
-    //console.log('Dealer socketId is: ' + users[game.round.dealerId].socketId);
     io.to(users[game.round.dealerId].socketId).emit('event', [{
       op: 'showDealButton'
     }]);
@@ -171,9 +172,12 @@ io.sockets.on('connection', function(socket) {
     util.broadcastEvents(io, [{
       op: 'dealHand',
       game: game
-    },{
-      op: 'startBid',
-      playerId: util.getNextPlayerId(game.round.dealerId, game.players.length)
+    }]);
+
+    // Send "bid" UI to current bidder only
+    var nextBidderId = util.getNextPlayerId(game.round.dealerId, game.players.length);
+    io.to(users[nextBidderId].socketId).emit('event', [{
+      op: 'startBid'
     }]);
   });
 
@@ -212,9 +216,12 @@ io.sockets.on('connection', function(socket) {
 
     // Check if all players have bid
     if (game.round.bids < game.players.length){
-      util.broadcastEvents(io, [{
+
+      // Send "bid" UI to current bidder only
+      io.to(users[game.currentPlayerId].socketId).emit('event', [{
         op: 'startBid',
-        playerId: game.currentPlayerId
+        isDealer: (game.currentPlayerId === game.round.dealerId),
+        cannotBid: game.round.numTricks - game.round.currentBid
       }]);
     }
 

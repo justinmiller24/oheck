@@ -331,26 +331,18 @@ $(window).on('load', function(){
  	// This event fires before each player has to bid
 	// io.in('game').emit('startBid', {game: game});
 	function startBid(data){
-		if (data.playerId === g.game.playerId){
-
-			$('#bid').css('z-index', g.oheck.zIndexCounter + 10000).show();
-			var isDealer = (g.oheck.dealerIndex == g.game.playerId);
-			var cannotBidIndex = (g.game.round.numTricks - g.game.round.currentBid);
-
-			$('#bid div').remove();
-			for (var i = 0; i <= g.game.round.numTricks; i++){
-
-				// Force dealer
-				if (isDealer && (i === cannotBidIndex)){
-					$('<div/>').text(i).addClass('cannotBid').appendTo('#bid');
-				}
-				else {
-					$('<div/>').text(i).appendTo('#bid').click(function(e){
-						var bid = parseInt($(this).text());
-						g.socket.emit('bid', {playerId: g.game.playerId, bid: bid});
-						$('#bid').hide();
-					});
-				}
+		$('#bid').fadeIn();
+		$('#bid div').remove();
+		for (var i = 0; i <= g.game.round.numTricks; i++){
+			// Force dealer
+			if (data.isDealer && data.cannotBid && i === data.cannotBid){
+				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid');
+			}
+			else {
+				$('<div/>').text(i).appendTo('#bid').click(function(e){
+					g.socket.emit('bid', {playerId: g.game.playerId, bid: parseInt($(this).text())});
+					$('#bid').hide();
+				});
 			}
 		}
   }

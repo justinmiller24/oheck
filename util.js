@@ -47,7 +47,7 @@ module.exports = {
   },
 
   // Get userId from socketId
-  getUserBySocketId: function(users, socketId){
+  getUserIdFromSocketId: function(users, socketId){
     for (var i in users){
       if (users[i].socketId === socketId) return users[i].id;
     }
