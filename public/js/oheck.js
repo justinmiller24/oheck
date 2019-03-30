@@ -156,7 +156,7 @@ $(window).on('load', function(){
 	// This event fires when admin user forces reload
 	// io.in('game').emit('forceReloadAll', 'Force Reload All');
   g.socket.on('forceReloadAll', function(data){
-    console.log('ForceReloadAll...');
+    console.log('Force Reload All');
 		window.location.reload();
   });
 
@@ -169,7 +169,7 @@ $(window).on('load', function(){
 
 		// Loop through one or more "op" (operation) events and add to queue
 		for (var i = 0; i < data.length; i++){
-			//console.log('Received event ' + data[i].op + ' from server');
+			console.log('Received event ' + data[i].op + ' from server');
 			addQueueEvent(data[i]);
 		}
 
@@ -311,12 +311,10 @@ $(window).on('load', function(){
 
 
 	// Show Deal Button event
-	// This event is broadcast after the last card in a round is played
+	// This event is broadcast at the beginning of the game and after the last card in each round
 	// io.in('game').emit('showDealButton', {playerId: nextDealerId});
 	function showDealButton(data){
-		if (data.playerId === g.game.playerId){
-			$('#deal').show();
-		}
+		$('#deal').show();
 	}
 
 
@@ -614,14 +612,8 @@ $(window).on('load', function(){
 		$('#show-force-reload-all')
 			.show()
 			.click(function(e){
+				e.preventDefault();
 				g.socket.emit('forceReloadAll', 'Force reload for all clients');
-			});
-
-		// Redeal Hand
-		$('#show-redeal-hand')
-			.show()
-			.click(function(e){
-				g.socket.emit('redealHand', 'Redeal hand');
 			});
 	}
 
@@ -663,9 +655,10 @@ $(window).on('load', function(){
 
 	// Update game stats board
 	function updateGameStats(){
-		$('#quickStats #round').text(g.game.currentRoundId + ' / ' + g.game.options.rounds);
-		$('#quickStats #bids').text(g.game.round.currentBid + ' / ' + g.game.round.numTricks);
-		$('#quickStats #trump').text(g.game.round.trump);
+		$('#quickStats #round').text(g.game.currentRoundId);
+		$('#quickStats #bids').text(g.game.round.currentBid);
+		//$('#quickStats #trump').text(g.game.round.trump);
+		$('#quickStats #trump').removeClass().addClass('suit-' + g.game.round.trump);
 	}
 
 	// Update users in lobby
