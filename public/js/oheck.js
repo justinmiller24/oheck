@@ -53,9 +53,6 @@ var PLAYER_POSITIONS = [
   ['bottomLeft', 'left', 'topLeft', 'topRight', 'right', 'bottomRight']
 ];
 
-var SHOW_ADMIN_BTNS = true;
-var SNACKBAR_TIMEOUT = 1500;
-
 var g = {
 	game: {},
 	history: [],
@@ -69,6 +66,26 @@ var g = {
   },
   users: [],
 	waiting: false
+}
+
+// Start Bid event
+// This event fires before each player has to bid
+// io.in('game').emit('startBid', {game: game, tricks: numTricks, playerId: playerId, isDealer: true/false, cannotBid: numBids});
+function startBid(data){
+	$('#bid div').remove();
+	for (var i = 0; i <= data.tricks; i++){
+		// Force dealer
+		if (data.isDealer && i === data.cannotBid){
+			$('<div/>').text(i).addClass('cannotBid').appendTo('#bid');
+		}
+		else {
+			$('<div/>').text(i).appendTo('#bid').click(function(e){
+				g.socket.emit('playerBid', {playerId: data.playerId, bid: parseInt($(this).text())});
+				$('#bid').hide();
+			});
+		}
+	}
+	$('#bid').fadeIn();
 }
 
 
@@ -97,12 +114,10 @@ $(window).on('load', function(){
 			g.socket.emit('userJoined', {user: g.user});
 
 			// Send user to game if game is in progress
-			if (g.game.isActive){
+			if (g.game.active){
 				$('#content-section, #welcome, #game-board').slideToggle();
-
 				// Call this AFTER DOM manipulation so card positioning is correct
 				loadGameBoard();
-				highlightCurrentPlayer();
       }
 			// Send user to lobby if game is not in progress
 			else{
@@ -129,7 +144,7 @@ $(window).on('load', function(){
 		document.querySelector('#snackbar-message')
 			.MaterialSnackbar.showSnackbar({
 				message: data.message,
-				timeout: SNACKBAR_TIMEOUT
+				timeout: 1500
 		});
 	});
 
@@ -328,26 +343,6 @@ $(window).on('load', function(){
 	}
 
 
-	// Start Bid event
- 	// This event fires before each player has to bid
-	// io.in('game').emit('startBid', {game: game, tricks: numTricks, playerId: playerId, isDealer: true/false, cannotBid: numBids});
-	function startBid(data){
-		$('#bid div').remove();
-		for (var i = 0; i <= data.tricks; i++){
-			// Force dealer
-			if (data.isDealer && i === data.cannotBid){
-				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid');
-			}
-			else {
-				$('<div/>').text(i).appendTo('#bid').click(function(e){
-					g.socket.emit('playerBid', {playerId: data.playerId, bid: parseInt($(this).text())});
-					$('#bid').hide();
-				});
-			}
-		}
-		$('#bid').fadeIn();
-  }
-
 	// Start Game event
  	// This event fires when the first player creates a new game
 	// io.in('game').emit('startGame', {game: game});
@@ -357,8 +352,6 @@ $(window).on('load', function(){
     $('#lobby, #game-board').slideToggle();
 		// Call this AFTER DOM manipulation so card positioning is correct
 		loadGameBoard();
-		// Call this AFTER loadGameBoard() so "players" DIV exists
-		highlightCurrentPlayer();
   }
 
 	// Start Play event
@@ -434,26 +427,6 @@ $(window).on('load', function(){
   /**
    * GAME FUNCTIONS
    */
-  function init(){
-
-    // Check if user is already logged in
-    if (Cookies.getJSON(COOKIE_NAME)){
-
-			// If user is logged in, grab user info from cookie, delete login form, and show logout button
-      g.user = Cookies.getJSON(COOKIE_NAME);
-			showAdminButtons();
-      $('#login').remove();
-			$('#show-logout').show();
-    }
-    else {
-
-      // If user is not logged in, trigger login dialog on button click
-      $('#get-started-button-action').click(function(e){
-        e.preventDefault();
-        $('#login-dialog').modal();
-      });
-    }
-  }
 
   function createPlayers(){
     var players = [],
@@ -595,6 +568,9 @@ $(window).on('load', function(){
     updateScoreboard();
     g.oheck.dealerIndex = g.game.players.length - 1;
     g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
+
+		// Highlight current player
+		highlightCurrentPlayer();
   }
 
 	// Show "admin" buttons for first user
@@ -685,7 +661,24 @@ $(window).on('load', function(){
 		}
   }
 
-  init();
+	// Initialize UI
+	// Check if user is already logged in
+	if (Cookies.getJSON(COOKIE_NAME)){
+
+		// If user is logged in, grab user info from cookie, delete login form, and show logout button
+		g.user = Cookies.getJSON(COOKIE_NAME);
+		showAdminButtons();
+		$('#login').remove();
+		$('#show-logout').show();
+	}
+	else {
+
+		// If user is not logged in, trigger login dialog on button click
+		$('#get-started-button-action').click(function(e){
+			e.preventDefault();
+			$('#login-dialog').modal();
+		});
+	}
 
 });
 
@@ -717,12 +710,6 @@ $(window).on('load', function(){
  				}
  			}
  			return false;
- 		},
- 		last: function (){
- 			if (!this.arr.length){
- 				return null;
- 			}
- 			return this.arr[this.arr.length - 1];
  		}
  	};
  }
@@ -1318,4 +1305,4 @@ $(window).on('load', function(){
  			});
  		}, oh.TAKE_TRICK_DELAY);
  	},
- };
+};
