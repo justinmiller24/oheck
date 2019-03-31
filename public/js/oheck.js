@@ -137,7 +137,7 @@ $(window).on('load', function(){
 	// io.in('game').emit('userJoined', {userId: data.user.id, users: users});
   g.socket.on('userJoined', function(data){
     g.users = data.users;
-    if (g.users[data.userId - 1] && g.users[data.userId - 1].name){
+    if (g.users[data.userId - 1]){
       console.log('UserId ' + data.userId + ' (' + g.users[data.userId - 1].name + ') has joined');
     }
 		updateUsersInLobby();
@@ -201,9 +201,6 @@ $(window).on('load', function(){
 
 		// Trigger event
 		switch (data.op){
-			case 'bid':
-				bid(data);
-				break;
 			case 'dealHand':
 				dealHand(data);
 				break;
@@ -215,6 +212,9 @@ $(window).on('load', function(){
 				break;
 			case 'playCard':
 				playCard(data);
+				break;
+			case 'playerBid':
+				playerBid(data);
 				break;
 			case 'showDealButton':
 				showDealButton(data);
@@ -248,17 +248,6 @@ $(window).on('load', function(){
 	/*
 	 * GAME EVENTS
 	 */
-
-	// Bid event
-	// This event is broadcast after a player bids
-	// io.in('game').emit('bid', {playerId: data.playerId, bid: currentBid, game: game});
-	function bid(data){
-    updateData(data);
-		// Update player display bid
-		$('#' + g.oheck.players[data.playerId].id + ' small').append(' (' + data.bid + ')');
-		// Update stats board
-		updateGameStats();
-  }
 
 	// Deal Hand event
 	// This event fires when the dealer presses "deal" at the beginning of each round
@@ -310,6 +299,18 @@ $(window).on('load', function(){
   }
 
 
+	// PlayerBid event
+	// This event is broadcast after a player bids
+	// io.in('game').emit('playerBid', {playerId: data.playerId, bid: currentBid, game: game, players: numPlayers});
+	function playerBid(data){
+    updateData(data);
+		updateGameStats();
+		// Determine table position based on my playerId
+		var positionId = (data.players + data.playerId - g.user.id + 1) % data.players;
+		$('#player-position-' + positionId + ' small').append(' (' + data.bid + ')');
+  }
+
+
 	// Show Deal Button event
 	// This event is broadcast at the beginning of the game and after the last card in each round
 	// io.in('game').emit('showDealButton', {playerId: nextDealerId});
@@ -329,22 +330,22 @@ $(window).on('load', function(){
 
 	// Start Bid event
  	// This event fires before each player has to bid
-	// io.in('game').emit('startBid', {game: game});
+	// io.in('game').emit('startBid', {game: game, tricks: numTricks, playerId: playerId, isDealer: true/false, cannotBid: numBids});
 	function startBid(data){
-		$('#bid').fadeIn();
 		$('#bid div').remove();
-		for (var i = 0; i <= g.game.round.numTricks; i++){
+		for (var i = 0; i <= data.tricks; i++){
 			// Force dealer
-			if (data.isDealer && data.cannotBid && i === data.cannotBid){
+			if (data.isDealer && i === data.cannotBid){
 				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid');
 			}
 			else {
 				$('<div/>').text(i).appendTo('#bid').click(function(e){
-					g.socket.emit('bid', {playerId: g.game.playerId, bid: parseInt($(this).text())});
+					g.socket.emit('playerBid', {playerId: data.playerId, bid: parseInt($(this).text())});
 					$('#bid').hide();
 				});
 			}
 		}
+		$('#bid').fadeIn();
   }
 
 	// Start Game event
@@ -1154,6 +1155,8 @@ $(window).on('load', function(){
  	play: function (e){
  		var boardCenterX = ($('#game-board').width() - oh.CARD_SIZE.width) / 2;
  		var boardCenterY = ($('#game-board').height() - oh.CARD_SIZE.height) / 2;
+
+		console.log('player position: ' + e.player.position);
 
  		if (e.player.position == 'top'){
  			oh.PILE_POS.left = boardCenterX;

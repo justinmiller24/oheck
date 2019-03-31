@@ -177,28 +177,32 @@ io.sockets.on('connection', function(socket) {
     // Send "bid" UI to current bidder only
     var nextBidderId = util.getNextPlayerId(game.round.dealerId, game.players.length);
     io.to(users[nextBidderId].socketId).emit('event', [{
-      op: 'startBid'
+      op: 'startBid',
+      tricks: game.round.numTricks,
+      playerId: nextBidderId,
+      // We know the first player to bid is not the dealer, so set these to false
+      isDealer: false,
+      cannotBid: false
     }]);
+    console.log('Tell playerId ' + nextBidderId + ' to start bidding');
   });
 
 
-  // Bid event
- 	// This event fires when each user submits their bid at the beginning of each round
-  socket.on('bid', function(data){
+  // PlayerBid event
+ 	// This event fires when each user bids at the beginning of each round
+  socket.on('playerBid', function(data){
     console.log('PlayerId: ' + data.playerId + ' attempting to bid: ' + data.bid);
-    //var playerId = data.playerId;
-    //var currentBid = data.bid;
 
     // Check if round is currently in bidding status
     if (game.round.bids >= game.players.length){
-      console.log('ERROR: PlayerID: ' + data.playerId + ' attempted to bid');
+      console.log('ERROR: Round is not in bidding status');
       socket.emit('showMessage', {message: 'It is not your turn to bid!'});
       return;
     }
 
     // Check for player turn to bid
     if (game.currentPlayerId !== data.playerId){
-      console.log('ERROR: playerId: ' + data.playerId + ' attempted to bid');
+      console.log('ERROR: PlayerId ' + data.playerId + ' attempted to bid but it is PlayerId ' + game.currentPlayerId + '\'s turn');
       socket.emit('showMessage', {message: 'It is not your turn to bid!'});
       return;
     }
@@ -207,10 +211,11 @@ io.sockets.on('connection', function(socket) {
 
     // Broadcast event to users
     util.broadcastEvents(io, [{
-      op: 'bid',
+      op: 'playerBid',
       playerId: data.playerId,
       bid: data.bid,
-      game: game
+      game: game,
+      players: game.players.length
     }]);
 
 
@@ -220,9 +225,12 @@ io.sockets.on('connection', function(socket) {
       // Send "bid" UI to current bidder only
       io.to(users[game.currentPlayerId].socketId).emit('event', [{
         op: 'startBid',
+        tricks: game.round.numTricks,
+        playerId: game.currentPlayerId,
         isDealer: (game.currentPlayerId === game.round.dealerId),
         cannotBid: game.round.numTricks - game.round.currentBid
       }]);
+      console.log('Tell playerId ' + game.currentPlayerId + ' to start bidding');
     }
 
     // This was the last player to bid
