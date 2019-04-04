@@ -32,7 +32,7 @@ var oh = {
 		top: 620 * 0.5 - 96 * 0.5	// this.DECK_POS.top
 	},
 	TAKE_TRICK_DELAY: 750,
-	VERTICAL_MARGIN: 96,	// PLAYER HEIGHT (68) + PLAYER LABEL (18) HORIZONTAL PADDING (10)
+	VERTICAL_MARGIN: 96,	// PLAYER HEIGHT (68) + PLAYER LABEL (18) + HORIZONTAL PADDING (10)
 	zIndexCounter: 1
 };
 
@@ -182,7 +182,7 @@ $(window).on('load', function(){
 	 */
 	g.socket.on('event', function(data){
 
-		// Loop through one or more "op" (operation) events and add to queue
+		// Loop through one or more events and add each event to queue
 		for (var i = 0; i < data.length; i++){
 			console.log('Received event ' + data[i].op + ' from server');
 			addQueueEvent(data[i]);
@@ -274,7 +274,57 @@ $(window).on('load', function(){
 		// Remove cards from previous hand
 		$('#game-board div.card, #game-board div.verticalTrick, #game-board div.horizontalTrick').remove();
 
-    g.oheck.dealCards();
+		// Create new deck
+		g.oheck.deck = [];
+ 		if (!g.game.players[0].hand){
+ 			return;
+ 		}
+
+ 		// Set position / seat arrangement
+ 		var pos = g.oheck.nextPlayerToDealTo;
+ 		var playersHands = Array();
+ 		for (var i = 0; i < g.oheck.players.length; i++){
+ 			var tPlayerId = (i + pos) % g.oheck.players.length;
+ 			var thisHand = g.game.players[tPlayerId].hand;
+ 			playersHands.push(thisHand);
+ 		}
+
+ 		// Round robin cards from players hands to sort deck
+ 		// This allows us to distribute in reverse order
+ 		for (var i = 0; i < g.game.round.numTricks; i++){
+ 			for (var j = 0; j < playersHands.length; j++){
+ 				var cardStr = playersHands[j].shift();
+ 				var suit = cardStr.substring(0,1);
+ 				var num = cardStr.substring(1);
+ 				g.oheck.deck.unshift(new Card(suit, num));
+ 			}
+ 		}
+
+ 		// Create cardpile
+ 		var left = ($('#game-board').width() - 71) / 2;
+ 		var top = ($('#game-board').height() - 96) / 2;
+ 		for (var i = 0; i < g.oheck.deck.length; i++){
+ 			var card = g.oheck.deck[i];
+ 			if ((i + 1) % oh.CONDENSE_COUNT == 0){
+ 				left -= oh.OVERLAY_MARGIN;
+ 				top -= oh.OVERLAY_MARGIN;
+ 			}
+
+ 			// Create GUI card
+ 			var divCard = $('<div>').addClass('card').css({
+ 				"left": left,
+ 				"top": top
+ 			});
+ 			$('#game-board').append(divCard[0]);
+ 			card.guiCard = divCard[0];
+ 			divCard[0].card = card;
+ 			card.moveToFront();
+ 			card.hideCard();
+ 		}
+
+		// Deal cards
+		g.oheck.deal();
+
   }
 
 
@@ -305,9 +355,9 @@ $(window).on('load', function(){
 
     // Find card in my hand
     var player = g.oheck.players[data.playerId];
-    for (var pos = 0; pos < player.hand.length; pos++){
-      if (player.hand[pos].shortName == data.cardShortName){
-        g.oheck.playCard(player, player.hand[pos]);
+    for (var i = 0; i < player.hand.length; i++){
+      if (player.hand[i].shortName == data.cardShortName){
+        g.oheck.playCard(player, player.hand[i]);
         break;
       }
     }
@@ -510,7 +560,9 @@ $(window).on('load', function(){
 		// This means all players needed to be added to "players" array (above) before then can be added to the g.oheck object
     for (var i = 0; i < g.game.players.length; i++){
       var playerId = (players.length + i - g.game.playerId) % players.length;
-      g.oheck.addPlayer(players[playerId]);
+			players[playerId].game = g.oheck;
+			players[playerId].pos = g.oheck.players.length;
+			g.oheck.players.push(players[playerId]);
     }
   }
 
@@ -591,6 +643,19 @@ $(window).on('load', function(){
 		$('#show-scoreboard').show();
 	}
 
+	// Show "start game" button to first user when there are 2-6 users waiting
+	function showStartGameButton(){
+		if (g.user.id !== 1) return;
+
+		var usersOnline = $('#usersOnline li').length;
+    if (usersOnline >= 2 && usersOnline <= 6){
+      $('#start-game-button').removeAttr('disabled', 'disabled');
+    }
+    else {
+      $('#start-game-button').attr('disabled', 'disabled');
+    }
+	}
+
 	// Update game data from backend server
   function updateData(data){
     g.game = data.game;
@@ -649,16 +714,7 @@ $(window).on('load', function(){
     }
     $('#usersOnline').html(usersHtml);
 
-    // Show "create game" button to first user when there are 2-6 users waiting
-		if (g.user.id === 1){
-			var usersOnline = $('#usersOnline li').length;
-	    if (usersOnline >= 2 && usersOnline <= 6){
-	      $('#start-game-button').removeAttr('disabled', 'disabled');
-	    }
-	    else {
-	      $('#start-game-button').attr('disabled', 'disabled');
-	    }
-		}
+		showStartGameButton();
   }
 
 	// Initialize UI
@@ -862,7 +918,7 @@ $(window).on('load', function(){
  		for (var i = 0; i < this.players.length; i++){
  			var p = this.players[i];
  			p.tricks = [];
- 			webRenderer._adjustHand(p, function(){}, 50, true, this.cardCount);
+ 			webRenderer._adjustHand(p, function(){}, 50, true, g.game.round.numTricks);
  		}
  	},
  	afterPlayCards: function (){
@@ -870,7 +926,6 @@ $(window).on('load', function(){
  	},
  	afterRound: function (){
  		this.hand = 0;
- 		this.cardCount = 0;
  		this.dealtCardCount = 0;
  		this.pile = [];
  		this.dealerIndex = this.nextIndex(this.dealerIndex);
@@ -887,7 +942,6 @@ $(window).on('load', function(){
  			p.handSorted = false;
  		}
  	},
- 	cardCount: 0,
  	currentPlayerIndex: 0,
  	deal: function (){
 
@@ -895,7 +949,7 @@ $(window).on('load', function(){
  		if (!this.deck) return;
 
  		// All cards have been dealt
- 		if (this.dealtCardCount == this.cardCount * this.players.length){
+ 		if (this.dealtCardCount == g.game.round.numTricks * this.players.length){
  			this.afterDealing();
  			this.hand = 1;
  			return;
@@ -913,63 +967,10 @@ $(window).on('load', function(){
  			card: card
  		});
  	},
- 	dealCards: function (){
- 		this.cardCount = g.game.round.numTricks;
- 		this.newDeck();
- 		this.deal();
- 	},
  	dealerIndex: -1,
  	dealtCardCount: 0,
  	deck: null,
  	hand: 0,
- 	newDeck: function (){
- 		this.deck = [];
- 		if (!g.game.players[0].hand){
- 			return;
- 		}
-
- 		// Set position / seat arrangement
- 		var pos = this.nextPlayerToDealTo;
- 		var playersHands = Array();
- 		for (var i = 0; i < this.players.length; i++){
- 			var tPlayerId = (i + pos) % this.players.length;
- 			var thisHand = g.game.players[tPlayerId].hand;
- 			playersHands.push(thisHand);
- 		}
-
- 		// Round robin cards from players hands to sort deck
- 		// This allows us to distribute in reverse order
- 		for (var i = 0; i < g.game.round.numTricks; i++){
- 			for (var j = 0; j < playersHands.length; j++){
- 				var cardStr = playersHands[j].shift();
- 				var suit = cardStr.substring(0,1);
- 				var num = cardStr.substring(1);
- 				this.deck.unshift(new Card(suit, num));
- 			}
- 		}
-
- 		// Create cardpile
- 		var left = ($('#game-board').width() - 71) / 2;
- 		var top = ($('#game-board').height() - 96) / 2;
- 		for (var i = 0; i < this.deck.length; i++){
- 			var card = this.deck[i];
- 			if ((i + 1) % oh.CONDENSE_COUNT == 0){
- 				left -= oh.OVERLAY_MARGIN;
- 				top -= oh.OVERLAY_MARGIN;
- 			}
-
- 			// Create GUI card
- 			var divCard = $('<div>').addClass('card').css({
- 				"left": left,
- 				"top": top
- 			});
- 			$('#game-board').append(divCard[0]);
- 			card.guiCard = divCard[0];
- 			divCard[0].card = card;
- 			card.moveToFront();
- 			card.hideCard();
- 		}
- 	},
  	nextIndex: function (index){
  		return (index + 1) % this.players.length;
  	},
@@ -1130,7 +1131,7 @@ $(window).on('load', function(){
  		return props;
  	},
  	dealCard: function (e){
- 		webRenderer._adjustHand(e.player, e.callback, 50, true, e.game.cardCount);
+ 		webRenderer._adjustHand(e.player, e.callback, 50, true, g.game.round.numTricks);
  	},
  	hideCards: function (cards, position, speed){
  		setTimeout(function (){

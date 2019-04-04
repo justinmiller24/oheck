@@ -67,8 +67,13 @@ io.sockets.on('connection', function(socket) {
   // Force Reload All
   socket.on('forceReloadAll', function(){
     console.log('Force Reload All');
+
     // Clear history
     util._history = [];
+
+    // Restart game
+    game.active = false;
+
     // Send data to all clients including sender
     io.in('game').emit('forceReloadAll', 'Force Reload All');
   });
@@ -141,16 +146,10 @@ io.sockets.on('connection', function(socket) {
   // Start Game event
  	// This event fires when the first player creates a new game
   socket.on('startGame', function(){
-    game = game2.startGame(users);
+    game = game2.startGame(io, users);
     console.log(game);
     console.log();
     console.log();
-
-    // Broadcast event to users
-    util.broadcastEvents(io, [{
-      op: 'startGame',
-      game: game
-    }]);
 
     // Send "showDealButton" event to dealer only
     io.to(users[game.round.dealerId].socketId).emit('event', [{
@@ -163,16 +162,10 @@ io.sockets.on('connection', function(socket) {
  	// This event fires when the dealer presses "deal" at the beginning of each round
   socket.on('dealHand', function(){
     game.currentRoundId++
-    game = game2.dealHand(game);
+    game = game2.dealHand(io, game);
     console.log(game);
     console.log();
     console.log();
-
-    // Broadcast event to users
-    util.broadcastEvents(io, [{
-      op: 'dealHand',
-      game: game
-    }]);
 
     // Send "bid" UI to current bidder only
     var nextBidderId = util.getNextPlayerId(game.round.dealerId, game.players.length);

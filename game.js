@@ -11,7 +11,7 @@ module.exports = {
   // Start Game
   // First person who joined the game bids first
   // Last person who joined the game deals first
-  startGame: function(users){
+  startGame: function(io, users){
     console.log('Start Game');
 
     // Set game defaults
@@ -62,13 +62,19 @@ module.exports = {
     // Set current dealerId and playerId
     game.currentPlayerId = game.round.dealerId = util.getPlayerId(-1, game.players.length);
 
+    // Broadcast event to users
+    util.broadcastEvents(io, [{
+      op: 'startGame',
+      game: game
+    }]);
+
     return game;
   },
 
 
   // Deal Hand
   // This happens when dealer presses "deal" or after owner presses "restartHand"
-  dealHand: function(game){
+  dealHand: function(io, game){
     console.log('Deal Hand!');
 
     // Create new round and reset all variables
@@ -119,6 +125,12 @@ module.exports = {
       game.players[playerId].tricksTaken = 0;
       //game.players[playerId].pictureHand = [];
     }
+
+    // Broadcast event to users
+    util.broadcastEvents(io, [{
+      op: 'dealHand',
+      game: game
+    }]);
 
     return game;
   },
