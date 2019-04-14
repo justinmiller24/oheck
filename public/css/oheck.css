@@ -152,7 +152,7 @@
 }
 
   #content-section {
-    padding: 40px 20px;
+    padding: 20px;
     max-width: 1044px;
     margin-left: auto;
     margin-right: auto;
@@ -161,6 +161,12 @@
   #content-section .content-section-title {
     margin-left: 12px;
     padding-bottom: 24px;
+  }
+
+  #lobby {
+    margin: 20px auto;
+    width: 300px;
+    text-align: center;
   }
 
 
