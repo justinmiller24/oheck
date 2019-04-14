@@ -197,7 +197,7 @@ module.exports = {
     util.broadcastEvents(io, [{
       op: 'playCard',
       playerId: data.playerId,
-      cardShortName: data.card,
+      card: data.card,
       game: game
     }]);
 

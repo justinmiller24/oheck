@@ -185,18 +185,20 @@ $(window).on('load', function(){
 		// Loop through one or more events and add each event to queue
 		for (var i = 0; i < data.length; i++){
 			console.log('Received event ' + data[i].op + ' from server');
-			addQueueEvent(data[i]);
+			g.history.push(data[i]);
+			g.queue.push(data[i]);
+//			addQueueEvent(data[i]);
 		}
 
 		// Trigger next event in queue
 		runQueueEvent();
 	});
 
-	// Add event to queue
+/*	// Add event to queue
 	function addQueueEvent(evt){
 		g.history.push(evt);
 		g.queue.push(evt);
-	}
+	}*/
 
 	// Run event from queue
 	function runQueueEvent(){
@@ -271,14 +273,14 @@ $(window).on('load', function(){
     updateData(data);
 		updateGameStats();
 
+		// Hide scoreboard
+		$.modal.close();
+
 		// Remove cards from previous hand
 		$('#game-board div.card, #game-board div.verticalTrick, #game-board div.horizontalTrick').remove();
 
 		// Create new deck
 		g.oheck.deck = [];
- 		if (!g.game.players[0].hand){
- 			return;
- 		}
 
  		// Set position / seat arrangement
  		var pos = g.oheck.nextPlayerToDealTo;
@@ -323,8 +325,37 @@ $(window).on('load', function(){
  		}
 
 		// Deal cards
-		g.oheck.deal();
+		//g.oheck.deal();
 
+ 		// Cannot deal if deck is empty
+// 		if (!this.deck) return;
+
+ 		// All cards have been dealt
+/* 		if (this.dealtCardCount == g.game.round.numTricks * this.players.length){
+ 			this.afterDealing();
+ 			this.hand = 1;
+ 			return;
+ 		}*/
+
+ 		// Deal next card
+		var numCards = g.oheck.deck.length;
+		for (var i = 0; i < numCards; i++){
+	 		var card = g.oheck.deck.pop();
+	 		var player = g.oheck.players[g.oheck.nextPlayerToDealTo];
+	 		player.hand.push(card);
+	 		g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.nextPlayerToDealTo);
+	 		//g.oheck.dealtCardCount++;
+
+			webRenderer._adjustHand(player, function(){}, 50, true, g.game.round.numTricks);
+/*	 		g.oheck.renderEvent('dealcard', this.deal, {
+	 			player: player,
+	 			cardpos: player.hand.length - 1,
+	 			card: card
+	 		});*/
+		}
+
+		g.oheck.afterDealing();
+		g.oheck.hand = 1;
   }
 
 
@@ -349,14 +380,14 @@ $(window).on('load', function(){
 
 	// Play Card event
 	// This event is broadcast after a player plays a card in the current trick
-	// io.in('game').emit('playCard', {playerId: data.playerId, cardShortName: data.card, game: game});
+	// io.in('game').emit('playCard', {playerId: data.playerId, card: data.card, game: game});
 	function playCard(data){
     updateData(data);
 
     // Find card in my hand
     var player = g.oheck.players[data.playerId];
     for (var i = 0; i < player.hand.length; i++){
-      if (player.hand[i].shortName == data.cardShortName){
+      if (data.card == (player.hand[i].suit + player.hand[i].rank)){
         g.oheck.playCard(player, player.hand[i]);
         break;
       }
@@ -409,7 +440,7 @@ $(window).on('load', function(){
 	// io.in('game').emit('startPlay', {});
 	function startPlay(data){
 		$('.card').click(function(){
-			g.socket.emit('playCard', {playerId: g.game.playerId, card: this.card.shortName});
+			g.socket.emit('playCard', {playerId: g.game.playerId, card: (this.card.suit + this.card.rank)});
 		});
   }
 
@@ -585,7 +616,7 @@ $(window).on('load', function(){
         e.callback();
       });
     }
-    g.oheck.setEventRenderer('dealcard', webRenderer.dealCard);
+    //g.oheck.setEventRenderer('dealcard', webRenderer.dealCard);
     g.oheck.setEventRenderer('play', webRenderer.play);
     g.oheck.setEventRenderer('sorthand', webRenderer.sortHand);
 		g.oheck.setEventRenderer('taketrick', webRenderer.takeTrick);
@@ -673,7 +704,7 @@ $(window).on('load', function(){
 		}
 
     // Sort players by score DESC
-		pScores.sort(function(a,b){ return parseInt(b.score) - parseInt(a.score) } );
+		pScores.sort(function(a,b){ return parseInt(b.score) - parseInt(a.score) });
 
 		// Build and show HTML
     var scoreboardHTML = '';
@@ -691,7 +722,6 @@ $(window).on('load', function(){
 	function updateGameStats(){
 		$('#quickStats #round').text(g.game.currentRoundId);
 		$('#quickStats #bids').text(g.game.round.currentBid);
-		//$('#quickStats #trump').text(g.game.round.trump);
 		$('#quickStats #trump').removeClass().addClass('suit-' + g.game.round.trump);
 	}
 
@@ -717,19 +747,16 @@ $(window).on('load', function(){
 		showStartGameButton();
   }
 
-	// Initialize UI
-	// Check if user is already logged in
+	// If user is logged in, grab user info from cookie, delete login form, and show logout button
 	if (Cookies.getJSON(COOKIE_NAME)){
-
-		// If user is logged in, grab user info from cookie, delete login form, and show logout button
 		g.user = Cookies.getJSON(COOKIE_NAME);
 		showAdminButtons();
 		$('#login').remove();
 		$('#show-logout').show();
 	}
-	else {
 
-		// If user is not logged in, trigger login dialog on button click
+	// If user is not logged in, trigger login dialog on button click
+	else {
 		$('#get-started-button-action').click(function(e){
 			e.preventDefault();
 			$('#login-dialog').modal();
@@ -777,24 +804,6 @@ $(window).on('load', function(){
  	init: function (suit, rank){
  		this.suit = suit;
  		this.rank = parseInt(rank,10);
- 		var sorts = {
- 			D: 'diamonds',
- 			C: 'clubs',
- 			H: 'hearts',
- 			S: 'spades'
- 		};
- 		var specialCards = {
- 			11: 'jack',
- 			12: 'queen',
- 			13: 'king',
- 			14: 'ace'
- 		}
- 		if (specialCards[rank]){
- 			this.longName = specialCards[rank] + ' of ' + sorts[suit];
- 		} else {
- 			this.longName = rank + ' of ' + sorts[suit];
- 		}
- 		this.shortName = this.suit + this.rank;
  	},
 
  	hideCard: function (position){
@@ -814,22 +823,19 @@ $(window).on('load', function(){
  				$(this.guiCard).height(w).width(h);
  			}
  		}
- 		this.rotate(0);
+ 		this.rotate();
  	},
  	moveToFront: function (){
  		this.guiCard.style.zIndex = oh.zIndexCounter++;
  	},
- 	rotate: function (angle){
+ 	rotate: function (){
+		var angle = 0;
  		$(this.guiCard)
  			.css('-webkit-transform', 'rotate(' + angle + 'deg)')
  			.css('-moz-transform', 'rotate(' + angle + 'deg)')
  			.css('-ms-transform', 'rotate(' + angle + 'deg)')
  			.css('transform', 'rotate(' + angle + 'deg)')
  			.css('-o-transform', 'rotate(' + angle + 'deg)');
- 	},
- 	shortRankName: function (){
- 		var names = [null, null, 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'jack', 'queen', 'king', 'ace'];
- 		return names[this.rank];
  	},
  	showCard: function (position){
  		var offsets = {
@@ -853,7 +859,7 @@ $(window).on('load', function(){
  			if (w > h){
  				$(this.guiCard).height(w).width(h);
  			}
- 			this.rotate(0);
+ 			this.rotate();
  		} else {
  			ypos = -5 * oh.CARD_SIZE.height;
  			if (this.rank <= 10){
@@ -870,18 +876,9 @@ $(window).on('load', function(){
  			if (h > w){
  				$(this.guiCard).height(w).width(h);
  			}
- 			this.rotate(0);
+ 			this.rotate();
  		}
  		$(this.guiCard).setBackground(xpos + 'px', ypos + 'px');
- 	},
- 	suitName: function (){
- 		var sorts = {
- 			D: 'diamond',
- 			C: 'club',
- 			H: 'heart',
- 			S: 'spade'
- 		};
- 		return sorts[this.suit];
  	},
  };
 
@@ -898,7 +895,7 @@ $(window).on('load', function(){
  	init: function (){
  		this.callbackQueue = [];
  		this.renderers = {};
- 		this.renderers['dealcard'] = this.makeRenderFunc('dealcard - @card - @player.name - hand: @player.hand');
+ 		//this.renderers['dealcard'] = this.makeRenderFunc('dealcard - @card - @player.name - hand: @player.hand');
  		this.renderers['play'] = this.makeRenderFunc('play - @player.name played @cards - hand: @player.hand');
  		this.renderers['sorthand'] = this.makeRenderFunc('sorthand - @player.name - @player.hand');
  		this.renderers['taketrick'] = this.makeRenderFunc('taketrick - @player.name takes the trick');
@@ -921,12 +918,9 @@ $(window).on('load', function(){
  			webRenderer._adjustHand(p, function(){}, 50, true, g.game.round.numTricks);
  		}
  	},
- 	afterPlayCards: function (){
- 		this.currentPlayerIndex = this.nextIndex(this.currentPlayerIndex);
- 	},
  	afterRound: function (){
  		this.hand = 0;
- 		this.dealtCardCount = 0;
+ 		//this.dealtCardCount = 0;
  		this.pile = [];
  		this.dealerIndex = this.nextIndex(this.dealerIndex);
  		this.nextPlayerToDealTo = this.nextIndex(this.dealerIndex);
@@ -943,7 +937,7 @@ $(window).on('load', function(){
  		}
  	},
  	currentPlayerIndex: 0,
- 	deal: function (){
+/* 	deal: function (){
 
  		// Cannot deal if deck is empty
  		if (!this.deck) return;
@@ -961,14 +955,15 @@ $(window).on('load', function(){
  		player.hand.push(card);
  		this.nextPlayerToDealTo = this.nextIndex(this.nextPlayerToDealTo);
  		this.dealtCardCount++;
+		//webRenderer._adjustHand(e.player, e.callback, 50, true, g.game.round.numTricks);
  		this.renderEvent('dealcard', this.deal, {
  			player: player,
  			cardpos: player.hand.length - 1,
  			card: card
  		});
- 	},
+ 	},*/
  	dealerIndex: -1,
- 	dealtCardCount: 0,
+ 	//dealtCardCount: 0,
  	deck: null,
  	hand: 0,
  	nextIndex: function (index){
@@ -979,9 +974,10 @@ $(window).on('load', function(){
  	playCard: function (player, card){
  		this.pile.push(card);
  		player.remove(card);
- 		this.renderEvent('play', this.afterPlayCards, {
- 			cards: [card]
- 		});
+		this.renderEvent('play', function(){}, {
+			cards: [card]
+		});
+		this.currentPlayerIndex = this.nextIndex(this.currentPlayerIndex);
  	},
  	players: [],
  	renderEvent: function (name, callback, eventData){
@@ -1130,9 +1126,9 @@ $(window).on('load', function(){
  		}
  		return props;
  	},
- 	dealCard: function (e){
- 		webRenderer._adjustHand(e.player, e.callback, 50, true, g.game.round.numTricks);
- 	},
+// 	dealCard: function (e){
+// 		webRenderer._adjustHand(e.player, e.callback, 50, true, g.game.round.numTricks);
+// 	},
  	hideCards: function (cards, position, speed){
  		setTimeout(function (){
  			for (var i = 0; i < cards.length; i++){
@@ -1143,8 +1139,6 @@ $(window).on('load', function(){
  	play: function (e){
  		var boardCenterX = ($('#game-board').width() - oh.CARD_SIZE.width) / 2;
  		var boardCenterY = ($('#game-board').height() - oh.CARD_SIZE.height) / 2;
-
-		console.log('player position: ' + e.player.position);
 
  		if (e.player.position == 'top'){
  			oh.PILE_POS.left = boardCenterX;
