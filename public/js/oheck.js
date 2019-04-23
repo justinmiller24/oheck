@@ -321,7 +321,7 @@ $(window).on('load', function(){
  			card.guiCard = divCard[0];
  			divCard[0].card = card;
  			card.moveToFront();
- 			card.hideCard();
+ 			card.hideCard('bottom');
  		}
 
  		// Deal next card
@@ -331,7 +331,7 @@ $(window).on('load', function(){
 	 		var player = g.oheck.players[g.oheck.nextPlayerToDealTo];
 	 		player.hand.push(card);
 	 		g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.nextPlayerToDealTo);
-			webRenderer._adjustHand(player, function(){}, 50, true, g.game.round.numTricks);
+			player._adjustHand(function(){}, 50, true, g.game.round.numTricks);
 		}
 
 		g.oheck.afterDealing();
@@ -566,7 +566,7 @@ $(window).on('load', function(){
       thisPlayer = g.game.players[(g.game.playerId + i) % g.game.players.length];
 
 			// Create new player, and only show cards if playerId is zero
-			p = new Player(thisPlayer.name, i===0);
+			p = new Player(i === 0);
       p.id = 'player-position-' + i;
       p.position = PLAYER_POSITIONS[g.game.players.length][i];  // top, bottom, left, right, etc
       p.top = PLAYER_SETUP[p.position].top;
@@ -790,9 +790,6 @@ $(window).on('load', function(){
  		this.rank = parseInt(rank,10);
  	},
  	hideCard: function (position){
- 		if (!position){
- 			position = 'bottom';
- 		}
  		var h = $(this.guiCard).height(),
  			w = $(this.guiCard).width();
  		if (position == 'top' || position == 'topLeft' || position == 'topRight' || position == 'bottom' || position == 'bottomLeft' || position == 'bottomRight'){
@@ -877,7 +874,7 @@ $(window).on('load', function(){
 			for (var i = 0; i < this.players.length; i++){
 				var p = this.players[i];
 				p.tricks = [];
-				webRenderer._adjustHand(p, function(){}, 50, true, g.game.round.numTricks);
+				p._adjustHand(function(){}, 50, true, g.game.round.numTricks);
 			}
 		},
 		currentPlayerIndex: 0,
@@ -942,11 +939,57 @@ $(window).on('load', function(){
 		this.init(name, showCards);
 	}
 	Player.prototype = {
-		init: function (name, showCards){
-	 	 this.name = name;
+		init: function (showCards){
 	 	 this.hand = [];
 	 	 this.showCards = showCards;
 	  },
+		_adjustHand: function(callback, speed, moveToFront, handLength){
+	 		for (var i = 0; i < this.hand.length; i++){
+	 			var card = this.hand[i];
+	 			var props = this._getCardPos(i, handLength);
+	 			var f;
+
+	 			// Last card dealt in hand
+	 			if (i == this.hand.length - 1){
+	 				f = callback;
+	 			}
+	 			$(card.guiCard).moveCard(props.top, props.left, speed, f);
+	 			if (moveToFront){
+	 				card.moveToFront();
+	 			}
+	 		}
+			// Show cards
+	 		if (this.showCards){
+	 			webRenderer.showCards(this.hand, this.position);
+	 		}
+			// Hide cards
+			else {
+				for (var i = 0; i < this.hand.length; i++){
+					this.hand[i].hideCard(this.position);
+				}
+	 		}
+	 	},
+	 	_getCardPos: function(pos, handLength){
+	 		var handWidth = (handLength - 1) * oh.CARD_PADDING + oh.CARD_SIZE.width;
+	 		var props = {};
+	 		if (this.position == 'top' || this.position == 'topLeft' || this.position == 'topRight'){
+	 			props.left = this.left + handWidth / 2 - oh.CARD_SIZE.width - pos * oh.CARD_PADDING;
+	 			props.top = this.top;
+	 		}
+	 		else if (this.position == 'bottom' || this.position == 'bottomLeft' || this.position == 'bottomRight'){
+	 			props.left = this.left - handWidth / 2 + pos * oh.CARD_PADDING;
+	 			props.top = this.top;
+	 		}
+	 		else if (this.position == 'left'){
+	 			props.left = this.left;
+	 			props.top = this.top - handWidth / 2 + pos * oh.CARD_PADDING;
+	 		}
+	 		else if (this.position == 'right'){
+	 			props.left = this.left;
+	 			props.top = this.top + handWidth / 2 - oh.CARD_SIZE.width - pos * oh.CARD_PADDING;
+	 		}
+	 		return props;
+	 	},
 		hand: [],
 		tricks: [],
 		remove: function (card){
@@ -971,56 +1014,6 @@ $(window).on('load', function(){
 	};
 
  var webRenderer = {
- 	_adjustHand: function (player, callback, speed, moveToFront, handLength){
- 		for (var i = 0; i < player.hand.length; i++){
- 			var card = player.hand[i];
- 			var props = webRenderer._getCardPos(player, i, handLength);
- 			var f;
-
- 			// Last card dealt in hand
- 			if (i == player.hand.length - 1){
- 				f = callback;
- 			}
- 			$(card.guiCard).moveCard(props.top, props.left, speed, f);
- 			if (moveToFront){
- 				card.moveToFront();
- 			}
- 		}
- 		if (player.showCards){
- 			webRenderer.showCards(player.hand, player.position);
- 		} else {
- 			webRenderer.hideCards(player.hand, player.position);
- 		}
- 	},
- 	_getCardPos: function (player, pos, handLength){
- 		if (!handLength){
- 			handLength = player.hand.length;
- 		}
- 		var handWidth = (handLength - 1) * oh.CARD_PADDING + oh.CARD_SIZE.width;
- 		var props = {};
- 		if (player.position == 'top' || player.position == 'topLeft' || player.position == 'topRight'){
- 			props.left = player.left + handWidth / 2 - oh.CARD_SIZE.width - pos * oh.CARD_PADDING;
- 			props.top = player.top;
- 		}
- 		else if (player.position == 'bottom' || player.position == 'bottomLeft' || player.position == 'bottomRight'){
- 			props.left = player.left - handWidth / 2 + pos * oh.CARD_PADDING;
- 			props.top = player.top;
- 		}
- 		else if (player.position == 'left'){
- 			props.left = player.left;
- 			props.top = player.top - handWidth / 2 + pos * oh.CARD_PADDING;
- 		}
- 		else if (player.position == 'right'){
- 			props.left = player.left;
- 			props.top = player.top + handWidth / 2 - oh.CARD_SIZE.width - pos * oh.CARD_PADDING;
- 		}
- 		return props;
- 	},
- 	hideCards: function (cards, position){
-		for (var i = 0; i < cards.length; i++){
-			cards[i].hideCard(position);
-		}
- 	},
  	play: function (e){
  		var boardCenterX = ($('#game-board').width() - oh.CARD_SIZE.width) / 2;
  		var boardCenterY = ($('#game-board').height() - oh.CARD_SIZE.height) / 2;
@@ -1083,7 +1076,7 @@ $(window).on('load', function(){
  					renderCard(i + 1);
  				});
  				if (e.cards.length == 0){
- 					webRenderer._adjustHand(e.player, null, oh.ANIMATION_SPEED, false, e.player.hand.length);
+ 					e.player._adjustHand(null, oh.ANIMATION_SPEED, false, e.player.hand.length);
  				}
  				webRenderer.showCards([card]);
  			}
@@ -1097,7 +1090,7 @@ $(window).on('load', function(){
 		}
  	},
  	sortHand: function (e){
- 		webRenderer._adjustHand(e.player, e.callback, oh.ANIMATION_SPEED, false, e.player.hand.length);
+ 		e.player._adjustHand(e.callback, oh.ANIMATION_SPEED, false, e.player.hand.length);
  	},
  	takeTrick: function (e){
  		setTimeout(function (){
