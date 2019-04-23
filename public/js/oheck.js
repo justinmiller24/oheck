@@ -280,7 +280,7 @@ $(window).on('load', function(){
 		$('#game-board div.card, #game-board div.verticalTrick, #game-board div.horizontalTrick').remove();
 
 		// Create new deck
-		g.oheck.deck = [];
+		var deck = [];
 
  		// Set position / seat arrangement
  		var pos = g.oheck.nextPlayerToDealTo;
@@ -298,15 +298,15 @@ $(window).on('load', function(){
  				var cardStr = playersHands[j].shift();
  				var suit = cardStr.substring(0,1);
  				var num = cardStr.substring(1);
- 				g.oheck.deck.unshift(new Card(suit, num));
+ 				deck.unshift(new Card(suit, num));
  			}
  		}
 
  		// Create cardpile
  		var left = ($('#game-board').width() - 71) / 2;
  		var top = ($('#game-board').height() - 96) / 2;
- 		for (var i = 0; i < g.oheck.deck.length; i++){
- 			var card = g.oheck.deck[i];
+ 		for (var i = 0; i < deck.length; i++){
+ 			var card = deck[i];
  			if ((i + 1) % oh.CONDENSE_COUNT == 0){
  				left -= oh.OVERLAY_MARGIN;
  				top -= oh.OVERLAY_MARGIN;
@@ -324,34 +324,14 @@ $(window).on('load', function(){
  			card.hideCard();
  		}
 
-		// Deal cards
-		//g.oheck.deal();
-
- 		// Cannot deal if deck is empty
-// 		if (!this.deck) return;
-
- 		// All cards have been dealt
-/* 		if (this.dealtCardCount == g.game.round.numTricks * this.players.length){
- 			this.afterDealing();
- 			this.hand = 1;
- 			return;
- 		}*/
-
  		// Deal next card
-		var numCards = g.oheck.deck.length;
+		var numCards = deck.length;
 		for (var i = 0; i < numCards; i++){
-	 		var card = g.oheck.deck.pop();
+	 		var card = deck.pop();
 	 		var player = g.oheck.players[g.oheck.nextPlayerToDealTo];
 	 		player.hand.push(card);
 	 		g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.nextPlayerToDealTo);
-	 		//g.oheck.dealtCardCount++;
-
 			webRenderer._adjustHand(player, function(){}, 50, true, g.game.round.numTricks);
-/*	 		g.oheck.renderEvent('dealcard', this.deal, {
-	 			player: player,
-	 			cardpos: player.hand.length - 1,
-	 			card: card
-	 		});*/
 		}
 
 		g.oheck.afterDealing();
@@ -373,7 +353,22 @@ $(window).on('load', function(){
 	// io.in('game').emit('finishRound', {game: game});
 	function finishRound(data){
 		updateData(data);
-		g.oheck.afterRound();
+		g.oheck.hand = 0;
+		g.oheck.pile = [];
+		g.oheck.dealerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
+		g.oheck.nextPlayerToDealTo = g.oheck.nextIndex(g.oheck.dealerIndex);
+		g.oheck.currentPlayerIndex = g.oheck.nextIndex(g.oheck.dealerIndex);
+
+		// Update players for next round
+		for (var i = 0; i < g.oheck.players.length; i++){
+			var p = g.oheck.players[i];
+
+			// Clear player hand and bid
+			$('#' + p.id + ' small').text(p.name);
+			p.tricks = [];
+			p.handSorted = false;
+		}
+
 		updateScoreboard();
 	}
 
@@ -577,9 +572,6 @@ $(window).on('load', function(){
       p.top = PLAYER_SETUP[p.position].top;
       p.left = PLAYER_SETUP[p.position].left;
       p.align = PLAYER_SETUP[p.position].align;
-      if (i === 0){
-        g.human = p;
-      }
       players.push(p);
 
       // Add player name and avatar
@@ -591,8 +583,6 @@ $(window).on('load', function(){
 		// This means all players needed to be added to "players" array (above) before then can be added to the g.oheck object
     for (var i = 0; i < g.game.players.length; i++){
       var playerId = (players.length + i - g.game.playerId) % players.length;
-			players[playerId].game = g.oheck;
-			players[playerId].pos = g.oheck.players.length;
 			g.oheck.players.push(players[playerId]);
     }
   }
@@ -897,11 +887,6 @@ $(window).on('load', function(){
  		this.renderers['sorthand'] = this.makeRenderFunc('sorthand - @player.name - @player.hand');
  		this.renderers['taketrick'] = this.makeRenderFunc('taketrick - @player.name takes the trick');
  	},
- 	addPlayer: function (player){
- 		player.game = this;
- 		player.pos = this.players.length;
- 		this.players.push(player);
- 	},
  	afterDealing: function (){
  		for (var i = 0; i < this.players.length; i++){
  			var p = this.players[i];
@@ -915,26 +900,8 @@ $(window).on('load', function(){
  			webRenderer._adjustHand(p, function(){}, 50, true, g.game.round.numTricks);
  		}
  	},
- 	afterRound: function (){
- 		this.hand = 0;
- 		this.pile = [];
- 		this.dealerIndex = this.nextIndex(this.dealerIndex);
- 		this.nextPlayerToDealTo = this.nextIndex(this.dealerIndex);
- 		this.currentPlayerIndex = this.nextIndex(this.dealerIndex);
-
- 		// Update players for next round
- 		for (var i = 0; i < this.players.length; i++){
- 			var p = this.players[i];
-
- 			// Clear player hand and bid
- 			$('#' + p.id + ' small').text(p.name);
- 			p.tricks = [];
- 			p.handSorted = false;
- 		}
- 	},
  	currentPlayerIndex: 0,
  	dealerIndex: -1,
- 	deck: null,
  	hand: 0,
  	nextIndex: function (index){
  		return (index + 1) % this.players.length;
