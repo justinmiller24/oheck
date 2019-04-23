@@ -409,7 +409,7 @@ $(window).on('load', function(){
 
 	// Show Deal Button event
 	// This event is broadcast at the beginning of the game and after the last card in each round
-	// io.in('game').emit('showDealButton', {playerId: nextDealerId});
+	// io.in('game').emit('showDealButton');
 	function showDealButton(data){
 		$('#deal').show();
 	}
@@ -616,7 +616,6 @@ $(window).on('load', function(){
         e.callback();
       });
     }
-    //g.oheck.setEventRenderer('dealcard', webRenderer.dealCard);
     g.oheck.setEventRenderer('play', webRenderer.play);
     g.oheck.setEventRenderer('sorthand', webRenderer.sortHand);
 		g.oheck.setEventRenderer('taketrick', webRenderer.takeTrick);
@@ -805,7 +804,6 @@ $(window).on('load', function(){
  		this.suit = suit;
  		this.rank = parseInt(rank,10);
  	},
-
  	hideCard: function (position){
  		if (!position){
  			position = 'bottom';
@@ -895,7 +893,6 @@ $(window).on('load', function(){
  	init: function (){
  		this.callbackQueue = [];
  		this.renderers = {};
- 		//this.renderers['dealcard'] = this.makeRenderFunc('dealcard - @card - @player.name - hand: @player.hand');
  		this.renderers['play'] = this.makeRenderFunc('play - @player.name played @cards - hand: @player.hand');
  		this.renderers['sorthand'] = this.makeRenderFunc('sorthand - @player.name - @player.hand');
  		this.renderers['taketrick'] = this.makeRenderFunc('taketrick - @player.name takes the trick');
@@ -920,7 +917,6 @@ $(window).on('load', function(){
  	},
  	afterRound: function (){
  		this.hand = 0;
- 		//this.dealtCardCount = 0;
  		this.pile = [];
  		this.dealerIndex = this.nextIndex(this.dealerIndex);
  		this.nextPlayerToDealTo = this.nextIndex(this.dealerIndex);
@@ -937,33 +933,7 @@ $(window).on('load', function(){
  		}
  	},
  	currentPlayerIndex: 0,
-/* 	deal: function (){
-
- 		// Cannot deal if deck is empty
- 		if (!this.deck) return;
-
- 		// All cards have been dealt
- 		if (this.dealtCardCount == g.game.round.numTricks * this.players.length){
- 			this.afterDealing();
- 			this.hand = 1;
- 			return;
- 		}
-
- 		// Deal next card
- 		var card = this.deck.pop();
- 		var player = this.players[this.nextPlayerToDealTo];
- 		player.hand.push(card);
- 		this.nextPlayerToDealTo = this.nextIndex(this.nextPlayerToDealTo);
- 		this.dealtCardCount++;
-		//webRenderer._adjustHand(e.player, e.callback, 50, true, g.game.round.numTricks);
- 		this.renderEvent('dealcard', this.deal, {
- 			player: player,
- 			cardpos: player.hand.length - 1,
- 			card: card
- 		});
- 	},*/
  	dealerIndex: -1,
- 	//dealtCardCount: 0,
  	deck: null,
  	hand: 0,
  	nextIndex: function (index){
@@ -1126,9 +1096,6 @@ $(window).on('load', function(){
  		}
  		return props;
  	},
-// 	dealCard: function (e){
-// 		webRenderer._adjustHand(e.player, e.callback, 50, true, g.game.round.numTricks);
-// 	},
  	hideCards: function (cards, position, speed){
  		setTimeout(function (){
  			for (var i = 0; i < cards.length; i++){
