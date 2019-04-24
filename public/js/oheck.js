@@ -868,7 +868,6 @@ $(window).on('load', function(){
 		},
 		currentPlayerIndex: 0,
 		dealerIndex: -1,
-		hand: 0,
 		nextIndex: function (index){
 			return (index + 1) % this.players.length;
 		},
