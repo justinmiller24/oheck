@@ -39,7 +39,7 @@ io.sockets.on('connection', function(socket) {
   console.log('User connected with socketId: ' + socket.id);
 
   // Initialization
-  socket.emit('init', {users: users, game: game, history: util._history});
+  socket.emit('init', {users: users, game: game});
 
 
   // Disconnect
@@ -67,9 +67,6 @@ io.sockets.on('connection', function(socket) {
   // Force Reload All
   socket.on('forceReloadAll', function(){
     console.log('Force Reload All');
-
-    // Clear history
-    util._history = [];
 
     // Restart game
     game.active = false;

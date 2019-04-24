@@ -4,14 +4,9 @@
  */
 module.exports = {
 
-  _history: [],
-
   // Broadcast events to users
   broadcastEvents: function(io, arr){
     io.in('game').emit('event', arr);
-
-    // Save event to game history
-    this._history = this._history.concat(arr);
   },
 
   // Get maximum number of cards to deal
