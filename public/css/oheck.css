@@ -296,13 +296,13 @@
 	font-weight: bold;
 }
 
-#player-1, .player-1 {background-position: 0 0;}
-#player-2, .player-2 {background-position: -64px 0;}
-#player-3, .player-3 {background-position: -1068px 0;}
-#player-4, .player-4 {background-position: -1196px 0;}
-#player-5, .player-5 {background-position: -1450px 0;}
-#player-6, .player-6 {background-position: -632px 0;}
-#player-7, .player-7 {background-position: -376px 0;}
+#player-0, .player-0 {background-position: 0 0;}
+#player-1, .player-1 {background-position: -64px 0;}
+#player-2, .player-2 {background-position: -1068px 0;}
+#player-3, .player-3 {background-position: -1196px 0;}
+#player-4, .player-4 {background-position: -1450px 0;}
+#player-5, .player-5 {background-position: -632px 0;}
+/*#player-7, .player-7 {background-position: -376px 0;}
 #player-8, .player-8 {background-position: -568px 0;}
 #player-9, .player-9 {background-position: -316px 0;}
 #player-10, .player-10 {background-position: -128px 0;}
@@ -320,7 +320,7 @@
 #player-22, .player-22 {background-position: -756px 0;}
 #player-23, .player-23 {background-position: -756px 0;}
 #player-24, .player-24 {background-position: -756px 0;}
-#player-25, .player-25 {background-position: -756px 0;}
+#player-25, .player-25 {background-position: -756px 0;}*/
 
 #game-board.players-2 #player-position-0 {bottom: 5px; left: 50%; margin-left: -30px;}
 #game-board.players-2 #player-position-1 {top: 5px; left: 50%; margin-left: -30px;}
