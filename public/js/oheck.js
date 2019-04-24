@@ -55,7 +55,6 @@ var PLAYER_POSITIONS = [
 
 var g = {
 	game: {},
-	history: [],
   oheck: {},
 	queue: [],
   socket: null,
@@ -66,26 +65,6 @@ var g = {
   },
   users: [],
 	waiting: false
-}
-
-// Start Bid event
-// This event fires before each player has to bid
-// io.in('game').emit('startBid', {game: game, tricks: numTricks, playerId: playerId, isDealer: true/false, cannotBid: numBids});
-function startBid(data){
-	$('#bid div').remove();
-	for (var i = 0; i <= data.tricks; i++){
-		// Force dealer
-		if (data.isDealer && i === data.cannotBid){
-			$('<div/>').text(i).addClass('cannotBid').appendTo('#bid');
-		}
-		else {
-			$('<div/>').text(i).appendTo('#bid').click(function(e){
-				g.socket.emit('playerBid', {playerId: data.playerId, bid: parseInt($(this).text())});
-				$('#bid').hide();
-			});
-		}
-	}
-	$('#bid').fadeIn();
 }
 
 
@@ -100,11 +79,10 @@ $(window).on('load', function(){
 
 
 	// This event fires on socket connection
-	// socket.emit('init', {users: users, game: game, history: history});
+	// socket.emit('init', {users: users, game: game});
   g.socket.on('init', function(data){
     g.users = data.users;
     g.game = data.game;
-		g.history = data.history;
 
 		// Check if user is already logged in
 		if (Cookies.getJSON(COOKIE_NAME)){
@@ -184,21 +162,13 @@ $(window).on('load', function(){
 
 		// Loop through one or more events and add each event to queue
 		for (var i = 0; i < data.length; i++){
-			console.log('Received event ' + data[i].op + ' from server');
-			g.history.push(data[i]);
+			//console.log('Received event ' + data[i].op + ' from server');
 			g.queue.push(data[i]);
-//			addQueueEvent(data[i]);
 		}
 
 		// Trigger next event in queue
 		runQueueEvent();
 	});
-
-/*	// Add event to queue
-	function addQueueEvent(evt){
-		g.history.push(evt);
-		g.queue.push(evt);
-	}*/
 
 	// Run event from queue
 	function runQueueEvent(){
@@ -207,10 +177,6 @@ $(window).on('load', function(){
 		if (g.waiting || g.queue.length === 0) return;
 
 		// Set waiting status
-		var opsList = [];
-		for (var i = 0; i < g.queue.length; i++){
-			opsList.push(g.queue[i].op);
-		}
 		g.waiting = true;
 
 		// Pop next event from top of queue
@@ -255,7 +221,7 @@ $(window).on('load', function(){
 				break;
 		}
 
-		// Ready for next event
+		// Attempt to run next event from event queue
 		g.waiting = false;
 		runQueueEvent();
 	}
@@ -334,7 +300,7 @@ $(window).on('load', function(){
 			player._adjustHand(function(){}, 50, true, g.game.round.numTricks);
 		}
 
-		g.oheck.afterDealing();
+		g.oheck.sortAndAdjustHand();
   }
 
 
@@ -362,7 +328,7 @@ $(window).on('load', function(){
 			var p = g.oheck.players[i];
 
 			// Clear player hand and bid
-			var name = $('#' + p.id + ' small').text().split(" (");
+			var name = $('#' + p.id + ' small').text().split(' (');
 			$('#' + p.id + ' small').text(name[0]);
 			p.tricks = [];
 			p.handSorted = false;
@@ -414,7 +380,31 @@ $(window).on('load', function(){
 	// io.in('game').emit('showScoreboard');
 	function showScoreboard(data){
 		$('#scoreboard-dialog').modal();
-		setTimeout("$.modal.close()", 10000);
+		setTimeout("$.modal.close()", 8000);
+	}
+
+
+	// Start Bid event
+	// This event fires before each player has to bid
+	// io.in('game').emit('startBid', {game: game, tricks: numTricks, playerId: playerId, isDealer: true/false, cannotBid: numBids});
+	function startBid(data){
+		$('#bid div').remove();
+		for (var i = 0; i <= data.tricks; i++){
+			// Force dealer
+			if (data.isDealer && i === data.cannotBid){
+				$('<div/>').text(i).addClass('cannotBid').appendTo('#bid');
+			}
+			else {
+				$('<div/>').text(i).appendTo('#bid').click(function(e){
+					g.socket.emit('playerBid', {
+						playerId: data.playerId,
+						bid: parseInt($(this).text())
+					});
+					$('#bid').fadeOut();
+				});
+			}
+		}
+		$('#bid').fadeIn();
 	}
 
 
@@ -575,7 +565,7 @@ $(window).on('load', function(){
       players.push(p);
 
       // Add player name and avatar
-			$('#' + p.id + ' div').addClass('player-' + ((g.game.playerId + i) % g.game.players.length + 1));
+			$('#' + p.id + ' div').addClass('player-' + (g.game.playerId + i) % g.game.players.length);
       $('#' + p.id + ' small').text(thisPlayer.name);
     }
 
@@ -715,14 +705,13 @@ $(window).on('load', function(){
 
     var usersHtml = '';
     for (var i in g.users){
-      var user = g.users[i];
-			if (user !== null){
+      var u = g.users[i];
+			if (u !== null){
 	      usersHtml += '<li class="mdl-list__item mdl-list__item--two-line">';
 	      usersHtml += '<span class="mdl-list__item-primary-content">';
-	      usersHtml += '<span class="player-avatar player-' + user.id + '"></span>';
-	      usersHtml += '<span>' + user.name + '</span>';
-	      usersHtml += '<span class="mdl-list__item-sub-title"> </span>';
-	      usersHtml += '<span class="mdl-list__item-sub-title">User ID: ' + user.id + '</span>';
+	      usersHtml += '<span class="player-avatar player-' + (u.id - 1) + '"></span>';
+	      usersHtml += '<span style="margin-top: 10px;">' + u.name + '</span>';
+	      usersHtml += '<span class="mdl-list__item-sub-title">User ID: ' + u.id + '</span>';
 	      usersHtml += '</span></li>';
 			}
     }
@@ -793,12 +782,12 @@ $(window).on('load', function(){
  		var h = $(this.guiCard).height(),
  			w = $(this.guiCard).width();
  		if (position == 'top' || position == 'topLeft' || position == 'topRight' || position == 'bottom' || position == 'bottomLeft' || position == 'bottomRight'){
- 			$(this.guiCard).setBackground(oh.CARDBACK.x + 'px', oh.CARDBACK.y + 'px');
+ 			$(this.guiCard).setBackground(oh.CARDBACK.x, oh.CARDBACK.y);
  			if (w > h){
  				$(this.guiCard).height(w).width(h);
  			}
  		} else {
- 			$(this.guiCard).setBackground(oh.HCARDBACK.x + 'px', oh.HCARDBACK.y + 'px');
+ 			$(this.guiCard).setBackground(oh.HCARDBACK.x, oh.HCARDBACK.y);
  			if (h > w){
  				$(this.guiCard).height(w).width(h);
  			}
@@ -857,18 +846,18 @@ $(window).on('load', function(){
  			}
  			this.rotate();
  		}
- 		$(this.guiCard).setBackground(xpos + 'px', ypos + 'px');
+ 		$(this.guiCard).setBackground(xpos, ypos);
  	},
  };
 
 
 	function OHeck(){}
 	OHeck.prototype = {
-		afterDealing: function (){
+		sortAndAdjustHand: function (){
 			for (var i = 0; i < this.players.length; i++){
 				var p = this.players[i];
 				if (p.showCards && !p.handSorted){
-					return this.sortHand(p, this.afterDealing);
+					return this.sortHand(p, this.sortAndAdjustHand);
 				}
 			}
 			for (var i = 0; i < this.players.length; i++){
@@ -900,7 +889,7 @@ $(window).on('load', function(){
 			eventData.name = name;
 			eventData.game = this;
 			var game = this;
-			eventData.callback = function (){
+			eventData.callback = function(){
 				callback.call(game);
 			};
 			this.renderers[name](eventData);
@@ -935,13 +924,13 @@ $(window).on('load', function(){
 		}
 	}
 
-	function Player(name, showCards){
-		this.init(name, showCards);
+	function Player(sc){
+		this.init(sc);
 	}
 	Player.prototype = {
-		init: function (showCards){
+		init: function (sc){
 	 	 this.hand = [];
-	 	 this.showCards = showCards;
+	 	 this.showCards = sc;
 	  },
 		_adjustHand: function(callback, speed, moveToFront, handLength){
 	 		for (var i = 0; i < this.hand.length; i++){
@@ -958,13 +947,11 @@ $(window).on('load', function(){
 	 				card.moveToFront();
 	 			}
 	 		}
-			// Show cards
-	 		if (this.showCards){
-	 			webRenderer.showCards(this.hand, this.position);
-	 		}
-			// Hide cards
-			else {
-				for (var i = 0; i < this.hand.length; i++){
+			// Loop through hand and either show or hide each card
+			for (var i = 0; i < this.hand.length; i++){
+				if (this.showCards){
+					this.hand[i].showCard(this.position);
+				} else {
 					this.hand[i].hideCard(this.position);
 				}
 	 		}
@@ -990,7 +977,6 @@ $(window).on('load', function(){
 	 		}
 	 		return props;
 	 	},
-		hand: [],
 		tricks: [],
 		remove: function (card){
 			return $A(this.hand).remove(card);
@@ -1008,7 +994,7 @@ $(window).on('load', function(){
 
 	jQuery.fn.setBackground = function (x, y){
 		this.css({
-			'background-position': x + ' ' + y
+			'background-position': x + 'px ' + y + 'px'
 		});
 		return this;
 	};
@@ -1078,16 +1064,11 @@ $(window).on('load', function(){
  				if (e.cards.length == 0){
  					e.player._adjustHand(null, oh.ANIMATION_SPEED, false, e.player.hand.length);
  				}
- 				webRenderer.showCards([card]);
+				card.showCard();
  			}
  		}
 
  		renderCard(0);
- 	},
- 	showCards: function (cards, position){
-		for (var i = 0; i < cards.length; i++){
-			cards[i].showCard(position);
-		}
  	},
  	sortHand: function (e){
  		e.player._adjustHand(e.callback, oh.ANIMATION_SPEED, false, e.player.hand.length);
